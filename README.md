@@ -1,81 +1,48 @@
 # Haunt
 
-**Boo is a pixel ghost that brings dead software back to life. It possesses an old app, learns every rule by using it, writes a Kiro spec, raises the app again in a modern form, and proves the two behave the same before the old one is laid to rest.**
+**Haunt is an AI agent that switches a business from the software it has outgrown into new software, and proves nothing was lost.**
 
-Clinics, spas, salons and groomers often run on software from another era. Nobody has its code or its manual, and the rules live only in the error messages. Rewriting it by hand is how migrations go wrong: a check nobody knew about disappears, a tax sum changes by a cent, and nobody notices until a customer does.
+Salons, spas and clinics stay on booking software they dislike because leaving it hurts. The export, if there is one, has names and phone numbers. It does not have package balances, store credit, client notes, staff skills, deposits, clean-up times or cancellation rules. There is rarely an API. So someone retypes it all for days, and something always gets lost.
 
-Entered in the **Resurrection** category of Kiroween 2026.
+Haunt does the switch the way a careful person would, only faster: it reads every screen of the old app, enters everything into the new app through the new app's own screens, then proves the two give the same answers.
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box. Boo climbs out of a grave. Press **Reincarnate ClinicMaster 98** and watch, in about a minute and a half:
+Open the live demo from the link in this repo's About box. A salon, Maple & Mint, is on "Slotly" (a made-up booking app) and is switching to Idle. Press **Start the switch**:
 
-1. **Possess.** A ghost uses "ClinicMaster 98" the way new staff would: 61 entries, good and bad, on every screen. From what the app says back it works out 13 rules: required fields, phone number shape, date format, real dates only, unique phone numbers, closed on Sundays, one booking per slot, 9% GST rounded down.
-2. **Spec.** Boo writes what it learned as a Kiro spec (requirements in EARS form, design, tasks), with the evidence for every rule. **Download for Kiro** gives you `.kiro/specs/clinicmaster-reborn/`.
-3. **Rise.** The new app climbs out of the ground in Idle's look. It has no rules of its own: every check comes from the spec.
-4. **Move in.** A ghost carries every record across and checks each row reads the same in both apps.
-5. **Prove.** Two ghosts make the same 62 entries in both apps at once: every rule tried from both sides, then random entries. Random testing catches a rule exploring missed (names longer than 30 letters). Boo finds the exact limit, adds it to the spec, and the new app follows it at once. The one real difference, tax rounded down, goes to you under **Needs you**: keep it, or round to the nearest cent.
-6. **Rest.** The old app sinks into its grave and leaves a headstone.
+1. **Read.** Haunt opens all 42 client profiles, the services, the team, the cancellation rules and the upcoming bookings in Slotly. Slotly is only read, never changed.
+2. **Plan.** AI maps Slotly's categories onto Idle's ("Colour Services" to Colour), turns health notes into alerts ("Allergic to PPD", "Pregnant") and spots a stylist entered twice under two names with one phone number. It asks you about that one, while the work carries on.
+3. **Move.** Three agents work in Idle at once: one sets up rules, services and the team, one adds clients, one adds packages and bookings. Each has its own cursor. Click **Watch** to follow any of them.
+4. **Prove.** The same test booking for every service, made in both apps side by side, comparing price, end time, deposit and cancellation fee. Five services end ten or fifteen minutes earlier in Idle: Slotly adds clean-up time that only shows inside each service, not in its services list. Haunt finds it, sets the same buffer in Idle and checks again. Then it reads every client, package, booking, team member and rule back from Idle's screens.
 
-Then press **Start the day** and Boo's crew runs the shop in the Idle apps: messages, bookings, stock, reviews, payroll. It catches notifications before they reach you and shows you only what needs you.
+It finishes in about a minute with a receipt: 42 clients, 9 prepaid packages worth $2,070, $265 of store credit, 15 health alerts, 12 services, 4 team members, 18 bookings and 4 rules, with 89 of 89 checks matching.
 
-The browser demo runs its apps on one page. The desktop app works the same way with real software on your computer, through Windows UI Automation.
+Both apps in the demo run on one page, so anyone can try it. Add `?speed=0.3` to the address to watch it faster.
 
-The spec Boo wrote in a real run of the demo is checked in at [.kiro/specs/clinicmaster-reborn](.kiro/specs/clinicmaster-reborn), and [tests/reincarnation.test.js](tests/reincarnation.test.js) holds its correctness properties as property-based tests: for any entry, the reborn app gives the same answer as ClinicMaster 98.
+## Haunt on real software
 
-## What Boo does
+The same approach runs on a real computer through Windows UI Automation, the layer screen readers use, so it works on any app with no plugin or API. `tools/connector-run.mjs` drives real apps in Edge with the same agent loop. In testing it answered questions and made bookings in a demo booking app open in Edge, and read Idle's staging site. It has never been pointed at live Idle.
 
-| | |
-|---|---|
-| **Moves your clients** | Pick an export from your old software and open the "new client" form in your new one. Boo reads the form, flies to each field and types the value in. It asks before every save, or runs on autopilot. |
-| **Works with any software** | Boo reads forms through Windows UI Automation, the accessibility layer screen readers use. No plugins, no integrations, no API keys from your software vendor. |
-| **Understands messy exports** | "HP" is a phone number. "Remarks" holds the allergies. A full name splits into first and last. Pet and breed join into one field. With a free Gemini key, the matching is done by a language model. |
-| **Tells you what is going on** | Switch it on and Boo reads the app in front of you every few seconds. It speaks up only when something matters: a new booking, a cancellation, a customer waiting. |
-| **Keeps an eye on Kiro** | Kiro hooks and Kiro's agent can talk through Boo, using the `haunt` command or the MCP server. |
-| **Stays out of your way** | Every click goes through to your apps unless you click Boo. Double-click Boo to tuck it into the corner. |
+```bash
+GEMINI_ENV_FILE=path/to/.env node tools/connector-run.mjs "<window title>" "<what to do>"
+```
 
 ## Safety
 
-- Boo only types into the window it read the form from. It checks that window is in front before every keystroke, and pauses if you switch away.
-- Password fields are never read.
-- "Tell me what is going on" is off until you turn it on, because the text on screen goes to the model.
-- Events from Kiro go to 127.0.0.1 only.
+- The old app is only read.
+- Password fields are never read or typed into.
+- The real-software agent only works on addresses you allow (`HAUNT_ALLOW`), and live Idle is never on that list.
+- Every AI answer is checked before use, and plain rules stand in when the AI is unavailable.
 
-## Run the desktop app
-
-Windows 10 or 11, and Node.js 20 or newer.
+## Run the demo locally
 
 ```bash
 npm install
-node node_modules/electron/install.js   # only if Electron did not download during install
-npm start
+node tools/build-site.mjs
+GEMINI_ENV_FILE=path/to/.env node tools/serve-site.mjs 4317
 ```
 
-Right-click the ghost icon in the system tray for everything Boo can do.
-
-To try a migration with the sample files:
-
-1. Open `demo/new-client-form.html` in Edge or Chrome.
-2. Run:
-
-```bash
-npx electron . --migrate=demo/old-system-export.csv --target="New client" --autopilot
-```
-
-For smarter matching and the "what is going on" feature, copy `.env.example` to `.env.local` and add a free key from [Google AI Studio](https://aistudio.google.com).
-
-## Connect Kiro
-
-Kiro hooks can run the `haunt` command:
-
-```bash
-node bin/haunt.js start "Writing tests for Spec 2"
-node bin/haunt.js needs-you "Approve a shell command"
-node bin/haunt.js done "All tasks complete"
-node bin/haunt.js fail "3 tests failed"
-```
-
-Kiro's agent can use the MCP server in `.kiro/settings/mcp.json`, with the tools `haunt_say`, `haunt_status` and `haunt_needs_you`.
+The AI planning step uses a free Gemini key from [Google AI Studio](https://aistudio.google.com), in `GEMINI_API_KEY`. Without one, Haunt plans with built-in rules and says so.
 
 ## Checks
 
@@ -83,27 +50,25 @@ Kiro's agent can use the MCP server in `.kiro/settings/mcp.json`, with the tools
 npm test
 ```
 
-The tests are property-based, using fast-check. They prove that:
+Property-based tests with fast-check. Among them:
 
-- Boo never leaves the screen and never stands on a window edge that is hidden behind another window.
-- "Kiro needs you" stays until you click, and news that arrives meanwhile waits its turn.
-- Reaching for Boo never makes it move away.
-- CSV parsing keeps every row and cell.
-- Model output can only ever fill real form fields.
+- Whatever the AI answers, only answers that fit the question get through: real categories, real notes, real staff.
+- Merging a duplicate keeps everything they did and moves their bookings.
+- Every record has a place in the new app, and none is dropped.
+- A missing clean-up time always shows up as a different end time, which is how the proof finds it.
+- The real-software agent can never type into a password field or act on a look-alike address.
 
 ## How it is organised
 
 ```
-src/main/       Electron main process: the overlay, the window watcher, Boo's hands, migration, watching apps, the event server
-src/renderer/   Boo: pixel art, physics, behaviour, drawing
-web/            the browser demo, built into site/ for Netlify
-                legacy.js (ClinicMaster 98), explore.js (possession), spec.js (the Kiro spec),
-                reborn.js (the app run from the spec), parity.js (the proof), rebirth.js (graves)
-bin/            the haunt command for Kiro hooks
-mcp/            the MCP server for Kiro's agent
-demo/           a sample old-system export and a sample new-client form
+web/            the browser demo, built into site/
+                slotly.js (the old app), idle.js (the new app), hands.js (an agent's cursor and hands),
+                plan.js (the plan and its checks), switch.js (read, plan, move, prove), main.js (the page)
+src/agent/      the agent loop and the AI calls (Gemini), shared by the demo and the real-software agent
+src/main/       the real-software agent: Windows UI Automation hands, allowed addresses, desktop overlay
+netlify/        /api/plan and /api/think for the live demo
 tests/          property-based tests
-.kiro/          steering, MCP settings, and the spec Boo wrote for ClinicMaster Reborn
+.kiro/          steering and MCP settings
 ```
 
 ## Licence

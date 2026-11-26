@@ -3,160 +3,94 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Haunt · old software, reborn</title>
-    <meta name="description" content="Boo possesses old software, learns every rule by using it, writes a Kiro spec, raises it again as a modern app and proves the two behave the same. Then it runs the shop." />
-    <link rel="icon" href="./icon.png" />
-    <link rel="stylesheet" href="./site.css" />
+    <title>Haunt · switch booking software without losing a thing</title>
+    <meta name="description" content="Haunt is an AI agent that moves a business from the software it has outgrown into a new one. It reads every screen of the old app, moves clients, packages, staff, rules and bookings through the new app's own screens, and proves nothing was lost." />
+    <link rel="icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./app.css" />
   </head>
   <body>
-    <main class="desktop" id="desktop" aria-label="Desktop">
-      <!-- Desktop icons. Double-click to open, like a real computer. -->
-      <nav class="icons" aria-label="Desktop apps">
-        <button type="button" class="icon" data-open="Boo"><span class="glyph ghost" aria-hidden="true"></span>Boo</button>
-        <button type="button" class="icon" data-open="Idle DMs"><span class="glyph tile" aria-hidden="true" data-icon="chat"></span>Idle DMs</button>
-        <button type="button" class="icon" data-open="Idle Bookings"><span class="glyph tile" aria-hidden="true" data-icon="calendar"></span>Idle Bookings</button>
-        <button type="button" class="icon" data-open="Idle Back office"><span class="glyph tile" aria-hidden="true" data-icon="receipt"></span>Idle Back office</button>
-        <button type="button" class="icon" data-open="ClinicMaster 98"><span class="glyph" aria-hidden="true">💾</span>ClinicMaster 98</button>
-        <button type="button" class="icon" data-open="Spec"><span class="glyph" aria-hidden="true">📜</span>Spec</button>
-        <button type="button" class="icon" data-open="Graveyard"><span class="glyph" aria-hidden="true">🪦</span>Graveyard</button>
-      </nav>
+    <div class="browser">
+      <header class="chrome">
+        <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="tabs" aria-label="Open tabs">
+          <div class="tab on" id="tab-slotly"><span class="fav slotly-fav" aria-hidden="true"></span>Slotly · Maple &amp; Mint</div>
+          <div class="tab" id="tab-idle" hidden><span class="fav idle-fav" aria-hidden="true"></span>Idle · Maple &amp; Mint</div>
+        </div>
+        <button type="button" class="ext" id="haunt-toggle" aria-label="Show or hide Haunt" aria-pressed="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.4-1.8L14.3 20 12 18.2 9.7 20l-2.3-1.8z" fill="currentColor"/><circle cx="9.5" cy="10.5" r="1.4" fill="#fff"/><circle cx="14.5" cy="10.5" r="1.4" fill="#fff"/></svg>
+        </button>
+      </header>
 
-      <!-- Boo: the one calm place to look. -->
-      <article class="window boo-window" data-app="Boo" data-boo-ignore aria-label="Boo">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="tiny-ghost" aria-hidden="true"></span>Boo</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Boo">–</button><button type="button" data-max aria-label="Maximise Boo">□</button><button type="button" data-close aria-label="Close Boo">×</button></span>
-        </header>
-        <div class="window-body boo-panel">
-          <p class="headline" id="headline" aria-live="polite">Good morning. Nothing needs you yet.</p>
-          <p class="subline" id="subline">Press Start the day and I will look after the shop.</p>
+      <div class="viewport" id="viewport">
+        <section class="pane" id="pane-slotly" aria-label="Slotly, the current software">
+          <div class="pane-url"><span class="lock" aria-hidden="true"></span>app.slotly.example/maple-and-mint</div>
+          <div class="app-root" id="slotly"></div>
+        </section>
 
-          <section class="rebirth" aria-labelledby="rebirth-title">
-            <h2 id="rebirth-title">Bring old software back to life</h2>
-            <p class="rebirth-intro">ClinicMaster 98 has run this shop since 1998. Nobody has its code or its manual. I can learn it by using it, write the spec, and raise it again as a modern app.</p>
-            <ol class="steps" id="steps">
-              <li data-step="possess"><span>Possess it and learn every rule</span><small></small></li>
-              <li data-step="spec"><span>Write the spec for Kiro</span><small></small></li>
-              <li data-step="rise"><span>Raise the new app</span><small></small></li>
-              <li data-step="move"><span>Move the records in</span><small></small></li>
-              <li data-step="prove"><span>Prove it works the same</span><small></small></li>
-              <li data-step="rest"><span>Lay the old one to rest</span><small></small></li>
+        <section class="pane" id="pane-idle" hidden aria-label="Idle, the new software">
+          <div class="pane-url"><span class="lock" aria-hidden="true"></span>Idle · demo store<span class="watching" id="watching"></span></div>
+          <div class="idle-views" id="idle-views"></div>
+        </section>
+
+        <aside class="haunt" id="haunt" aria-label="Haunt">
+          <header class="h-head">
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.4-1.8L14.3 20 12 18.2 9.7 20l-2.3-1.8z" fill="currentColor"/><circle cx="9.5" cy="10.5" r="1.4" fill="#fff"/><circle cx="14.5" cy="10.5" r="1.4" fill="#fff"/></svg>
+            <strong>Haunt</strong>
+            <span class="h-clock" id="clock" hidden>0:00</span>
+          </header>
+
+          <div class="h-body">
+            <section class="h-start" id="start-card">
+              <p class="h-eyebrow">Switching to Idle</p>
+              <h1>Move Maple &amp; Mint out of Slotly, with nothing lost.</h1>
+              <p>I will read every client, package, team member, rule and booking in Slotly, put it all into Idle through Idle's own screens, then prove both apps give the same answers.</p>
+              <ul class="h-promises">
+                <li>Slotly is only read. Nothing in it changes.</li>
+                <li>No export file and no API needed. I use the apps the way you do.</li>
+                <li>Anything I am not sure about, I ask you.</li>
+              </ul>
+              <button type="button" class="h-btn primary" id="start">Start the switch</button>
+            </section>
+
+            <ol class="h-steps" id="steps" hidden>
+              <li data-step="read"><b>Read Slotly</b><small></small></li>
+              <li data-step="plan"><b>Plan the move</b><small></small></li>
+              <li data-step="move"><b>Move it into Idle</b><small></small></li>
+              <li data-step="prove"><b>Prove nothing was lost</b><small></small></li>
             </ol>
-            <div class="proof" id="proof" hidden>
-              <div class="meter" aria-hidden="true"><span id="proof-bar"></span></div>
-              <p id="proof-line" aria-live="polite"></p>
-              <ul id="diffs"></ul>
-            </div>
-            <div class="rebirth-actions">
-              <button type="button" id="reincarnate" class="btn primary">Reincarnate ClinicMaster 98</button>
-              <button type="button" id="rest" class="btn" hidden>Lay ClinicMaster 98 to rest</button>
-            </div>
-          </section>
 
-          <div class="day-controls">
-            <button type="button" id="run-day" class="btn primary">Start the day</button>
-            <button type="button" id="focus" class="btn">Focus</button>
+            <dl class="h-counts" id="counts" hidden>
+              <div data-count="clients"><dt>Clients</dt><dd>0</dd></div>
+              <div data-count="packages"><dt>Packages</dt><dd>0</dd></div>
+              <div data-count="services"><dt>Services</dt><dd>0</dd></div>
+              <div data-count="team"><dt>Team</dt><dd>0</dd></div>
+              <div data-count="bookings"><dt>Bookings</dt><dd>0</dd></div>
+              <div data-count="policies"><dt>Rules</dt><dd>0</dd></div>
+            </dl>
+
+            <section class="h-question" id="question" hidden aria-live="assertive"></section>
+
+            <ul class="h-plan" id="plan" hidden></ul>
+
+            <section class="h-lanes" id="lanes" hidden>
+              <div class="h-lane" data-lane="setup"><span class="dot"></span><b>Setup agent</b><small>Rules, services, team</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="setup">Watch</button></div>
+              <div class="h-lane" data-lane="people"><span class="dot"></span><b>Clients agent</b><small>Clients, alerts, credit</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="people">Watch</button></div>
+              <div class="h-lane" data-lane="books"><span class="dot"></span><b>Bookings agent</b><small>Packages, bookings</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="books">Watch</button></div>
+            </section>
+
+            <section class="h-proof" id="proof" hidden>
+              <div class="h-proof-num"><strong id="proof-num">0</strong><span id="proof-of">checks match</span></div>
+              <div class="bar"><i id="proof-bar"></i></div>
+              <p id="proof-diff" hidden></p>
+            </section>
+
+            <section class="h-receipt" id="receipt" hidden></section>
+
+            <ol class="h-feed" id="feed" aria-live="polite"></ol>
           </div>
-
-          <section class="needs" aria-labelledby="needs-title">
-            <h2 id="needs-title">Needs you</h2>
-            <ul id="needs"></ul>
-          </section>
-
-          <details class="more">
-            <summary>What I have been doing</summary>
-            <dl class="numbers" id="numbers"></dl>
-            <ol id="activity"></ol>
-          </details>
-
-          <form id="ask-form" autocomplete="off" class="ask">
-            <label class="sr-only" for="ask">Ask Boo about your business</label>
-            <input id="ask" placeholder="Ask me about the shop" />
-            <button type="button" id="mic" class="btn icon" aria-label="Talk out loud" hidden>🎙</button>
-            <button type="submit" class="btn">Ask</button>
-          </form>
-          <p class="answer" id="answer" aria-live="polite"></p>
-          <label class="switch"><input type="checkbox" id="speak" /> Talk out loud</label>
-        </div>
-      </article>
-
-      <article class="window app" data-app="Idle DMs" aria-label="Idle DMs">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="chat"></span>Idle DMs</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Idle DMs">–</button><button type="button" data-max aria-label="Maximise Idle DMs">□</button><button type="button" data-close aria-label="Close Idle DMs">×</button></span>
-        </header>
-        <div class="window-body idle app-body messages"></div>
-      </article>
-
-      <article class="window app" data-app="Idle Bookings" aria-label="Idle Bookings">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="calendar"></span>Idle Bookings</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Idle Bookings">–</button><button type="button" data-max aria-label="Maximise Idle Bookings">□</button><button type="button" data-close aria-label="Close Idle Bookings">×</button></span>
-        </header>
-        <div class="window-body idle app-body booking"></div>
-      </article>
-
-      <article class="window app" data-app="Idle Back office" aria-label="Idle Back office">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="receipt"></span>Idle Back office</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Idle Back office">–</button><button type="button" data-max aria-label="Maximise Idle Back office">□</button><button type="button" data-close aria-label="Close Idle Back office">×</button></span>
-        </header>
-        <div class="window-body idle app-body office"></div>
-      </article>
-
-      <!-- The old software: a real app with rules nobody wrote down. -->
-      <article class="window legacy" data-app="ClinicMaster 98" data-boo-ignore aria-label="ClinicMaster 98">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="legacy-icon" aria-hidden="true"></span>ClinicMaster 98</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise ClinicMaster 98">_</button><button type="button" data-max aria-label="Maximise ClinicMaster 98">□</button><button type="button" data-close aria-label="Close ClinicMaster 98">×</button></span>
-        </header>
-        <div class="window-body legacy-app"></div>
-      </article>
-
-      <!-- The same app, reborn from Boo's spec in Idle's look. -->
-      <article class="window app reborn" data-app="ClinicMaster Reborn" data-boo-ignore hidden aria-label="ClinicMaster Reborn">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="store"></span>ClinicMaster Reborn</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise ClinicMaster Reborn">–</button><button type="button" data-max aria-label="Maximise ClinicMaster Reborn">□</button><button type="button" data-close aria-label="Close ClinicMaster Reborn">×</button></span>
-        </header>
-        <div class="window-body idle app-body reborn-body"></div>
-      </article>
-
-      <!-- The spec Boo writes, in Kiro's format. -->
-      <article class="window spec" data-app="Spec" data-boo-ignore hidden aria-label="Spec for Kiro">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph" aria-hidden="true">📜</span>.kiro/specs/clinicmaster-reborn</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Spec">–</button><button type="button" data-max aria-label="Maximise Spec">□</button><button type="button" data-close aria-label="Close Spec">×</button></span>
-        </header>
-        <div class="spec-tabs" role="tablist" aria-label="Spec files">
-          <button type="button" role="tab" data-file="requirements.md" aria-selected="true">requirements.md</button>
-          <button type="button" role="tab" data-file="design.md" aria-selected="false">design.md</button>
-          <button type="button" role="tab" data-file="tasks.md" aria-selected="false">tasks.md</button>
-          <button type="button" class="spec-download" id="spec-download">Download for Kiro</button>
-        </div>
-        <div class="window-body spec-body"><pre id="spec-text" tabindex="0"></pre></div>
-      </article>
-
-      <article class="window graveyard" data-app="Graveyard" data-boo-ignore hidden aria-label="Graveyard">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph" aria-hidden="true">🪦</span>Graveyard</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Graveyard">–</button><button type="button" data-max aria-label="Maximise Graveyard">□</button><button type="button" data-close aria-label="Close Graveyard">×</button></span>
-        </header>
-        <div class="window-body"><p>Notifications Boo caught today rest here, so they never bothered you.</p><ol id="caught"></ol></div>
-      </article>
-
-      <div class="toasts" id="toasts" aria-live="polite"></div>
-    </main>
-
-    <footer class="taskbar">
-      <button type="button" class="start" id="start" aria-label="Haunt"><img src="./icon.png" alt="" width="22" height="22" /></button>
-      <nav class="running" aria-label="Open apps" id="running"></nav>
-      <div class="tray">
-        <span class="tray-note">Demo apps. Haunt works the same way with real software.</span>
-        <span aria-hidden="true">📶</span><span aria-hidden="true">🔋</span>
-        <span class="clock"><span id="clock"></span><small id="date"></small></span>
+        </aside>
       </div>
-    </footer>
-    <script type="module" src="./site.js"></script>
+    </div>
+    <script type="module" src="./main.js"></script>
   </body>
 </html>
