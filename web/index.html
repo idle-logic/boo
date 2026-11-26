@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Haunt · Boo moves your clients</title>
+    <meta name="description" content="Boo is a pixel ghost that lives on your screen. It moves clients out of old software into new software, form by form, and tells you what is going on in your apps." />
+    <link rel="icon" href="./icon.png" />
+    <link rel="stylesheet" href="./site.css" />
+  </head>
+  <body>
+    <div class="desktop" id="desktop">
+      <section class="intro" aria-labelledby="intro-title">
+        <h1 id="intro-title">Haunt</h1>
+        <p>Boo moves your clients out of old software and into new software, one form at a time. Then it keeps an eye on your apps and tells you what matters.</p>
+        <div class="controls">
+          <button type="button" id="migrate" class="btn primary">Move my clients</button>
+          <button type="button" id="ambient" class="btn" aria-pressed="false">Tell me what is going on</button>
+          <button type="button" id="tuck" class="btn quiet">Tuck Boo away</button>
+        </div>
+        <p class="small">Drag Boo to throw it. Double-click to tuck it away. Move the windows and Boo hops between them.</p>
+      </section>
+
+      <!-- The old software. -->
+      <article class="window legacy" id="legacy" style="left: 3%; top: 260px" aria-label="ClinicMaster 98, the old software">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="app-icon" aria-hidden="true"></span>ClinicMaster 98 · Clients</span>
+          <span class="win-buttons" aria-hidden="true"><i>_</i><i>□</i><i>×</i></span>
+        </header>
+        <div class="menubar" aria-hidden="true"><u>F</u>ile <u>E</u>dit <u>V</u>iew <u>R</u>ecords <u>H</u>elp</div>
+        <div class="grid-wrap">
+          <table class="grid">
+            <thead><tr id="legacy-head"></tr></thead>
+            <tbody id="legacy-rows"></tbody>
+          </table>
+        </div>
+        <div class="statusbar"><span id="legacy-status">0 records</span><span>Licensed to: Tuesday Grooming</span></div>
+      </article>
+
+      <!-- The new software. -->
+      <article class="window modern" id="modern" style="right: 3%; top: 150px" aria-label="Bloom Booking, the new software">
+        <header class="titlebar" data-drag>
+          <span class="title">Bloom Booking</span>
+          <span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span>
+        </header>
+        <div class="modern-body">
+          <aside class="today" aria-label="Today">
+            <h2>Today</h2>
+            <ul id="feed"><li class="muted">Quiet so far.</li></ul>
+            <h2>Clients <span id="client-count">0</span></h2>
+            <ul id="clients"><li class="muted">No clients yet.</li></ul>
+          </aside>
+          <form id="new-client" autocomplete="off" aria-label="New client">
+            <h2>New client</h2>
+            <div class="row">
+              <label>First name<input name="first" /></label>
+              <label>Last name<input name="last" /></label>
+            </div>
+            <div class="row">
+              <label>Mobile number<input name="phone" /></label>
+              <label>Email<input name="email" /></label>
+            </div>
+            <div class="row">
+              <label>Date of birth (DD/MM/YYYY)<input name="dob" /></label>
+              <label>Preferred staff
+                <select name="staff"><option value="">No preference</option><option>Hana</option><option>Tom</option></select>
+              </label>
+            </div>
+            <label>Pet name and breed<input name="pet" /></label>
+            <label>Notes and allergies<textarea name="notes" rows="2"></textarea></label>
+            <div class="actions">
+              <button type="reset" class="btn quiet">Clear</button>
+              <button type="submit" class="btn primary" id="save">Save client</button>
+            </div>
+          </form>
+        </div>
+      </article>
+
+      <footer class="taskbar">
+        <span class="start"><img src="./icon.png" alt="" width="20" height="20" />Haunt</span>
+        <span class="note">A browser demo. The desktop app does this with any software on your computer.</span>
+        <a class="download" href="https://github.com/" id="download">Get the desktop app</a>
+        <span class="clock" id="clock"></span>
+      </footer>
+    </div>
+    <script type="module" src="./site.js"></script>
+  </body>
+</html>

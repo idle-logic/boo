@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "haunt": {
+      "command": "node",
+      "args": ["mcp/server.js"],
+      "disabled": false
+    }
+  }
+}

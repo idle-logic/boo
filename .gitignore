@@ -1,0 +1,7 @@
+node_modules/
+out/
+dist/
+sprites.png
+.env.local
+evals/results/
+site/
