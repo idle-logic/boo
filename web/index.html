@@ -32,6 +32,8 @@
           <div class="idle-views" id="idle-views"></div>
         </section>
 
+        <div class="caption" id="caption" hidden role="status" aria-live="polite"><b id="cap-title"></b><span id="cap-sub"></span></div>
+
         <aside class="haunt" id="haunt" aria-label="Haunt">
           <header class="h-head">
             <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.4-1.8L14.3 20 12 18.2 9.7 20l-2.3-1.8z" fill="currentColor"/><circle cx="9.5" cy="10.5" r="1.4" fill="#fff"/><circle cx="14.5" cy="10.5" r="1.4" fill="#fff"/></svg>
@@ -41,17 +43,32 @@
           </header>
 
           <ol class="h-chapters" id="chapters" aria-label="What Haunt does">
-            <li data-ch="find" data-state="now"><span>1</span>Find the workarounds</li>
-            <li data-ch="run"><span>2</span>Run them for you</li>
-            <li data-ch="switch"><span>3</span>Switch to Idle</li>
+            <li data-ch="find" data-state="now"><span>1</span>Find the mess</li>
+            <li data-ch="clean"><span>2</span>Clean and standardise</li>
+            <li data-ch="move"><span>3</span>Move to Idle</li>
           </ol>
           <div class="h-body">
             <section class="h-start" id="start-card">
               <div class="boo-spot" id="boo-spot" aria-hidden="true"></div>
-              <p class="h-eyebrow">Haunt</p>
-              <h1>Your software can't do everything. So your team does it by hand.</h1>
-              <p>Let me look around Slotly. I'll find what your team works around, and take it over for you, right inside Slotly. When you're ready to leave, I'll move you to Idle with nothing lost.</p>
-              <button type="button" class="h-btn primary" id="start">Let Boo look around</button>
+              <p class="h-eyebrow">Moving to Idle</p>
+              <h1>Maple &amp; Mint is moving from Slotly to Idle.</h1>
+              <table class="h-compare" aria-label="What each app can hold">
+                <thead><tr><th></th><th>Slotly</th><th>Idle</th></tr></thead>
+                <tbody>
+                <tr><th>Customers, services, staff, appointments</th><td class="y">✓</td><td class="y">✓</td></tr>
+                <tr><th>Allergy alerts</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>VIP tags</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>Packages</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>Store credit</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>Products and stock</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>Deposits</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>Clean-up time after a service</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>Cancellation rules</th><td class="n">✗</td><td class="y">✓</td></tr>
+                <tr><th>SMS credits</th><td class="y">✓</td><td class="n">✗ <small>WhatsApp instead</small></td></tr>
+                </tbody>
+              </table>
+              <p>Slotly doesn't have these features, so your team hid that data in names, notes and fake bookings. Before the move, Boo finds it, cleans it and standardises it. Then it goes into its proper place in Idle.</p>
+              <button type="button" class="h-btn primary" id="start">Let Boo look around Slotly</button>
             </section>
 
             <section class="h-now" id="now" hidden><b id="now-title"></b><span id="now-sub"></span></section>
@@ -71,7 +88,6 @@
 
             <section class="h-receipt" id="receipt" hidden></section>
 
-            <details class="h-log"><summary>What Boo is doing</summary><ol class="h-feed" id="feed" aria-live="polite"></ol></details>
           </div>
         </aside>
       </div>

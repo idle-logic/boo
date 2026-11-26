@@ -4,7 +4,6 @@ import assert from 'node:assert/strict'
 import fc from 'fast-check'
 import { slotlyRecords, SERVICES, IDLE_CATEGORY } from '../web/data.js'
 import { readWithRules, mergeReading, findingsFor, cleanName } from '../web/interpret.js'
-import { useSession } from '../web/features.js'
 import { idleRecords } from '../web/switch.js'
 import { cleanReadRequest, cleanAskRequest } from '../src/agent/ai.js'
 
@@ -55,16 +54,6 @@ test('whatever Gemini says, nothing ungrounded in the original text gets through
     }),
     { numRuns: 300 },
   )
-})
-
-test('counting off a session keeps the note in the style the team wrote it', () => {
-  assert.equal(useSession('PKG blowdry: 4 left of 5, paid $200'), 'PKG blowdry: 3 left of 5, paid $200')
-  assert.equal(useSession('prepaid 10 mens cuts ($340) - 6 remaining'), 'prepaid 10 mens cuts ($340) - 5 remaining')
-  assert.equal(useSession('3x scalp detox pkg, 1 used. pd $150'), '3x scalp detox pkg, 2 used. pd $150')
-  for (const c of read.clients) for (const p of c.packages) {
-    const after = readWithRules({ ...old, customers: old.customers.map((x, i) => (i === c.src ? { ...x, notes: x.notes.replace(p.from, useSession(p.from)) } : x)) })
-    assert.equal(after.clients[c.src].packages.find(q => q.name === p.name).left, p.left - 1, `${c.name} ${p.name}`)
-  }
 })
 
 test('the owner decides: merging, expiry, and what stays as a note', () => {

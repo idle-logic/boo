@@ -43,11 +43,16 @@ export function idleRecords(read, d) {
 export async function move({ records, lanes, store, ui, speed = 1 }) {
   const s = ms => ms * speed
   const [setup, people, books] = lanes
+  const LANES = new Map([[setup, 'setup'], [people, 'people'], [books, 'books']])
+  const TOTAL = { services: records.services.length, products: records.products.length, team: records.staff.length, clients: records.clients.length, packages: records.packages.length, calendar: records.bookings.length }
   async function enter(h, page, open, values, i) {
     if (!h.look(`[data-nav="${page}"][aria-current="page"]`)) await h.press(`[data-nav="${page}"]`)
     await h.press('button', open)
     await h.fill(values, { typing: i < 1 })
     await h.submit()
+    const lane = [...LANES].find(([l]) => l.hands === h)?.[1]
+    const what = page === 'packages' ? `${values.Client}'s ${values.Package}` : page === 'calendar' ? `${values.Client}'s ${values.Service} booking` : values.Name
+    ui.moved?.(lane, what, i + 1, TOTAL[page])
   }
   const laneSetup = (async () => {
     const h = setup.hands
@@ -112,7 +117,7 @@ export async function prove({ seen, read, records, d, p, ui, speed = 1 }) {
   const tally = (ok, label) => {
     checks++
     if (ok) matched++
-    ui.proof(matched, checks, ok ? null : label)
+    ui.proof(matched, checks, ok ? null : label, label)
   }
   const table = async page => {
     await p.press(`[data-nav="${page}"]`)

@@ -9,8 +9,7 @@ import { createHands } from './hands.js'
 import { createGhost, burst, SPARKLE, CONFETTI } from './ghost.js'
 import { playIntro } from './intro.js'
 import { survey } from './survey.js'
-import { readOldApp, readWithRules, findingsFor, cleanName } from './interpret.js'
-import { FEATURES, createFeatures } from './features.js'
+import { readOldApp, readWithRules, findingsFor } from './interpret.js'
 import { idleRecords, move, prove } from './switch.js'
 import { askBoo } from './ai.js'
 import { createBoo as createPet } from './pet.js'
@@ -22,8 +21,7 @@ const speed = Number(params.get('speed')) || 1
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
 const old = { business: BUSINESS, ...slotlyRecords() }
-let features = null
-const slotly = createSlotly($('slotly'), old, { booked: a => features?.booked(a) })
+const slotly = createSlotly($('slotly'), old)
 const store = createIdleStore(BUSINESS)
 
 // ------------------------------------------------------------- Boo and the crew
@@ -171,17 +169,21 @@ const show = id => {
 }
 const gem = (on, model) => (on ? `<span class="gem" title="${esc(model || 'Gemini')}">✦ Gemini</span>` : '')
 const ui = {
+  /** What Boo is doing right now, in one plain line: in the panel and as a caption over the apps. */
   now(title, sub = '') {
     $('now').hidden = false
     $('now-title').textContent = title
     $('now-sub').textContent = sub
+    $('caption').hidden = false
+    $('cap-title').textContent = title
+    $('cap-sub').textContent = sub
   },
-  log(text, kind = '') {
-    const li = document.createElement('li')
-    li.textContent = text
-    if (kind) li.className = kind
-    $('feed').prepend(li)
+  log(text) {
     feedLines.push(text)
+  },
+  /** A ghost finished one record in Idle. Shown when you are watching that ghost. */
+  moved(lane, what, done, total) {
+    if (views[lane].el.classList.contains('on')) ui.now(`${AGENTS[lane].name} added ${what} to Idle`, `${done} of ${total}`)
   },
   ask({ title, detail, choices }) {
     const box = $('question')
@@ -201,7 +203,8 @@ const ui = {
       )
     })
   },
-  feature(key, text) {
+  feature(key, text, said) {
+    if (said) ui.now(said, text)
     const row = document.querySelector(`#live [data-feature="${key}"]`)
     if (!row) return
     row.classList.add('fired')
@@ -220,7 +223,8 @@ const ui = {
     row.querySelector('em').textContent = `${done} of ${total}`
     row.classList.toggle('done', done === total)
   },
-  proof(matched, checks, diff) {
+  proof(matched, checks, diff, label) {
+    if (label) ui.now('Checking Idle against what Slotly had', `${label} ${diff ? '✗' : '✓'} (${checks} checked, ${matched} match)`)
     $('proof-num').textContent = matched
     $('proof-of').textContent = `of ${checks} checks match`
     $('proof-bar').style.width = `${checks ? (matched / checks) * 100 : 0}%`
@@ -234,22 +238,59 @@ const ui = {
 
 /** The three chapters at the top of the panel. */
 function chapter(name) {
-  const order = ['find', 'run', 'switch']
+  const order = ['find', 'clean', 'move']
   for (const li of document.querySelectorAll('#chapters [data-ch]')) {
     const i = order.indexOf(li.dataset.ch)
     li.dataset.state = i < order.indexOf(name) ? 'done' : i === order.indexOf(name) ? 'now' : ''
   }
 }
 
-/** Ring a piece of Slotly's screen and label it. Returns a function that takes the ring away. */
-function mark(el, label) {
+/**
+ * Ring a piece of Slotly's screen, dim the rest of Slotly (never the panel),
+ * and draw a line from the ring to the card that explains it.
+ * Returns a function that takes it all away.
+ */
+function mark(el, label, card) {
   const r = rect(el)
+  const pane = rect(el.closest('.pane') ?? document.body)
+  const dim = document.createElement('div')
+  dim.className = 'wk-dim'
+  Object.assign(dim.style, { left: `${pane.left}px`, top: `${pane.top}px`, width: `${pane.width}px`, height: `${pane.height}px` })
+  const box = { x: r.left - pane.left - 4, y: r.top - pane.top - 4, w: r.width + 8, h: r.height + 8 }
+  // Four dark panels around the spot, inside Slotly only. The panel on the right stays bright.
+  for (const [x, y, w, h] of [
+    [0, 0, pane.width, box.y],
+    [0, box.y + box.h, pane.width, pane.height - box.y - box.h],
+    [0, box.y, box.x, box.h],
+    [box.x + box.w, box.y, pane.width - box.x - box.w, box.h],
+  ]) {
+    const shade = document.createElement('i')
+    shade.className = 'wk-shade'
+    Object.assign(shade.style, { left: `${x}px`, top: `${y}px`, width: `${Math.max(0, w)}px`, height: `${Math.max(0, h)}px` })
+    dim.appendChild(shade)
+  }
   const ring = document.createElement('div')
   ring.className = 'wk-mark'
-  Object.assign(ring.style, { left: `${r.left - 4}px`, top: `${r.top - 4}px`, width: `${r.width + 8}px`, height: `${r.height + 8}px` })
+  Object.assign(ring.style, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px` })
   ring.innerHTML = `<span>${esc(label)}</span>`
-  document.body.appendChild(ring)
-  return () => ring.remove()
+  dim.appendChild(ring)
+  document.body.appendChild(dim)
+  // The line: from the right edge of the ring to the left edge of the card.
+  const c = rect(card)
+  const x1 = Math.min(r.right + 4, pane.right - 6)
+  const y1 = r.top + r.height / 2
+  const x2 = c.left - 2
+  const y2 = c.top + 46
+  const link = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  link.setAttribute('class', 'wk-link')
+  link.innerHTML = `<path d="M ${x1} ${y1} C ${x1 + (x2 - x1) * 0.5} ${y1}, ${x2 - (x2 - x1) * 0.5} ${y2}, ${x2} ${y2}" /><circle cx="${x1}" cy="${y1}" r="5" /><circle cx="${x2}" cy="${y2}" r="5" />`
+  document.body.appendChild(link)
+  card.classList.add('linked')
+  return () => {
+    dim.remove()
+    link.remove()
+    card.classList.remove('linked')
+  }
 }
 
 /** Page through Slotly's customer list, as a person would, until this customer is on screen. */
@@ -302,7 +343,6 @@ async function tour() {
     const f = findings.find(x => x.key === stop.key)
     if (!f) continue
     const { el, real, from } = await stop.find()
-    const unring = mark(el, 'Workaround')
     boo.say(stop.say, 3200)
     const last = i === stops.length - 1
     $('tour').innerHTML = `<p class="h-eyebrow">Workaround ${i + 1} of ${stops.length}</p>
@@ -311,7 +351,9 @@ async function tour() {
       <div><dt>What it really is ${gem(read.by === 'ai', read.model)}</dt><dd class="real"><code>${esc(real)}</code></dd></div></dl>
       <button type="button" class="h-btn primary" id="tour-next">${last ? `See all ${findings.filter(x => x.key !== 'stays').length} workarounds` : 'Next'}</button>`
     show('tour')
-    ui.now(`Found ${f.count} like this`, f.title)
+    await pause(250)
+    const unring = mark(el, 'Workaround', $('tour'))
+    ui.now(`Workaround found: ${f.title.toLowerCase()}`, `${f.count} like this in Slotly`)
     await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
     unring()
     if (reader.look('aside [data-close]')) await reader.press('aside [data-close]')
@@ -333,7 +375,7 @@ async function lookAround() {
   await pause(400)
   $('start-card').hidden = true
   seen = await survey({ r: reader, ui, speed, business: BUSINESS })
-  ui.now('Gemini is reading the notes, names and descriptions', `${seen.customers.length} customers, ${seen.services.length} services, ${seen.appointments.length} appointments`)
+  ui.now(`Gemini is reading ${seen.customers.length} customers' names and notes`, 'To work out what your team has been doing by hand, and why')
   boo.mode('look')
   boo.say('Reading between the lines...', 3000)
   read = await readOldApp(seen)
@@ -345,78 +387,29 @@ async function lookAround() {
 
 function showFindings() {
   const by = read.by === 'ai'
-  const hand = findings.filter(f => !['stays', 'breaks', 'phones'].includes(f.key))
-  ui.now(`Your team works around Slotly in ${hand.length} ways`, 'Each one is a feature Slotly is missing, done by hand every day')
-  $('found').innerHTML = `<h2>Workarounds your team invented ${gem(by, read.model)}</h2>
+  const hand = findings.filter(f => f.key !== 'stays')
+  ui.now(`Slotly's data hides ${hand.length} workarounds`, 'Each one is something Slotly cannot hold, kept somewhere it does not belong')
+  $('found').innerHTML = `<h2>What's messy in Slotly's data ${gem(by, read.model)}</h2>
+    <p class="h-sub">Slotly has no place for these, so your team hid them in names, notes and fake bookings. Before anything moves to Idle, they need cleaning up.</p>
     <ul class="h-finds">${hand.map(f => `<li><p>${esc(f.why)}</p><span class="n">${f.count}</span><code>${esc(f.from[0])}</code></li>`).join('')}</ul>
-    <h3>Boo can do these for you in Slotly, from today</h3>
-    <ul class="h-feats">${FEATURES.filter(x => findings.some(f => f.key === x.from)).map(x => `<li><label><input type="checkbox" value="${x.key}" checked /> <b>${esc(x.name)}</b><small>${esc(x.what)}</small></label></li>`).join('')}</ul>
-    <button type="button" class="h-btn primary" id="haunt-it">Turn them on</button>`
+    <button type="button" class="h-btn primary" id="to-clean">Clean and standardise it</button>`
   show('found')
+  $('caption').hidden = true
   free()
-  speak(`I found ${hand.length} workarounds!`)
-  $('haunt-it').addEventListener('click', hauntIt)
+  speak(`I found ${hand.length} workarounds hiding in the data.`)
+  $('to-clean').addEventListener('click', standardise)
 }
 
-async function hauntIt() {
-  const enabled = new Set([...$('found').querySelectorAll('input:checked')].map(i => i.value))
-  features = createFeatures({ r: reader, boo, read, data: old, ui, enabled })
-  chapter('run')
-  $('live').innerHTML = `<h2>Boo now does these inside Slotly</h2><p class="h-sub">The workarounds became real features, without changing software.</p>
-    <ul class="h-live">${FEATURES.filter(x => enabled.has(x.key)).map(x => `<li data-feature="${x.key}"><b>${esc(x.name)}</b><em></em><small>Waiting for a booking</small></li>`).join('')}</ul>
-    <button type="button" class="h-btn primary" id="morning">Watch a busy morning at the front desk</button>
-    <button type="button" class="h-btn" id="to-idle" hidden>Ready to leave Slotly? Switch to Idle</button>`
-  show('live')
-  ui.now('Boo is on watch', 'Book something in Slotly, or watch a busy morning')
-  speak("I'm on it. Make a booking and watch.")
-  $('morning').addEventListener('click', busyMorning)
-  $('to-idle').addEventListener('click', confirmSwitch)
-}
-
-/** Three bookings at the front desk, made the normal way. Boo jumps in where it helps. */
-async function busyMorning() {
-  $('morning').disabled = true
-  busy()
-  const desk = createHands($('slotly'), { name: 'Front desk', colour: '#475569', pace: { move: 420, type: 30 } })
-  const rawName = c => seen.customers[c.src].name
-  const allergic = read.clients.find(c => /PPD/i.test(c.alert))
-  const pkg = read.clients.find(c => c.packages.some(p => /blow/i.test(p.name)))
-  const vip = read.clients.find(c => c.vip && !c.alert && c !== pkg)
-  const plan = [
-    allergic && { customer: rawName(allergic), service: 'Root colour', staff: 'Jasmine Koh', date: '2026-12-03', time: '14:00' },
-    pkg && { customer: rawName(pkg), service: 'Blow-dry', staff: 'Hana Lim', date: '2026-12-03', time: '11:00' },
-    vip && { customer: rawName(vip), service: 'Balayage', staff: 'Hana Lim', date: '2026-12-04', time: '10:00' },
-  ].filter(Boolean)
-  for (const b of plan) {
-    ui.now('The front desk is booking', `${cleanName(b.customer)}, ${b.service}`)
-    await desk.press('[data-new]')
-    await desk.fill({ Customer: b.customer, Service: b.service, Staff: b.staff, Date: b.date, Time: b.time })
-    await desk.submit()
-    desk.hide()
-    await pause(400)
-    await features.idle
-    await pause(900)
-  }
-  desk.remove()
-  const s = features.stats
-  ui.now('A quiet morning for the front desk', `Boo did ${s.steps} steps for them${s.caught ? ` and caught ${s.caught} allergy before it became a problem` : ''}.`)
-  free()
-  speak('That was easy.')
-  $('morning').hidden = true
-  $('to-idle').hidden = false
-}
-
-// ------------------------------------------------------------- act two: switch to Idle
-
-function confirmSwitch() {
-  // Boo saw and did everything since it looked around, so it reads Slotly's diary as it is now.
+/** Chapter two: the standard way for each workaround, confirmed by the owner, then the cleaning itself. */
+function standardise() {
+  chapter('clean')
+  // Read Slotly's diary as it is now, in case anything changed while Boo was looking.
   seen.appointments = old.appointments.map(a => ({ ...a }))
   Object.assign(read, (({ bookings, cleanups, breaks }) => ({ bookings, cleanups, breaks }))(readWithRules(seen)))
   findings = findingsFor(seen, read)
-  chapter('switch')
-  ui.now('Before anything moves: is this right?', 'Idle has a proper place for each workaround. Check how Boo will move them.')
-  $('confirm').innerHTML = `<h2>Workarounds become Idle's standard way ${gem(read.by === 'ai', read.model)}</h2>
-    <div class="h-map-head"><span>Workaround in Slotly</span><span></span><span>Standard way in Idle</span></div>
+  ui.now('The standard way for each workaround. Is this right?', 'Idle has a proper place for each one. Nothing is cleaned or moved until you say yes.')
+  $('confirm').innerHTML = `<h2>How each workaround gets cleaned ${gem(read.by === 'ai', read.model)}</h2>
+    <div class="h-map-head"><span>Messy in Slotly</span><span></span><span>Clean and standard</span></div>
     <ol class="h-map">${findings
       .map(
         (f, i) => `<li data-i="${i}"><b>${esc(f.title)}</b><span class="n">${f.count}</span><p>${esc(f.why)}</p>${f.sub ? `<small>${esc(f.sub)}</small>` : ''}
@@ -424,7 +417,7 @@ function confirmSwitch() {
         <div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div></li>`,
       )
       .join('')}</ol>
-    <button type="button" class="h-btn primary" id="go">That's right. Start the move</button>`
+    <button type="button" class="h-btn primary" id="go">Yes, clean it</button>`
   $('confirm').querySelectorAll('[data-i]').forEach(li =>
     li.querySelectorAll('[data-c]').forEach(b =>
       b.addEventListener('click', () => {
@@ -435,11 +428,38 @@ function confirmSwitch() {
     ),
   )
   show('confirm')
-  $('go').addEventListener('click', switchToIdle)
+  $('caption').hidden = true
+  $('go').addEventListener('click', clean)
+}
+
+/** The cleaning, one kind of workaround at a time, so you can see each one become standard. */
+async function clean() {
+  busy()
+  const done = findings.filter(f => f.key !== 'stays')
+  $('live').innerHTML = `<h2>Cleaning Slotly's data</h2><p class="h-sub">Each workaround becomes a proper field, ready for Idle.</p>
+    <ol class="h-clean">${done.map(f => `<li data-k="${f.key}"><b>${esc(f.title)}</b><em>${f.count}</em><div class="map"><code>${esc(f.from[0])}</code><span class="arrow" aria-hidden="true">→</span><code class="to">${esc(f.to[0])}</code></div></li>`).join('')}</ol>`
+  show('live')
+  boo.mode('work')
+  for (const f of done) {
+    const row = $('live').querySelector(`[data-k="${f.key}"]`)
+    row.classList.add('now')
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const r = rect(row)
+    boo.flyTo(r.left - 46, r.top - 6, 380, { size: 36 })
+    ui.now(`Cleaning: ${f.title.toLowerCase()}`, `${f.count} found · “${f.from[0].slice(0, 60)}” becomes “${f.to[0].slice(0, 60)}”`)
+    await pause(1100 * speed)
+    row.classList.replace('now', 'clean')
+    burst(r.left + 20, r.top + 10, 10, SPARKLE, 0.3, 200)
+  }
+  ui.now('Slotly\'s data is clean and standard', `${done.length} workarounds turned into proper fields. Moving it into Idle next.`)
+  boo.react('happy', 'All clean!', 1600)
+  await pause(1600 * speed)
+  switchToIdle()
 }
 
 async function switchToIdle() {
   busy()
+  chapter('move')
   const d = Object.fromEntries(findings.map(f => [f.key, f.value]))
   const records = idleRecords(read, d)
   $('tab-idle').hidden = false
@@ -458,7 +478,7 @@ async function switchToIdle() {
   ].filter(r => r[2])
   $('moving').innerHTML = `<h2>Moving into Idle</h2><ul class="h-move">${rows.map(([k, label, n]) => `<li data-key="${k}"><span class="ghost-slot"></span><b>${label}</b><em>0 of ${n}</em><div class="bar"><i></i></div></li>`).join('')}</ul>`
   show('moving')
-  ui.now('Three ghosts are moving everything', 'Click Setup, Clients or Bookings above Idle to watch one')
+  ui.now('Moving everything into Idle', 'Three ghosts work at once, through Idle\'s own screens. Click Setup, Clients or Bookings above Idle to watch one.')
   await split(['setup', 'people', 'books'])
   await move({ records, lanes: [views.setup, views.people, views.books], store, ui, speed })
   show('proof')
@@ -474,8 +494,8 @@ function done(result, d) {
   const salesFile = d.stays !== false
   $('receipt').innerHTML = `
     <p class="h-eyebrow">Switch complete</p>
-    <h2>Nothing lost, and no more workarounds.</h2>
-    <p class="h-check">${findings.filter(f => !['stays', 'breaks'].includes(f.key)).length} workarounds retired. Each one is a proper feature in Idle now.</p>
+    <h2>Cleaned, standardised, and moved. Nothing lost.</h2>
+    <p class="h-check">${findings.filter(f => f.key !== 'stays').length} workarounds cleaned up. Each one is a proper field in Idle now.</p>
     <ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
     <p class="h-check"><b>${result.matched} of ${result.checks}</b> checks match.</p>
     ${salesFile ? '<button type="button" class="h-btn" id="sales-file">Download Slotly sales history (CSV)</button>' : ''}
@@ -519,4 +539,4 @@ $('haunt-toggle').addEventListener('click', () => {
   $('haunt-toggle').setAttribute('aria-pressed', String(open))
 })
 
-window.__haunt = { store, old, views, ui, feed: feedLines, boo, get read() { return read }, get findings() { return findings }, get features() { return features } }
+window.__haunt = { store, old, views, ui, feed: feedLines, boo, get read() { return read }, get findings() { return findings } }

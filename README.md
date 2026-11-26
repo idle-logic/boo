@@ -1,23 +1,18 @@
 # Haunt
 
-**Your software can't do everything, so your team does it by hand. Haunt finds those workarounds, runs them for you inside the software you already have, and when you are ready to leave, switches you to new software with nothing lost.**
+**Moving to new software? Your old data is a mess, because your team spent years working around everything the old software couldn't do. Haunt finds those workarounds, cleans and standardises the data, and moves it into the new software with nothing lost.**
 
-Every business on old software has the same scars: packages written in customer notes, allergies typed into names, products sold as fake services, "CLEAN UP" appointments booked by hand after every colour, cancellation rules that live in a paragraph of text. Each workaround is a feature the software is missing, done manually every day. And when the business finally switches, the workarounds are exactly what gets lost.
+Old booking software has no place for allergies, packages, store credit, products, deposits, clean-up time or cancellation rules. So teams improvise: allergies typed into names, packages written in notes, products sold as fake services, "CLEAN UP" appointments booked by hand after every colour, rules kept as a paragraph of text. An export copies that mess straight into the new system, where the new system's proper features never get used.
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box. Boo rises from a grave, then:
+Open the live demo from the link in this repo's About box. Boo rises from a grave. The first screen sets the scene: Maple & Mint is moving from "Slotly" (a made-up booking app from 2011) to Idle, and here is what each can hold.
 
-**Act one: haunt it.**
-1. Boo looks around "Slotly" (a made-up booking app from 2011) screen by screen, the way a person would. No export, no API.
-2. Gemini reads every name, note and description and works out what the team really meant. Every answer is checked against the original text before it is used.
-3. Boo shows the workarounds it found, with the real text, and offers to run five of them as features inside Slotly: Allergy guard, Package tracker, Auto clean-up, Deposit nudge and VIP welcome.
-4. A busy morning at the front desk: Boo stops a colour booking for a client with a PPD allergy, counts a session off a package in the notes, books the clean-up after a balayage, and tells the desk what deposit to take.
+1. **Find the mess.** Boo reads Slotly screen by screen, the way a person would: no export, no API. Gemini reads every name, note and description. Boo then walks you to three real workarounds in Slotly, rings the exact text, and the panel says plainly what Slotly lacks and what the text really means.
+2. **Clean and standardise.** For each workaround Boo shows the messy Slotly text beside the clean, standard version for Idle, and asks: is this right? Some things change shape (packages need an expiry date), some stay behind (SMS credits), and the owner decides. Then Boo cleans the data one kind at a time while you watch.
+3. **Move to Idle.** Three ghosts move the clean data in through Idle's own screens. Then every Slotly record is accounted for and the money read out of notes is matched to the dollar. Ask Boo questions about the salon, answered by Gemini from the moved records.
 
-**Act two: switch.**
-5. When the salon is ready for Idle, Boo shows how each workaround becomes Idle's standard way, side by side ("credit $80" becomes store credit $80), and asks: is this right? Some things change shape (packages need an expiry date), some stay behind (SMS credits), and the owner decides.
-6. Three ghosts move everything into Idle through Idle's own screens. Then every Slotly record is accounted for and the money read out of notes is matched to the dollar: 101 checks.
-7. Ask Boo questions about the salon, answered by Gemini from the moved records.
+A caption along the bottom always says what Boo is doing right now. When Boo is not working it roams the page: click it, grab it and throw it.
 
 For the makers of old software, the same list is a roadmap: the features their customers have been faking.
 
@@ -56,7 +51,6 @@ Property-based tests with fast-check. Among them:
 
 - Every workaround in the notes and names reads back to the real record.
 - Whatever Gemini answers, nothing ungrounded in the original text gets through.
-- Counting off a package session keeps the note in the style the team wrote it.
 - The owner's choices (merge, expiry, keep as a note) are followed exactly.
 - The real-software agent can never type into a password field or act on a look-alike address.
 
@@ -65,8 +59,8 @@ Property-based tests with fast-check. Among them:
 ```
 web/            the browser demo, built into site/
                 slotly.js (the old app), idle.js (the new app), survey.js (looking around),
-                interpret.js (reading the workarounds), features.js (running them), switch.js (move and prove),
-                ghost.js and intro.js (Boo), main.js (the page)
+                interpret.js (reading and cleaning the workarounds), switch.js (move and prove),
+                ghost.js, pet.js and intro.js (Boo), main.js (the page)
 src/agent/      the agent loop and the AI calls (Gemini), shared by the demo and the real-software agent
 src/main/       the real-software agent: Windows UI Automation hands, allowed addresses, desktop overlay
 netlify/        /api/read and /api/ask (Gemini) for the live demo
