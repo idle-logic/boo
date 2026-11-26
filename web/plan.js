@@ -58,18 +58,23 @@ export function checkPlan(req, ai) {
 /** Ask the AI, with a time limit. Falls back to the rules on any problem. */
 export async function makePlan(learned, { endpoint = '/api/plan', timeoutMs = 12000 } = {}) {
   const req = planRequest(learned)
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(req),
-      signal: AbortSignal.timeout(timeoutMs),
-    })
-    if (!res.ok) throw new Error(String(res.status))
-    return { req, plan: checkPlan(req, await res.json()) }
-  } catch {
-    return { req, plan: rulePlan(req) }
+  // The free AI tier is sometimes busy for a moment, so try twice.
+  for (const wait of [0, 1500]) {
+    if (wait) await new Promise(r => setTimeout(r, wait))
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(req),
+        signal: AbortSignal.timeout(timeoutMs),
+      })
+      if (res.ok) return { req, plan: checkPlan(req, await res.json()) }
+      if (res.status !== 503 && res.status !== 429) break
+    } catch {
+      // Try again, then fall back.
+    }
   }
+  return { req, plan: rulePlan(req) }
 }
 
 /** Turn what was read into the values each Idle form takes. */
@@ -100,10 +105,13 @@ export function idleRecords(learned, plan, { merge = true } = {}) {
       Phone: c.phone,
       Email: c.email,
       VIP: c.vip ? 'Yes' : 'No',
+      Visits: String(c.visits ?? ''),
+      'Last visit': c.lastVisit ?? '',
       'Store credit': c.credit ? String(c.credit) : '',
       Alert: alertFor.get(i) ?? '',
       Notes: c.notes,
     })),
+    products: (learned.products ?? []).map(x => ({ Name: x.name, SKU: x.sku, Price: String(x.price), 'In stock': String(x.stock) })),
     packages: learned.clients.flatMap(c => c.packages.map(p => ({ Client: c.name, Package: p.name, 'Sessions left': String(p.left), 'Sessions total': String(p.of), Paid: String(p.paid) }))),
     bookings: learned.bookings.map(b => ({ Client: b.client, Service: b.service, 'Team member': dropped.get(b.staff) ?? b.staff, Date: b.date, Time: b.time })),
     policies: {

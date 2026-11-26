@@ -10,6 +10,13 @@ import { makePlan, idleRecords } from './plan.js'
 
 const pause = ms => new Promise(r => setTimeout(r, ms))
 const num = t => Number(String(t).replace(/[^0-9.]/g, '')) || 0
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+/** "27 Sept 2026" -> "2026-09-27". */
+export function isoDate(text) {
+  const m = /(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\s+(\d{4})/.exec(String(text))
+  const month = m && MONTHS.indexOf(m[2].toLowerCase())
+  return m && month >= 0 ? `${m[3]}-${String(month + 1).padStart(2, '0')}-${m[1].padStart(2, '0')}` : ''
+}
 const waitFor = async (test, every = 120) => {
   while (!test()) await pause(every)
 }
@@ -20,7 +27,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
 
   // ------------------------------------------------------------------ read
   ui.phase('read', 'now', 'Opening Slotly')
-  const learned = { clients: [], services: [], staff: [], policies: {}, bookings: [] }
+  const learned = { clients: [], services: [], products: [], staff: [], policies: {}, bookings: [] }
   const r = oldHands
 
   ui.feed('Reading clients, one profile at a time.')
@@ -41,6 +48,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
         phone: d.Phone === '-' ? '' : d.Phone,
         email: d.Email,
         visits: num(d.Visits),
+        lastVisit: isoDate(d['Last visit']),
         vip: d.Tags === 'VIP',
         credit: d['Store credit'] === '-' ? 0 : num(d['Store credit']),
         notes: d.Notes === '-' ? '' : d.Notes,
@@ -67,8 +75,13 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
   }))
   ui.count('services', learned.services.length)
 
-  ui.feed('Reading the team.')
-  await r.press('[data-nav]', 'Team')
+  ui.feed('Reading products and stock.')
+  await r.press('[data-nav]', 'Products')
+  learned.products = r.table().map(row => ({ name: row.Product, sku: row.SKU, price: num(row.Price), stock: num(row['In Stock']) }))
+  ui.count('products', learned.products.length)
+
+  ui.feed('Reading the staff.')
+  await r.press('[data-nav]', 'Staff')
   learned.staff = r.all('[data-person]').map(card => ({
     name: r.text(card.querySelector('[data-k="name"]')),
     role: r.text(card.querySelector('[data-k="role"]')),
@@ -93,7 +106,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
   ui.count('bookings', learned.bookings.length)
   r.hide()
   const prepaid = learned.clients.flatMap(c => c.packages).reduce((a, p) => a + p.paid, 0)
-  ui.phase('read', 'done', `${learned.clients.length} clients, ${learned.services.length} services, ${learned.staff.length} team, ${learned.bookings.length} bookings`)
+  ui.phase('read', 'done', `${learned.clients.length} clients, ${learned.services.length} services, ${learned.products.length} products, ${learned.staff.length} staff, ${learned.bookings.length} bookings`)
 
   // ------------------------------------------------------------------ plan
   ui.phase('plan', 'now', 'Working out how it maps onto Idle')
@@ -129,7 +142,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
   const recordsFor = () => idleRecords(learned, plan, { merge: merge !== false })
   let records = recordsFor()
   const [setup, people, books] = idleLanes
-  const totals = { setup: 1 + records.services.length + records.staff.length, people: records.clients.length, books: records.packages.length + records.bookings.length }
+  const totals = { setup: 1 + records.services.length + records.products.length + records.staff.length, people: records.clients.length, books: records.packages.length + records.bookings.length }
   ui.lane('setup', 0, totals.setup)
   ui.lane('people', 0, totals.people)
   ui.lane('books', 0, totals.books)
@@ -155,13 +168,18 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
       await enter(h, 'services', 'Add service', svc, i)
       ui.lane('setup', ++done, totals.setup)
     }
+    for (const [i, prod] of records.products.entries()) {
+      h.pace.move = s(70)
+      await enter(h, 'products', 'Add product', prod, i + 2)
+      ui.lane('setup', ++done, totals.setup)
+    }
     if (merge === null) {
       ui.feed('Setup agent is waiting for your answer about the team.')
       ui.lane('setup', done, totals.setup, 'Waiting for you')
       await waitFor(() => merge !== null)
     }
     records = recordsFor()
-    totals.setup = 1 + records.services.length + records.staff.length
+    totals.setup = 1 + records.services.length + records.products.length + records.staff.length
     for (const [i, person] of records.staff.entries()) {
       await enter(h, 'team', 'Add team member', person, i)
       ui.lane('setup', ++done, totals.setup)
@@ -254,6 +272,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
     const ex = wrong[0]
     ui.feed(`${wrong.length} services end at different times. ${ex.svc}: Slotly blocks until ${ex.a['Blocked until']}, Idle until ${ex.b['Blocked until']}. Looking into it.`, 'warn')
     ui.phase('prove', 'now', `Investigating ${wrong.length} differences`)
+    ui.boo?.('mismatch', `Hmm! ${ex.svc} ends at ${ex.b['Blocked until']} here, ${ex.a['Blocked until']} in Slotly.`)
     r.pace.move = s(260)
     p.pace.move = s(220)
     await r.press('[data-nav]', 'Services')
@@ -264,6 +283,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
       cleanup[w.svc] = num(r.details('aside dl')['Clean-up time after'])
       await r.press('aside [data-close]')
     }
+    ui.boo?.('found', 'Found it! A hidden clean-up time.')
     ui.feed(`Found it. Slotly adds clean-up time after ${Object.keys(cleanup).join(', ')}, shown only inside each service. Setting the same buffer in Idle.`, 'warn')
     await p.press('[data-nav="services"]')
     for (const w of wrong) {
@@ -275,6 +295,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
       const svc = learned.services.find(x => x.name === w.svc)
       svc.cleanup = cleanup[w.svc]
     }
+    ui.boo?.('fixed', 'Fixed. Checking again.')
     ui.feed('Checking those services again.')
     r.pace.move = s(90)
     p.pace.move = s(90)
@@ -296,13 +317,15 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
   const clients = await idleTable('clients')
   for (const c of learned.clients) {
     const got = clients.find(x => x.Name.replace(/ VIP$/, '') === c.name)
-    tally(got && got.Phone === (c.phone || '-') && got.Email === c.email && num(got.Credit) === c.credit, `Client ${c.name}`)
+    tally(got && got.Phone === (c.phone || '-') && got.Email === c.email && num(got.Visits) === c.visits && num(got.Credit) === c.credit, `Client ${c.name}`)
     await pause(s(12))
   }
   const pk = await idleTable('packages')
   for (const c of learned.clients) for (const x of c.packages) tally(pk.some(row => row.Client === c.name && row.Package === x.name && row['Sessions left'] === `${x.left} of ${x.of}` && num(row.Paid) === x.paid), `Package for ${c.name}`)
   const bk = await idleTable('calendar')
   for (const b of records.bookings) tally(bk.some(row => row.Client === b.Client && row.Time === b.Time && row.Service === b.Service && row['Team member'] === b['Team member']), `Booking for ${b.Client}`)
+  const prods = await idleTable('products')
+  for (const x of learned.products) tally(prods.some(row => row.Product === x.name && row.SKU === x.sku && num(row.Price) === x.price && num(row['In stock']) === x.stock), `Product ${x.name}`)
   const team = await idleTable('team')
   for (const t of records.staff) tally(team.some(row => row.Name === t.Name), `Team member ${t.Name}`)
   await p.press('[data-nav="settings"]')
@@ -316,6 +339,7 @@ export async function runSwitch({ oldHands, idleLanes, proofHands, store, ui, sp
     seconds,
     clients: store.clients.length,
     services: store.services.length,
+    products: store.products.length,
     team: store.staff.length,
     merged: merge ? 1 : 0,
     packages: store.packages.length,

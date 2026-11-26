@@ -8,14 +8,14 @@ Haunt does the switch the way a careful person would, only faster: it reads ever
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box. A salon, Maple & Mint, is on "Slotly" (a made-up booking app) and is switching to Idle. Press **Start the switch**:
+Open the live demo from the link in this repo's About box. A salon, Maple & Mint, is on "Slotly" (a made-up booking app from about 2011, with clients, services, products, staff, reports and marketing) and is switching to Idle. Press **Start the switch**:
 
-1. **Read.** Haunt opens all 42 client profiles, the services, the team, the cancellation rules and the upcoming bookings in Slotly. Slotly is only read, never changed.
+1. **Read.** Boo opens all 42 client profiles, the services, the products, the staff, the cancellation rules and the upcoming bookings in Slotly. Slotly is only read, never changed.
 2. **Plan.** AI maps Slotly's categories onto Idle's ("Colour Services" to Colour), turns health notes into alerts ("Allergic to PPD", "Pregnant") and spots a stylist entered twice under two names with one phone number. It asks you about that one, while the work carries on.
-3. **Move.** Three agents work in Idle at once: one sets up rules, services and the team, one adds clients, one adds packages and bookings. Each has its own cursor. Click **Watch** to follow any of them.
+3. **Move.** Three agents work in Idle at once: one sets up rules, services and the team, one adds clients, one adds packages and bookings. Boo, a small pixel ghost, splits into three coloured ghosts to do it. The one you watch flies around Idle; the others work from their rows in the panel. Click **Watch** to follow any of them. When each is done it zooms back and merges into Boo.
 4. **Prove.** The same test booking for every service, made in both apps side by side, comparing price, end time, deposit and cancellation fee. Five services end ten or fifteen minutes earlier in Idle: Slotly adds clean-up time that only shows inside each service, not in its services list. Haunt finds it, sets the same buffer in Idle and checks again. Then it reads every client, package, booking, team member and rule back from Idle's screens.
 
-It finishes in about a minute with a receipt: 42 clients, 9 prepaid packages worth $2,070, $265 of store credit, 15 health alerts, 12 services, 4 team members, 18 bookings and 4 rules, with 89 of 89 checks matching.
+It finishes in about a minute and a quarter with a receipt: 42 clients with their visit history, 9 prepaid packages worth $2,070, $265 of store credit, 15 health alerts, 12 services, 8 products, 4 team members, 18 bookings and 4 rules, with 97 of 97 checks matching.
 
 Both apps in the demo run on one page, so anyone can try it. Add `?speed=0.3` to the address to watch it faster.
 

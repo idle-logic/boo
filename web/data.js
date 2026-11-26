@@ -35,6 +35,25 @@ export const POLICIES = {
   lateMinutes: 15,
 }
 
+// name, SKU, price, in stock
+export const PRODUCTS = [
+  ['Bond repair treatment 100ml', 'BR-100', 52, 14],
+  ['Argan hair oil 50ml', 'AO-50', 38, 22],
+  ['Purple toning shampoo 300ml', 'PS-300', 32, 9],
+  ['Curl defining cream 150ml', 'CC-150', 29, 6],
+  ['Heat protect spray 200ml', 'HP-200', 27, 18],
+  ['Scalp serum 30ml', 'SS-30', 46, 4],
+  ['Clear brow gel', 'BG-01', 19, 25],
+  ['Wide-tooth comb', 'WC-01', 8, 40],
+].map(([name, sku, price, stock]) => ({ name, sku, price, stock }))
+
+// What the old app's reports and marketing pages show. Read-only history, not moved.
+export const REPORT = {
+  months: [['Jun', 15820], ['Jul', 17240], ['Aug', 16910], ['Sep', 18130], ['Oct', 19480], ['Nov', 18420]],
+  smsCredits: 1240,
+  campaigns: [['Mid-year colour week', 'Sent 412', '18 Jun 2026'], ['Birthday treat', 'Automatic', 'Every month'], ['We miss you', 'Sent 96', '2 Oct 2026']],
+}
+
 export const PACKAGE_TYPES = [
   { name: '5 blow-dries', service: 'Blow-dry', sessions: 5, price: 200 },
   { name: "10 men's cuts", service: "Men's cut", sessions: 10, price: 340 },

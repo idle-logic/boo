@@ -6,23 +6,40 @@
 const pause = ms => new Promise(r => setTimeout(r, ms))
 const text = el => (el?.textContent ?? '').replace(/\s+/g, ' ').trim()
 
-export function createHands(root, { name, colour, pace = { move: 260, type: 18 } }) {
+/**
+ * ghost: an optional pixel ghost that does the moving instead of a plain cursor.
+ * away(): called when this app is not on screen (the ghost can go and wait somewhere visible).
+ * onHide(): called when the agent is finished.
+ */
+export function createHands(root, { name, colour, pace = { move: 260, type: 18 }, ghost = null, away = () => {}, onHide = () => {} }) {
   const cursor = document.createElement('div')
   cursor.className = 'agent-cursor'
   cursor.style.setProperty('--c', colour)
   cursor.innerHTML = `<svg width="18" height="20" viewBox="0 0 18 20" aria-hidden="true"><path d="M1 1l15 8.5-6.6 1.6L6.3 18z" fill="var(--c)" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg><span></span>`
   cursor.querySelector('span').textContent = name
   cursor.hidden = true
-  document.body.appendChild(cursor)
+  if (!ghost) document.body.appendChild(cursor)
   let at = null
 
   const visible = () => root.isConnected && root.offsetParent !== null && root.getClientRects().length > 0
 
   async function move(el) {
-    if (!el || !visible() || pace.move < 20) return
+    if (!el) return
+    if (!visible()) return away()
+    if (pace.move < 20) return
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     const r = el.getBoundingClientRect()
     if (!r.width) return
+    if (ghost) {
+      // Perch just above what it is using, a little to the left.
+      const g = ghost.workSize
+      const gx = r.left + Math.min(r.width / 2, 36) - g * 0.35
+      const gy = r.top - g * 0.78
+      const dist = Math.hypot(gx - ghost.box.x, gy - ghost.box.y)
+      ghost.show()
+      ghost.mode('work')
+      return ghost.flyTo(gx, gy, Math.min(pace.move, 110 + dist / 2.5), { arc: Math.min(18, dist / 10), size: g })
+    }
     const x = r.left + Math.min(r.width / 2, 40)
     const y = r.top + r.height / 2
     cursor.hidden = false
@@ -35,6 +52,7 @@ export function createHands(root, { name, colour, pace = { move: 260, type: 18 }
   }
 
   function ripple() {
+    if (ghost) return visible() && pace.move >= 20 && ghost.poke()
     if (cursor.hidden) return
     cursor.classList.remove('click')
     void cursor.offsetWidth
@@ -131,9 +149,11 @@ export function createHands(root, { name, colour, pace = { move: 260, type: 18 }
     all: sel => [...root.querySelectorAll(sel)],
     text,
     move,
+    ghost,
     hide() {
       cursor.hidden = true
       at = null
+      onHide()
     },
     remove() {
       cursor.remove()

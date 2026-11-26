@@ -37,10 +37,12 @@
             <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.4-1.8L14.3 20 12 18.2 9.7 20l-2.3-1.8z" fill="currentColor"/><circle cx="9.5" cy="10.5" r="1.4" fill="#fff"/><circle cx="14.5" cy="10.5" r="1.4" fill="#fff"/></svg>
             <strong>Haunt</strong>
             <span class="h-clock" id="clock" hidden>0:00</span>
+            <span class="boo-home" id="boo-home" aria-hidden="true"></span>
           </header>
 
           <div class="h-body">
             <section class="h-start" id="start-card">
+              <div class="boo-spot" id="boo-spot" aria-hidden="true"></div>
               <p class="h-eyebrow">Switching to Idle</p>
               <h1>Move Maple &amp; Mint out of Slotly, with nothing lost.</h1>
               <p>I will read every client, package, team member, rule and booking in Slotly, put it all into Idle through Idle's own screens, then prove both apps give the same answers.</p>
@@ -63,9 +65,9 @@
               <div data-count="clients"><dt>Clients</dt><dd>0</dd></div>
               <div data-count="packages"><dt>Packages</dt><dd>0</dd></div>
               <div data-count="services"><dt>Services</dt><dd>0</dd></div>
-              <div data-count="team"><dt>Team</dt><dd>0</dd></div>
+              <div data-count="products"><dt>Products</dt><dd>0</dd></div>
+              <div data-count="team"><dt>Staff</dt><dd>0</dd></div>
               <div data-count="bookings"><dt>Bookings</dt><dd>0</dd></div>
-              <div data-count="policies"><dt>Rules</dt><dd>0</dd></div>
             </dl>
 
             <section class="h-question" id="question" hidden aria-live="assertive"></section>
@@ -73,9 +75,9 @@
             <ul class="h-plan" id="plan" hidden></ul>
 
             <section class="h-lanes" id="lanes" hidden>
-              <div class="h-lane" data-lane="setup"><span class="dot"></span><b>Setup agent</b><small>Rules, services, team</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="setup">Watch</button></div>
-              <div class="h-lane" data-lane="people"><span class="dot"></span><b>Clients agent</b><small>Clients, alerts, credit</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="people">Watch</button></div>
-              <div class="h-lane" data-lane="books"><span class="dot"></span><b>Bookings agent</b><small>Packages, bookings</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="books">Watch</button></div>
+              <div class="h-lane" data-lane="setup"><span class="ghost-slot"></span><b>Setup agent</b><small>Rules, services, products, team</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="setup">Watch</button></div>
+              <div class="h-lane" data-lane="people"><span class="ghost-slot"></span><b>Clients agent</b><small>Clients, alerts, visits, credit</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="people">Watch</button></div>
+              <div class="h-lane" data-lane="books"><span class="ghost-slot"></span><b>Bookings agent</b><small>Packages, bookings</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="books">Watch</button></div>
             </section>
 
             <section class="h-proof" id="proof" hidden>
