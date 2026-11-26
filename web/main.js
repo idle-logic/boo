@@ -13,6 +13,7 @@ import { readOldApp, readWithRules, findingsFor, cleanName } from './interpret.j
 import { FEATURES, createFeatures } from './features.js'
 import { idleRecords, move, prove } from './switch.js'
 import { askBoo } from './ai.js'
+import { createBoo as createPet } from './pet.js'
 
 const $ = id => document.getElementById(id)
 const pause = ms => new Promise(r => setTimeout(r, ms))
@@ -38,15 +39,51 @@ const homeSpot = () => {
 }
 const boo = createGhost({ size: 88, at: startSpot(), title: 'Boo, the Haunt ghost' })
 boo.hide()
-playIntro().then(async at => {
+playIntro().then(at => {
   boo.place(at.x, at.y)
-  boo.show()
-  boo.mode('happy')
-  await boo.flyTo(startSpot().x, startSpot().y, 900, { size: 88, arc: 60 })
-  boo.mode('idle')
-  boo.say("Hi, I'm Boo! Let me have a look around.", 6000)
+  free()
+  speak("Hi, I'm Boo! Click me, or throw me around.")
 })
+
+// ------------------------------------------------------------- Boo off duty: roams, reacts to you, can be grabbed and thrown
+
+let pet = null
+let lineAt = 0
+const PET_LINES = ['Boo!', 'Hehe, that tickles.', 'I live in your software now.', 'Press the purple button and I get to work.', 'I only haunt the boring bits.', 'Wheee!', 'Your team works so hard. Let me help.']
+const standables = () =>
+  [...document.querySelectorAll('#haunt .h-card, #haunt .h-start, #haunt .h-receipt, #haunt .h-proof, .sl-toolbar, .idl-head')].filter(el => !el.closest('[hidden]') && el.getClientRects().length)
+
+/** Boo is off duty: the roaming ghost takes over from where the working ghost is. */
+function free() {
+  if (pet) return
+  const b = boo.box
+  boo.hide()
+  pet = createPet({
+    windows: standables,
+    bounds: () => ({ x: 0, y: 0, w: innerWidth, h: innerHeight - 12 }),
+    at: { x: b.x, y: b.y },
+    pop: false,
+    onClick: () => pet?.handle({ type: 'say', text: PET_LINES[lineAt++ % PET_LINES.length] }),
+  })
+}
+
+/** Back to work: the working ghost appears exactly where the roaming one was. */
+function busy() {
+  if (!pet) return
+  const b = pet.box
+  pet.destroy()
+  pet = null
+  boo.place(b.x, b.y)
+  boo.show()
+}
+
+/** Say something, whichever Boo is out. */
+function speak(text, ms = 3200) {
+  if (pet) pet.handle({ type: 'say', text })
+  else boo.say(text, ms)
+}
 async function goHome(text) {
+  if (pet) return text && speak(text)
   const h = homeSpot()
   boo.mode('idle')
   await boo.flyTo(h.x, h.y, 600, { size: 34 })
@@ -129,7 +166,7 @@ watch('people')
 
 const feedLines = []
 const show = id => {
-  for (const x of ['found', 'live', 'confirm', 'moving', 'proof', 'receipt']) $(x).hidden = x !== id
+  for (const x of ['tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt']) $(x).hidden = x !== id
   $(id).scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
 }
 const gem = (on, model) => (on ? `<span class="gem" title="${esc(model || 'Gemini')}">✦ Gemini</span>` : '')
@@ -193,6 +230,96 @@ const ui = {
   },
 }
 
+// ------------------------------------------------------------- telling the story plainly
+
+/** The three chapters at the top of the panel. */
+function chapter(name) {
+  const order = ['find', 'run', 'switch']
+  for (const li of document.querySelectorAll('#chapters [data-ch]')) {
+    const i = order.indexOf(li.dataset.ch)
+    li.dataset.state = i < order.indexOf(name) ? 'done' : i === order.indexOf(name) ? 'now' : ''
+  }
+}
+
+/** Ring a piece of Slotly's screen and label it. Returns a function that takes the ring away. */
+function mark(el, label) {
+  const r = rect(el)
+  const ring = document.createElement('div')
+  ring.className = 'wk-mark'
+  Object.assign(ring.style, { left: `${r.left - 4}px`, top: `${r.top - 4}px`, width: `${r.width + 8}px`, height: `${r.height + 8}px` })
+  ring.innerHTML = `<span>${esc(label)}</span>`
+  document.body.appendChild(ring)
+  return () => ring.remove()
+}
+
+/** Page through Slotly's customer list, as a person would, until this customer is on screen. */
+async function customerRow(src) {
+  await reader.press('[data-nav]', 'Customers')
+  const row = () => reader.all('tbody tr[data-customer]').find(tr => Number(tr.dataset.customer) === src)
+  for (let tries = 0; !row() && tries < 10; tries++) {
+    const first = Number(reader.all('tbody tr[data-customer]')[0]?.dataset.customer ?? 0)
+    await reader.press(`[data-page="${src < first ? -1 : 1}"]`)
+  }
+  return row()
+}
+
+/** Show and tell: Boo walks to three real workarounds in Slotly and says what each really is. */
+async function tour() {
+  const stops = [
+    {
+      key: 'packages',
+      say: 'Look, a package hiding in the notes.',
+      async find() {
+        const c = read.clients.find(x => x.packages.length)
+        await reader.click(await customerRow(c.src))
+        const p = c.packages[0]
+        return { el: reader.look('aside textarea'), real: `${c.name} · ${p.name} · ${p.left} of ${p.of} left · paid $${p.paid}`, from: p.from }
+      },
+    },
+    {
+      key: 'alerts',
+      say: 'An allergy typed into a name.',
+      async find() {
+        const c = read.clients.find(x => /ALLERGY/.test(seen.customers[x.src].name))
+        const row = await customerRow(c.src)
+        return { el: row.cells[0], real: `${c.name} · health alert: ${c.alert}`, from: seen.customers[c.src].name }
+      },
+    },
+    {
+      key: 'cleanup',
+      say: 'This is not a client. It is clean-up time.',
+      async find() {
+        await reader.press('[data-nav]', 'Appointments')
+        const row = reader.all('tr[data-appt]').find(tr => reader.text(tr.cells[3]) === 'CLEAN UP')
+        const c = read.cleanups[0]
+        const svc = read.services.find(x => x.name === c.after)
+        return { el: row, real: `${c.after} · ${svc?.buffer ?? c.mins} min clean-up after, added automatically`, from: [...row.cells].map(td => reader.text(td)).join('  ') }
+      },
+    },
+  ]
+  reader.pace.move = 420
+  for (const [i, stop] of stops.entries()) {
+    const f = findings.find(x => x.key === stop.key)
+    if (!f) continue
+    const { el, real, from } = await stop.find()
+    const unring = mark(el, 'Workaround')
+    boo.say(stop.say, 3200)
+    const last = i === stops.length - 1
+    $('tour').innerHTML = `<p class="h-eyebrow">Workaround ${i + 1} of ${stops.length}</p>
+      <h2>${esc(f.why)}</h2>
+      <dl><div><dt>In Slotly today</dt><dd><code>${esc(from)}</code></dd></div>
+      <div><dt>What it really is ${gem(read.by === 'ai', read.model)}</dt><dd class="real"><code>${esc(real)}</code></dd></div></dl>
+      <button type="button" class="h-btn primary" id="tour-next">${last ? `See all ${findings.filter(x => x.key !== 'stays').length} workarounds` : 'Next'}</button>`
+    show('tour')
+    ui.now(`Found ${f.count} like this`, f.title)
+    await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
+    unring()
+    if (reader.look('aside [data-close]')) await reader.press('aside [data-close]')
+  }
+  await reader.press('[data-nav]', 'Appointments')
+  reader.hide()
+}
+
 // ------------------------------------------------------------- act one: look around, then haunt it
 
 let seen = null
@@ -201,6 +328,7 @@ let findings = null
 
 async function lookAround() {
   $('start').disabled = true
+  busy()
   boo.react('happy', "Let's see what's in here.", 1400)
   await pause(400)
   $('start-card').hidden = true
@@ -211,33 +339,36 @@ async function lookAround() {
   read = await readOldApp(seen)
   findings = findingsFor(seen, read)
   ui.log(read.by === 'ai' ? `Gemini (${read.model}) read the records. ${read.aiCount} of its answers matched the original text and were used.` : 'Gemini was busy, so plain rules read the records.')
+  await tour()
   showFindings()
 }
 
 function showFindings() {
   const by = read.by === 'ai'
   const hand = findings.filter(f => !['stays', 'breaks', 'phones'].includes(f.key))
-  ui.now(`Boo found ${hand.length} things your team does by hand`, 'Because Slotly cannot do them')
-  $('found').innerHTML = `<h2>What your team works around ${gem(by, read.model)}</h2>
-    <ul class="h-finds">${hand.map(f => `<li><b>${esc(f.title)}</b><span class="n">${f.count}</span><code>${esc(f.from[0])}</code></li>`).join('')}</ul>
+  ui.now(`Your team works around Slotly in ${hand.length} ways`, 'Each one is a feature Slotly is missing, done by hand every day')
+  $('found').innerHTML = `<h2>Workarounds your team invented ${gem(by, read.model)}</h2>
+    <ul class="h-finds">${hand.map(f => `<li><p>${esc(f.why)}</p><span class="n">${f.count}</span><code>${esc(f.from[0])}</code></li>`).join('')}</ul>
     <h3>Boo can do these for you in Slotly, from today</h3>
     <ul class="h-feats">${FEATURES.filter(x => findings.some(f => f.key === x.from)).map(x => `<li><label><input type="checkbox" value="${x.key}" checked /> <b>${esc(x.name)}</b><small>${esc(x.what)}</small></label></li>`).join('')}</ul>
     <button type="button" class="h-btn primary" id="haunt-it">Turn them on</button>`
   show('found')
-  goHome(`I found ${hand.length} workarounds.`)
+  free()
+  speak(`I found ${hand.length} workarounds!`)
   $('haunt-it').addEventListener('click', hauntIt)
 }
 
 async function hauntIt() {
   const enabled = new Set([...$('found').querySelectorAll('input:checked')].map(i => i.value))
   features = createFeatures({ r: reader, boo, read, data: old, ui, enabled })
-  $('live').innerHTML = `<h2>Running inside Slotly</h2>
+  chapter('run')
+  $('live').innerHTML = `<h2>Boo now does these inside Slotly</h2><p class="h-sub">The workarounds became real features, without changing software.</p>
     <ul class="h-live">${FEATURES.filter(x => enabled.has(x.key)).map(x => `<li data-feature="${x.key}"><b>${esc(x.name)}</b><em></em><small>Waiting for a booking</small></li>`).join('')}</ul>
     <button type="button" class="h-btn primary" id="morning">Watch a busy morning at the front desk</button>
     <button type="button" class="h-btn" id="to-idle" hidden>Ready to leave Slotly? Switch to Idle</button>`
   show('live')
   ui.now('Boo is on watch', 'Book something in Slotly, or watch a busy morning')
-  boo.react('happy', "I'm on it.", 1800)
+  speak("I'm on it. Make a booking and watch.")
   $('morning').addEventListener('click', busyMorning)
   $('to-idle').addEventListener('click', confirmSwitch)
 }
@@ -245,6 +376,7 @@ async function hauntIt() {
 /** Three bookings at the front desk, made the normal way. Boo jumps in where it helps. */
 async function busyMorning() {
   $('morning').disabled = true
+  busy()
   const desk = createHands($('slotly'), { name: 'Front desk', colour: '#475569', pace: { move: 420, type: 30 } })
   const rawName = c => seen.customers[c.src].name
   const allergic = read.clients.find(c => /PPD/i.test(c.alert))
@@ -268,7 +400,8 @@ async function busyMorning() {
   desk.remove()
   const s = features.stats
   ui.now('A quiet morning for the front desk', `Boo did ${s.steps} steps for them${s.caught ? ` and caught ${s.caught} allergy before it became a problem` : ''}.`)
-  goHome('That was easy.')
+  free()
+  speak('That was easy.')
   $('morning').hidden = true
   $('to-idle').hidden = false
 }
@@ -280,11 +413,13 @@ function confirmSwitch() {
   seen.appointments = old.appointments.map(a => ({ ...a }))
   Object.assign(read, (({ bookings, cleanups, breaks }) => ({ bookings, cleanups, breaks }))(readWithRules(seen)))
   findings = findingsFor(seen, read)
-  ui.now('Before anything moves: is this right?', 'Each one shows what Slotly had, and what it becomes in Idle')
-  $('confirm').innerHTML = `<h2>How your workarounds become Idle's standard way ${gem(read.by === 'ai', read.model)}</h2>
+  chapter('switch')
+  ui.now('Before anything moves: is this right?', 'Idle has a proper place for each workaround. Check how Boo will move them.')
+  $('confirm').innerHTML = `<h2>Workarounds become Idle's standard way ${gem(read.by === 'ai', read.model)}</h2>
+    <div class="h-map-head"><span>Workaround in Slotly</span><span></span><span>Standard way in Idle</span></div>
     <ol class="h-map">${findings
       .map(
-        (f, i) => `<li data-i="${i}"><b>${esc(f.title)}</b><span class="n">${f.count}</span>${f.sub ? `<small>${esc(f.sub)}</small>` : ''}
+        (f, i) => `<li data-i="${i}"><b>${esc(f.title)}</b><span class="n">${f.count}</span><p>${esc(f.why)}</p>${f.sub ? `<small>${esc(f.sub)}</small>` : ''}
         <div class="map"><code>${f.from.map(esc).join('<br>')}</code><span class="arrow" aria-hidden="true">→</span><code class="to">${f.to.map(esc).join('<br>')}</code></div>
         <div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div></li>`,
       )
@@ -304,6 +439,7 @@ function confirmSwitch() {
 }
 
 async function switchToIdle() {
+  busy()
   const d = Object.fromEntries(findings.map(f => [f.key, f.value]))
   const records = idleRecords(read, d)
   $('tab-idle').hidden = false
@@ -333,11 +469,13 @@ async function switchToIdle() {
 }
 
 function done(result, d) {
+  for (const li of document.querySelectorAll('#chapters [data-ch]')) li.dataset.state = 'done'
   ui.now('Maple & Mint now runs on Idle', `${result.matched} of ${result.checks} checks match`)
   const salesFile = d.stays !== false
   $('receipt').innerHTML = `
     <p class="h-eyebrow">Switch complete</p>
     <h2>Nothing lost, and no more workarounds.</h2>
+    <p class="h-check">${findings.filter(f => !['stays', 'breaks'].includes(f.key)).length} workarounds retired. Each one is a proper feature in Idle now.</p>
     <ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
     <p class="h-check"><b>${result.matched} of ${result.checks}</b> checks match.</p>
     ${salesFile ? '<button type="button" class="h-btn" id="sales-file">Download Slotly sales history (CSV)</button>' : ''}
@@ -361,14 +499,16 @@ function done(result, d) {
     boo.mode('look')
     const a = await askBoo(q, store)
     $('ask-a').textContent = a.answer
-    boo.say(a.answer, 6000)
+    speak(a.answer, 6000)
     boo.mode('idle')
   })
   const r = rect($('receipt'))
   boo.mode('happy')
-  boo.flyTo(r.right - 70, r.top - 40, 700, { size: 56 }).then(() => {
+  boo.flyTo(r.right - 70, r.top - 40, 700, { size: 56 }).then(async () => {
     burst(boo.centre().x, boo.centre().y, 80, CONFETTI, 1, 700)
-    boo.say('All moved. Nothing lost!', 5000)
+    boo.say('All moved. Nothing lost!', 3000)
+    await pause(3200)
+    free()
   })
 }
 

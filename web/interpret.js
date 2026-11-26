@@ -183,6 +183,23 @@ export function findingsFor(old, read) {
   const p = read.policies
   f.push({ key: 'terms', title: 'Cancellation rules written as text', count: 4, from: [old.terms], to: [`${p.cancelHours}h window · ${p.cancelFee}% late fee · ${p.noShowFee}% no-show · late arrivals (${p.lateMinutes} min) in your policy note`], choices: [[true, 'Yes, use these settings'], [false, 'I will set them myself']], ai: read.by === 'ai' })
   f.push({ key: 'stays', title: 'What stays in Slotly', count: 2, sub: 'Idle messages clients on WhatsApp and starts its reports today.', from: [`${old.smsCredits.toLocaleString('en')} SMS credits`, `${old.sales.length} months of sales history`], to: ['SMS credits cannot move', 'Sales history can be saved as a file'], choices: [[true, 'Save the sales history as a file'], [false, 'No need']] })
-  for (const x of f) x.value = x.choices[0][0]
+  const WHY = {
+    vip: 'Slotly has no VIP field, so your team adds a ★ to VIP names.',
+    alerts: 'Slotly has no allergy alerts, so your team types them into names and notes.',
+    packages: 'Slotly has no packages, so your team writes them in the notes and counts by hand.',
+    credit: 'Slotly has no store credit, so your team writes it in the notes.',
+    phones: 'Slotly has one phone field, so two numbers get squeezed into it.',
+    retail: 'Slotly cannot sell products, so your team made each one a fake service.',
+    deposits: 'Slotly has no deposits, so your team types them into the description.',
+    cleanup: 'Slotly cannot add clean-up time, so your team books a fake appointment after each colour.',
+    breaks: 'Slotly has no breaks, so lunch is booked as a fake appointment.',
+    merge: 'The same person was added to Slotly twice.',
+    terms: 'Slotly has no cancellation settings, so the rules are just a paragraph of text.',
+    stays: 'A few things only exist in Slotly.',
+  }
+  for (const x of f) {
+    x.value = x.choices[0][0]
+    x.why = WHY[x.key]
+  }
   return f
 }
