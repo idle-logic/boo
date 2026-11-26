@@ -5,7 +5,8 @@ import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { readFileSync, existsSync } from 'node:fs'
 import { think, cleanThinkRequest, BrainBusyError } from '../src/agent/gemini.js'
-import { planSwitch, cleanPlanRequest } from '../src/agent/plan.js'
+import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest } from '../src/agent/ai.js'
+const AI = { '/api/read': [cleanReadRequest, readOldRecords], '/api/ask': [cleanAskRequest, askAboutSalon] }
 
 const envFile = process.env.GEMINI_ENV_FILE
 if (!process.env.GEMINI_API_KEY && envFile && existsSync(envFile)) {
@@ -39,13 +40,14 @@ createServer(async (req, res) => {
       return res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify({ error: err.message }))
     }
   }
-  if (req.method === 'POST' && req.url === '/api/plan') {
+  if (req.method === 'POST' && AI[req.url]) {
+    const [clean, run] = AI[req.url]
     let raw = ''
     for await (const chunk of req) raw += chunk
-    const body = cleanPlanRequest(JSON.parse(raw || 'null'))
-    if (!body) return res.writeHead(400, { 'content-type': 'application/json' }).end('{"error":"Nothing to plan."}')
+    const body = clean(JSON.parse(raw || 'null'))
+    if (!body) return res.writeHead(400, { 'content-type': 'application/json' }).end('{"error":"Nothing to work on."}')
     try {
-      const out = await planSwitch(body, process.env.GEMINI_API_KEY)
+      const out = await run(body, process.env.GEMINI_API_KEY)
       return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(out))
     } catch (err) {
       return res.writeHead(503, { 'content-type': 'application/json' }).end(JSON.stringify({ error: err.message }))

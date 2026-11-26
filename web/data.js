@@ -142,6 +142,74 @@ export function makeBookings(clients) {
   return bookings
 }
 
+// ------------------------------------------------------------- what Slotly really holds
+// Slotly cannot store packages, store credit, alerts, VIPs, products, deposits,
+// clean-up time or cancellation rules. So over the years the team found ways
+// around it: in names, in notes, as fake services and fake appointments.
+
+export const IDLE_CATEGORY = { Haircuts: 'Cuts', 'Styling & Blowouts': 'Styling', 'Colour Services': 'Colour', 'Hair Treatments': 'Treatments', 'Brows & Lashes': 'Brows' }
+const SHORT_PKG = { '5 blow-dries': 'blowdry', "10 men's cuts": 'mens cuts', '3 scalp detox': 'scalp detox' }
+const SEVERE = /PPD|latex/i
+export const TERMS = 'Cancellations less than 24 hours before your appointment are charged 50% of the service price. No-shows are charged in full. If you arrive more than 15 minutes late we may need to rebook you.'
+const STAFF_NOTES = { 'Hana Lim': 'Senior stylist. Cuts, styling, colour', 'Marcus Tan': 'Stylist. Cuts, styling, treatments', 'Jasmine Koh': 'Colourist. Colour + treatments', 'Jas K.': 'brows only', 'Priya Raman': 'Brow artist' }
+
+function rawCustomer(c, i) {
+  let name = c.name
+  let notes = c.notes
+  if (c.vip) name = i % 2 ? `${name} ★` : `${name} **VIP**`
+  if (SEVERE.test(notes) && i % 2 === 0) {
+    name = `${name} (${/PPD/i.test(notes) ? 'PPD' : 'LATEX'} ALLERGY)`
+    notes = notes.replace(/^Allergic to (PPD|latex gloves)\.?\s*/i, '')
+  }
+  const extra = []
+  for (const p of c.packages) {
+    const short = SHORT_PKG[p.name]
+    extra.push(
+      [
+        `PKG ${short}: ${p.left} left of ${p.of}, paid $${p.paid}`,
+        `prepaid ${p.of} ${short} ($${p.paid}) - ${p.left} remaining`,
+        `${p.of}x ${short} pkg, ${p.of - p.left} used. pd $${p.paid}`,
+      ][i % 3],
+    )
+  }
+  if (c.credit) extra.push([`credit $${c.credit}`, `$${c.credit} store credit (refund for late start)`, `has $${c.credit} credit on account`][i % 3])
+  const phone = c.phone && i % 7 === 2 ? `${c.phone.replace('+65 ', '')} / 9${String(100 + i).padStart(3, '0')} 4410 (husband)` : c.phone.replace('+65 ', '')
+  return { name, mobile: phone, email: c.email, visits: c.visits, lastVisit: c.lastVisit, notes: [notes, ...extra].filter(Boolean).join(' | ') }
+}
+
+/** Everything as Slotly shows it, workarounds and all. */
+export function slotlyRecords() {
+  const clients = makeClients()
+  const bookings = makeBookings(clients)
+  const appointments = []
+  const time = mins => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+  for (const b of bookings) {
+    const s = SERVICES.find(x => x.name === b.service)
+    appointments.push({ date: b.date, time: b.time, customer: clients.find(c => c.name === b.client) ? rawCustomer(clients.find(c => c.name === b.client), clients.findIndex(c => c.name === b.client)).name : b.client, service: b.service, staff: b.staff, mins: s.minutes })
+    if (s.cleanup) {
+      const [h, m] = b.time.split(':').map(Number)
+      appointments.push({ date: b.date, time: time(h * 60 + m + s.minutes), customer: '-', service: 'CLEAN UP', staff: b.staff, mins: s.cleanup })
+    }
+  }
+  const days = [...new Set(bookings.map(b => b.date))].sort().slice(0, 4)
+  days.forEach((d, i) => appointments.push({ date: d, time: '13:00', customer: 'BLOCKED', service: 'Lunch', staff: ['Hana Lim', 'Marcus Tan', 'Jasmine Koh', 'Priya Raman'][i], mins: 60 }))
+  appointments.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+  return {
+    truth: { clients, bookings },
+    customers: clients.map(rawCustomer),
+    services: [
+      ...SERVICES.map(s => ({ name: s.name, mins: s.minutes, price: s.price, description: s.deposit ? `DEPOSIT ${s.deposit}% at booking` : '' })),
+      ...PRODUCTS.map(p => ({ name: `RETAIL - ${p.name}`, mins: 0, price: p.price, description: 'sell at front desk' })),
+      { name: 'CLEAN UP', mins: 15, price: 0, description: 'block after colour / keratin' },
+    ],
+    staff: STAFF.map(s => ({ name: s.name, mobile: s.phone.replace('+65 ', ''), notes: STAFF_NOTES[s.name] })),
+    appointments,
+    terms: TERMS,
+    smsCredits: REPORT.smsCredits,
+    sales: REPORT.months,
+  }
+}
+
 /** What a booking costs and when it ends. Both apps quote the same way, if set up the same. */
 export function quote(service, start, { cleanup = service.cleanup, policies = POLICIES } = {}) {
   const [h, m] = start.split(':').map(Number)

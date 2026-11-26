@@ -28,7 +28,7 @@
         </section>
 
         <section class="pane" id="pane-idle" hidden aria-label="Idle, the new software">
-          <div class="pane-url"><span class="lock" aria-hidden="true"></span>Idle · demo store<span class="watching" id="watching"></span></div>
+          <div class="pane-url"><span class="lock" aria-hidden="true"></span>Idle · demo store<span class="watching" id="watching"></span><span class="watch-pick" id="watch-pick" hidden><button type="button" data-watch="setup">Setup</button><button type="button" data-watch="people">Clients</button><button type="button" data-watch="books">Bookings</button></span></div>
           <div class="idle-views" id="idle-views"></div>
         </section>
 
@@ -43,42 +43,19 @@
           <div class="h-body">
             <section class="h-start" id="start-card">
               <div class="boo-spot" id="boo-spot" aria-hidden="true"></div>
-              <p class="h-eyebrow">Switching to Idle</p>
-              <h1>Move Maple &amp; Mint out of Slotly, with nothing lost.</h1>
-              <p>I will read every client, package, team member, rule and booking in Slotly, put it all into Idle through Idle's own screens, then prove both apps give the same answers.</p>
-              <ul class="h-promises">
-                <li>Slotly is only read. Nothing in it changes.</li>
-                <li>No export file and no API needed. I use the apps the way you do.</li>
-                <li>Anything I am not sure about, I ask you.</li>
-              </ul>
-              <button type="button" class="h-btn primary" id="start">Start the switch</button>
+              <p class="h-eyebrow">Haunt</p>
+              <h1>Your software can't do everything. So your team does it by hand.</h1>
+              <p>Let me look around Slotly. I'll find what your team works around, and take it over for you, right inside Slotly. When you're ready to leave, I'll move you to Idle with nothing lost.</p>
+              <button type="button" class="h-btn primary" id="start">Let Boo look around</button>
             </section>
 
-            <ol class="h-steps" id="steps" hidden>
-              <li data-step="read"><b>Read Slotly</b><small></small></li>
-              <li data-step="plan"><b>Plan the move</b><small></small></li>
-              <li data-step="move"><b>Move it into Idle</b><small></small></li>
-              <li data-step="prove"><b>Prove nothing was lost</b><small></small></li>
-            </ol>
+            <section class="h-now" id="now" hidden><b id="now-title"></b><span id="now-sub"></span></section>
 
-            <dl class="h-counts" id="counts" hidden>
-              <div data-count="clients"><dt>Clients</dt><dd>0</dd></div>
-              <div data-count="packages"><dt>Packages</dt><dd>0</dd></div>
-              <div data-count="services"><dt>Services</dt><dd>0</dd></div>
-              <div data-count="products"><dt>Products</dt><dd>0</dd></div>
-              <div data-count="team"><dt>Staff</dt><dd>0</dd></div>
-              <div data-count="bookings"><dt>Bookings</dt><dd>0</dd></div>
-            </dl>
-
+            <section class="h-card" id="found" hidden></section>
+            <section class="h-card" id="live" hidden></section>
             <section class="h-question" id="question" hidden aria-live="assertive"></section>
-
-            <ul class="h-plan" id="plan" hidden></ul>
-
-            <section class="h-lanes" id="lanes" hidden>
-              <div class="h-lane" data-lane="setup"><span class="ghost-slot"></span><b>Setup agent</b><small>Rules, services, products, team</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="setup">Watch</button></div>
-              <div class="h-lane" data-lane="people"><span class="ghost-slot"></span><b>Clients agent</b><small>Clients, alerts, visits, credit</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="people">Watch</button></div>
-              <div class="h-lane" data-lane="books"><span class="ghost-slot"></span><b>Bookings agent</b><small>Packages, bookings</small><em>0</em><div class="bar"><i></i></div><button type="button" data-watch="books">Watch</button></div>
-            </section>
+            <section class="h-card" id="confirm" hidden></section>
+            <section class="h-card" id="moving" hidden></section>
 
             <section class="h-proof" id="proof" hidden>
               <div class="h-proof-num"><strong id="proof-num">0</strong><span id="proof-of">checks match</span></div>
@@ -88,7 +65,7 @@
 
             <section class="h-receipt" id="receipt" hidden></section>
 
-            <ol class="h-feed" id="feed" aria-live="polite"></ol>
+            <details class="h-log"><summary>What Boo is doing</summary><ol class="h-feed" id="feed" aria-live="polite"></ol></details>
           </div>
         </aside>
       </div>

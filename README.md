@@ -1,23 +1,25 @@
 # Haunt
 
-**Haunt is an AI agent that switches a business from the software it has outgrown into new software, and proves nothing was lost.**
+**Your software can't do everything, so your team does it by hand. Haunt finds those workarounds, runs them for you inside the software you already have, and when you are ready to leave, switches you to new software with nothing lost.**
 
-Salons, spas and clinics stay on booking software they dislike because leaving it hurts. The export, if there is one, has names and phone numbers. It does not have package balances, store credit, client notes, staff skills, deposits, clean-up times or cancellation rules. There is rarely an API. So someone retypes it all for days, and something always gets lost.
-
-Haunt does the switch the way a careful person would, only faster: it reads every screen of the old app, enters everything into the new app through the new app's own screens, then proves the two give the same answers.
+Every business on old software has the same scars: packages written in customer notes, allergies typed into names, products sold as fake services, "CLEAN UP" appointments booked by hand after every colour, cancellation rules that live in a paragraph of text. Each workaround is a feature the software is missing, done manually every day. And when the business finally switches, the workarounds are exactly what gets lost.
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box. A salon, Maple & Mint, is on "Slotly" (a made-up booking app from about 2011, with clients, services, products, staff, reports and marketing) and is switching to Idle. Press **Start the switch**:
+Open the live demo from the link in this repo's About box. Boo rises from a grave, then:
 
-1. **Read.** Boo opens all 42 client profiles, the services, the products, the staff, the cancellation rules and the upcoming bookings in Slotly. Slotly is only read, never changed.
-2. **Plan.** AI maps Slotly's categories onto Idle's ("Colour Services" to Colour), turns health notes into alerts ("Allergic to PPD", "Pregnant") and spots a stylist entered twice under two names with one phone number. It asks you about that one, while the work carries on.
-3. **Move.** Three agents work in Idle at once: one sets up rules, services and the team, one adds clients, one adds packages and bookings. Boo, a small pixel ghost, splits into three coloured ghosts to do it. The one you watch flies around Idle; the others work from their rows in the panel. Click **Watch** to follow any of them. When each is done it zooms back and merges into Boo.
-4. **Prove.** The same test booking for every service, made in both apps side by side, comparing price, end time, deposit and cancellation fee. Five services end ten or fifteen minutes earlier in Idle: Slotly adds clean-up time that only shows inside each service, not in its services list. Haunt finds it, sets the same buffer in Idle and checks again. Then it reads every client, package, booking, team member and rule back from Idle's screens.
+**Act one: haunt it.**
+1. Boo looks around "Slotly" (a made-up booking app from 2011) screen by screen, the way a person would. No export, no API.
+2. Gemini reads every name, note and description and works out what the team really meant. Every answer is checked against the original text before it is used.
+3. Boo shows the workarounds it found, with the real text, and offers to run five of them as features inside Slotly: Allergy guard, Package tracker, Auto clean-up, Deposit nudge and VIP welcome.
+4. A busy morning at the front desk: Boo stops a colour booking for a client with a PPD allergy, counts a session off a package in the notes, books the clean-up after a balayage, and tells the desk what deposit to take.
 
-It finishes in about a minute and a quarter with a receipt: 42 clients with their visit history, 9 prepaid packages worth $2,070, $265 of store credit, 15 health alerts, 12 services, 8 products, 4 team members, 18 bookings and 4 rules, with 97 of 97 checks matching.
+**Act two: switch.**
+5. When the salon is ready for Idle, Boo shows how each workaround becomes Idle's standard way, side by side ("credit $80" becomes store credit $80), and asks: is this right? Some things change shape (packages need an expiry date), some stay behind (SMS credits), and the owner decides.
+6. Three ghosts move everything into Idle through Idle's own screens. Then every Slotly record is accounted for and the money read out of notes is matched to the dollar: 101 checks.
+7. Ask Boo questions about the salon, answered by Gemini from the moved records.
 
-Both apps in the demo run on one page, so anyone can try it. Add `?speed=0.3` to the address to watch it faster.
+For the makers of old software, the same list is a roadmap: the features their customers have been faking.
 
 ## Haunt on real software
 
@@ -52,21 +54,22 @@ npm test
 
 Property-based tests with fast-check. Among them:
 
-- Whatever the AI answers, only answers that fit the question get through: real categories, real notes, real staff.
-- Merging a duplicate keeps everything they did and moves their bookings.
-- Every record has a place in the new app, and none is dropped.
-- A missing clean-up time always shows up as a different end time, which is how the proof finds it.
+- Every workaround in the notes and names reads back to the real record.
+- Whatever Gemini answers, nothing ungrounded in the original text gets through.
+- Counting off a package session keeps the note in the style the team wrote it.
+- The owner's choices (merge, expiry, keep as a note) are followed exactly.
 - The real-software agent can never type into a password field or act on a look-alike address.
 
 ## How it is organised
 
 ```
 web/            the browser demo, built into site/
-                slotly.js (the old app), idle.js (the new app), hands.js (an agent's cursor and hands),
-                plan.js (the plan and its checks), switch.js (read, plan, move, prove), main.js (the page)
+                slotly.js (the old app), idle.js (the new app), survey.js (looking around),
+                interpret.js (reading the workarounds), features.js (running them), switch.js (move and prove),
+                ghost.js and intro.js (Boo), main.js (the page)
 src/agent/      the agent loop and the AI calls (Gemini), shared by the demo and the real-software agent
 src/main/       the real-software agent: Windows UI Automation hands, allowed addresses, desktop overlay
-netlify/        /api/plan and /api/think for the live demo
+netlify/        /api/read and /api/ask (Gemini) for the live demo
 tests/          property-based tests
 .kiro/          steering and MCP settings
 ```

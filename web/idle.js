@@ -37,7 +37,7 @@ export function createIdleStore(business) {
     staff: [],
     packages: [],
     bookings: [],
-    policies: { cancelHours: '', cancelFee: '', noShowFee: '', lateMinutes: '' },
+    policies: { cancelHours: '', cancelFee: '', noShowFee: '', note: '' },
     listen: fn => listeners.add(fn),
     changed() {
       for (const fn of listeners) fn()
@@ -127,13 +127,13 @@ export function mountIdle(root, store, { page = 'home' } = {}) {
       )}`
     }
     if (p === 'products') {
-      return `${head('Products', ['product', 'Add product'])}${form()}${table(['Product', 'SKU', 'Price', 'In stock'], store.products.map(x => [esc(x.name), esc(x.sku), money(x.price), Number(x.stock) < 8 ? `${esc(x.stock)} <em class="idl-tag">Low</em>` : esc(x.stock)]), 'No products yet.')}`
+      return `${head('Products', ['product', 'Add product'])}${form()}${table(['Product', 'SKU', 'Price', 'In stock'], store.products.map(x => [esc(x.name), esc(x.sku) || '-', money(x.price), x.stock === '' || x.stock === undefined ? '<em class="idl-tag">Count needed</em>' : Number(x.stock) < 8 ? `${esc(x.stock)} <em class="idl-tag">Low</em>` : esc(x.stock)]), 'No products yet.')}`
     }
     if (p === 'team') {
       return `${head('Team', ['staff', 'Add team member'])}${form()}${table(['Name', 'Role', 'Phone', 'Does'], store.staff.map(s => [`<span class="av h${hue(s.name)}" data-i="${initials(s.name)}"></span>${esc(s.name)}`, esc(s.role), esc(s.phone), [].concat(s.does).map(d => `<span class="idl-chip c-${d}">${d}</span>`).join(' ')]), 'Nobody on the team yet.')}`
     }
     if (p === 'packages') {
-      return `${head('Packages', ['package', 'Sell a package'], store.packages.length ? `${money(prepaid())} prepaid` : '')}${form()}${table(['Client', 'Package', 'Sessions left', 'Paid'], store.packages.map(x => [esc(x.client), esc(x.name), `${x.left} of ${x.of}`, money(x.paid)]), 'No packages sold yet.')}`
+      return `${head('Packages', ['package', 'Sell a package'], store.packages.length ? `${money(prepaid())} prepaid` : '')}${form()}${table(['Client', 'Package', 'Sessions left', 'Paid', 'Expires'], store.packages.map(x => [esc(x.client), esc(x.name), `${x.left} of ${x.of}`, money(x.paid), x.expires ? `<span data-date="${esc(x.expires)}">${DAY(x.expires)} ${x.expires.slice(0, 4)}</span>` : '-']), 'No packages sold yet.')}`
     }
     if (p === 'messages') {
       return `${head('Idle DMs')}<section class="idl-card idl-empty-card">${icon('chat', 28)}<h2>Your AI receptionist is ready</h2><p>Connect WhatsApp and Idle answers clients, books them in and sends reminders.${store.bookings.length ? ` Reminders are ready for ${store.bookings.length} upcoming bookings.` : ''}</p><button type="button" class="idl-btn primary">Connect WhatsApp</button></section>`
@@ -159,7 +159,7 @@ export function mountIdle(root, store, { page = 'home' } = {}) {
               ['cancelHours', 'Late cancellation window', pol.cancelHours ? `${pol.cancelHours} hours` : 'Not set'],
               ['cancelFee', 'Late cancellation fee', pol.cancelFee !== '' ? `${pol.cancelFee}%` : 'Not set'],
               ['noShowFee', 'No-show fee', pol.noShowFee !== '' ? `${pol.noShowFee}%` : 'Not set'],
-              ['lateMinutes', 'Late arrival grace', pol.lateMinutes ? `${pol.lateMinutes} min` : 'Not set'],
+              ['note', 'Booking policy note', pol.note ? esc(pol.note) : 'Not set'],
             ].map(([k, a, b]) => `<div data-policy="${k}"><dt>${a}</dt><dd>${b}</dd></div>`).join('')}</dl><button type="button" class="idl-btn" data-open="policies">Edit</button>`
       }</div>`
     }
@@ -188,8 +188,8 @@ export function mountIdle(root, store, { page = 'home' } = {}) {
     if (f === 'service') inner = field('Name', 'name') + field('Category', 'category', select('category', CATEGORIES)) + field('Duration (min)', 'minutes') + field('Buffer after (min)', 'buffer') + field('Price', 'price') + field('Deposit (%)', 'deposit')
     if (f === 'product') inner = field('Name', 'name') + field('SKU', 'sku') + field('Price', 'price') + field('In stock', 'stock')
     if (f === 'staff') inner = field('Name', 'name') + field('Role', 'role') + field('Phone', 'phone') + `<fieldset class="idl-field wide"><legend>Does</legend>${CATEGORIES.map(c => `<label class="idl-check"><input type="checkbox" name="does" value="${c}" />${c}</label>`).join('')}</fieldset>`
-    if (f === 'package') inner = field('Client', 'client', select('client', store.clients.map(c => c.name))) + field('Package', 'name') + field('Sessions left', 'left') + field('Sessions total', 'of') + field('Paid', 'paid')
-    if (f === 'policies') inner = field('Late cancellation window (hours)', 'cancelHours') + field('Late cancellation fee (%)', 'cancelFee') + field('No-show fee (%)', 'noShowFee') + field('Late arrival grace (min)', 'lateMinutes')
+    if (f === 'package') inner = field('Client', 'client', select('client', store.clients.map(c => c.name))) + field('Package', 'name') + field('Sessions left', 'left') + field('Sessions total', 'of') + field('Paid', 'paid') + field('Expires', 'expires', '<input name="expires" type="date" />')
+    if (f === 'policies') inner = field('Late cancellation window (hours)', 'cancelHours') + field('Late cancellation fee (%)', 'cancelFee') + field('No-show fee (%)', 'noShowFee') + `<label class="idl-field wide"><span>Booking policy note</span><textarea name="note" rows="2"></textarea></label>`
     if (f === 'booking') {
       inner = field('Client', 'client', select('client', store.clients.map(c => c.name))) + field('Service', 'service', select('service', store.services.map(s => s.name))) + field('Team member', 'staff', select('staff', store.staff.map(s => s.name))) + field('Date', 'date', '<input name="date" type="date" />') + field('Time', 'time', select('time', TIMES))
       const s = store.services.find(x => x.name === state.values.service)
@@ -248,7 +248,7 @@ export function mountIdle(root, store, { page = 'home' } = {}) {
     const v = values(e.target)
     const f = state.form
     if (f === 'policies') {
-      store.policies = { cancelHours: v.cancelHours, cancelFee: v.cancelFee, noShowFee: v.noShowFee, lateMinutes: v.lateMinutes }
+      store.policies = { cancelHours: v.cancelHours, cancelFee: v.cancelFee, noShowFee: v.noShowFee, note: v.note }
       close('Policies saved.')
       return store.changed()
     }
@@ -260,7 +260,10 @@ export function mountIdle(root, store, { page = 'home' } = {}) {
     }
     if (f === 'product') store.products.push(v)
     if (f === 'staff') store.staff.push(v)
-    if (f === 'package') store.packages.push(v)
+    if (f === 'package') {
+      if (!v.expires) return // every package needs an expiry date in Idle
+      store.packages.push(v)
+    }
     if (f === 'booking') store.bookings.push(v)
     const said = { client: 'Client added.', service: state.editing !== null ? 'Service updated.' : 'Service added.', product: 'Product added.', staff: 'Added to the team.', package: 'Package saved.', booking: 'Booking saved.' }[f]
     close(said)
