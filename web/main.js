@@ -230,7 +230,7 @@ const ui = {
   },
   /** A ghost finished one record in Idle. Shown when you are watching that ghost. */
   moved(lane, what, done, total) {
-    if (views[lane].el.classList.contains('on')) ui.now(`${AGENTS[lane].name} added ${what} to Idle`, `${done} of ${total}`)
+    if (views[lane].el.classList.contains('on')) ui.now(`Added ${what}`, `${done} of ${total}`)
   },
   ask({ title, detail, choices }) {
     const box = $('question')
@@ -268,7 +268,7 @@ const ui = {
     row.classList.toggle('done', done === total)
   },
   proof(matched, checks, diff, label) {
-    if (label) ui.now('Checking Idle against what Slotly had', `${label} ${diff ? '✗' : '✓'} (${checks} checked, ${matched} match)`)
+    if (label) ui.now('Checking', `${label} ${diff ? '✗' : '✓'}`)
     $('proof-num').textContent = matched
     $('proof-of').textContent = `of ${checks} checks match`
     $('proof-bar').style.width = `${checks ? (matched / checks) * 100 : 0}%`
@@ -362,16 +362,16 @@ function idlePreview(key, { c, p, svc, mins }) {
   if (key === 'packages') {
     return `<div class="idlp"><div class="idlp-bar">Idle · Packages</div><div class="idlp-row">
       <span class="idlp-av">${initials(c.name)}</span><div class="idlp-main"><b>${esc(c.name)}</b><span>${esc(p.name)} · paid $${p.paid}</span>
-      <div class="idlp-meter"><i style="width:${Math.round((p.left / p.of) * 100)}%"></i></div><small>${p.left} of ${p.of} sessions left · expires 26 Nov 2027</small></div></div></div>`
+      <div class="idlp-meter"><i style="width:${Math.round((p.left / p.of) * 100)}%"></i></div><small>${p.left} of ${p.of} left · expires Nov 2027</small></div></div></div>`
   }
   if (key === 'alerts') {
     return `<div class="idlp"><div class="idlp-bar">Idle · Clients</div><div class="idlp-row">
       <span class="idlp-av">${initials(c.name)}</span><div class="idlp-main"><b>${esc(c.name)}${c.vip ? ' <em class="idlp-tag">VIP</em>' : ''}</b>
-      <span class="idlp-alert">⚠ ${esc(c.alert)}</span><small>Shown on every booking, so nobody misses it</small></div></div></div>`
+      <span class="idlp-alert">⚠ ${esc(c.alert)}</span></div></div></div>`
   }
   return `<div class="idlp"><div class="idlp-bar">Idle · Services</div><div class="idlp-row">
     <span class="idlp-av sq">✂</span><div class="idlp-main"><b>${esc(svc?.name ?? 'Colour')}</b><span>${svc?.minutes ?? ''} min · $${svc?.price ?? ''} <em class="idlp-chip">+${mins} min buffer after</em></span>
-    <small>Idle blocks the time by itself. No more fake appointments.</small></div></div></div>`
+    </div></div></div>`
 }
 
 /** Page through Slotly's customer list, as a person would, until this customer is on screen. */
@@ -427,14 +427,13 @@ async function tour() {
     boo.say(stop.say, 3200)
     $('tour').innerHTML = `<p class="h-eyebrow">Hidden data ${i + 1} of ${stops.length}</p>
       <h2>${esc(f.title)}</h2>
-      <dl><div><dt>In the old app</dt><dd><code>${esc(from)}</code></dd></div>
-      <div><dt>In the new app ${gem(read.by === 'ai', read.model)}</dt><dd>${idle}</dd></div></dl>
-      <p class="h-hint">Not right? Tell Boo in the chat below.</p>
+      <dl><div><dt>Old app</dt><dd><code>${esc(from)}</code></dd></div>
+      <div><dt>New app ${gem(read.by === 'ai', read.model)}</dt><dd>${idle}</dd></div></dl>
       <button type="button" class="h-btn" id="tour-next">Next</button>`
     show('tour')
     await pause(250)
     const unring = mark(el, 'Workaround', $('tour'))
-    ui.now(`Found: ${f.title.toLowerCase()}`, `${f.count} like this in Slotly`, { wait: true })
+    ui.now(f.title, `${f.count} found`, { wait: true })
     await moment(5200, $('tour-next'))
     unring()
     if (reader.look('aside [data-close]')) await reader.press('aside [data-close]')
@@ -454,13 +453,13 @@ async function lookAround() {
   $('start-card').hidden = true
   stage = 'reading'
   busy()
-  await actBanner('I', 'Rise of the Dead', 'Boo reads every screen of the old app', 'read')
+  await actBanner('I', 'Rise of the Dead', 'Read the old app', 'read')
   seen = await survey({ r: reader, ui, speed, business: BUSINESS })
-  await actBanner('II', 'Ghosts in the Notes', 'Finding data hiding where it doesn’t belong', 'find')
+  await actBanner('II', 'Ghosts in the Notes', 'Find the hidden data', 'find')
   stage = 'touring'
-  ui.now(`Gemini is reading ${seen.customers.length + seen.services.length + seen.staff.length} records`, 'Names, notes and descriptions')
+  ui.now('Gemini is reading', `${seen.customers.length + seen.services.length + seen.staff.length} records`)
   const t0 = performance.now()
-  const ticking = setInterval(() => ($('now-sub').textContent = $('cap-sub').textContent = `Names, notes and descriptions · ${Math.round((performance.now() - t0) / 1000)}s`), 500)
+  const ticking = setInterval(() => ($('now-sub').textContent = $('cap-sub').textContent = `${seen.customers.length + seen.services.length + seen.staff.length} records · ${Math.round((performance.now() - t0) / 1000)}s`), 500)
   boo.mode('look')
   boo.say('Reading between the lines...', 3000)
   read = await readOldApp(seen)
@@ -468,7 +467,7 @@ async function lookAround() {
   findings = findingsFor(seen, read)
   ui.log(read.by === 'ai' ? `Gemini (${read.model}) read the records. ${read.aiCount} of its answers matched the original text and were used.` : 'Gemini was busy, so plain rules read the records.')
   await tour()
-  await actBanner('III', 'The Exorcism', 'Cleaning it into the new app’s proper fields', 'clean')
+  await actBanner('III', 'The Exorcism', 'Clean it', 'clean')
   standardise()
 }
 
@@ -507,7 +506,7 @@ function standardise() {
   )
   $('chat-q').addEventListener('focus', hold, { once: true })
   show('confirm')
-  ui.now('Is this right?', 'Change anything, or tell Boo in the chat. Otherwise it carries on.', { wait: true })
+  ui.now('Is this right?', 'Or tell Boo in the chat', { wait: true })
   free()
   const go = () => {
     clearInterval(count)
@@ -537,14 +536,14 @@ async function clean() {
     row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     const r = rect(row)
     boo.flyTo(r.left - 46, r.top - 6, 300, { size: 36 })
-    ui.now(`Cleaning: ${f.title.toLowerCase()}`, `“${f.from[0].slice(0, 48)}” → “${f.to[0].slice(0, 48)}”`)
+    ui.now('Cleaning', f.title)
     await pause(480 * speed)
     row.classList.replace('now', 'clean')
     burst(r.left + 20, r.top + 10, 8, SPARKLE, 0.3, 200)
   }
   boo.react('happy', 'All clean!', 1400)
   await pause(500 * speed)
-  await actBanner('IV', 'Crossing Over', 'A swarm moves it all into the new app', 'move')
+  await actBanner('IV', 'Crossing Over', 'Move it', 'move')
   switchToIdle()
 }
 
@@ -570,7 +569,7 @@ async function switchToIdle() {
   $('moving').innerHTML = `<h2>Moving, all at once</h2><ul class="h-move">${rows.map(([k, label, n]) => `<li data-key="${k}"><b>${label}</b><em>0 of ${n}</em><div class="bar"><i></i></div></li>`).join('')}</ul>`
   show('moving')
   const crews = crewsFor(records)
-  ui.now(`${crews.length} ghosts, all at once`, 'Each in its own tab of the new app')
+  ui.now('Moving', `${crews.length} ghosts at once`)
   for (const c of crews) lane(c.id, c.name)
   await split(crews.map(c => c.id))
   await move({ crews, lane, store, ui, speed })
@@ -584,14 +583,14 @@ async function switchToIdle() {
 function done(result, d) {
   stage = 'done'
   for (const li of document.querySelectorAll('#chapters [data-ch]')) li.dataset.state = 'done'
-  ui.now('Moved. Nothing lost.', `${result.matched} of ${result.checks} checks match`, { wait: true })
+  ui.now('Moved. Nothing lost.', `${result.matched}/${result.checks} checks match`, { wait: true })
   const salesFile = d.stays !== false
   $('receipt').innerHTML = `
-    <p class="h-eyebrow">The end · the old app can rest in peace</p>
+    <p class="h-eyebrow">The end</p>
     <h2>Moved. Nothing lost.</h2>
     <ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
-    <p class="h-check"><b>${result.matched} of ${result.checks}</b> checks match · ${findings.filter(f => f.key !== 'stays').length} hidden data types cleaned</p>
-    ${salesFile ? '<button type="button" class="h-btn" id="sales-file">Download the old sales history (CSV)</button>' : ''}`
+    <p class="h-check"><b>${result.matched}/${result.checks}</b> checks match</p>
+    ${salesFile ? '<button type="button" class="h-btn" id="sales-file">Old sales history (CSV)</button>' : ''}`
   show('receipt')
   $('sales-file')?.addEventListener('click', () => {
     const csv = `Month,Revenue\n${seen.sales.map(([m, v]) => `${m} 2026,${v}`).join('\n')}\n`

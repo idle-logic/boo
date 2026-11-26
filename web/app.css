@@ -656,3 +656,5 @@ fieldset.idl-field legend { margin-bottom: 4px; }
 .h-holds p { margin: 3px 0 0; font-size: 13px; color: #2c3142; }
 #go-count { opacity: 0.75; font-weight: 500; }
 @media (max-width: 900px) { .act-banner { position: fixed; right: 16px; } .act-banner b { font-size: 30px; } }
+/* The caption already says what is happening; the panel does not repeat it. */
+.h-now { display: none !important; }

@@ -13,7 +13,7 @@ export async function survey({ r, ui, speed = 1, business }) {
   const s = ms => ms * speed
   const seen = { business, customers: [], services: [], staff: [], appointments: [], terms: '', smsCredits: 0, sales: [] }
 
-  ui.now('Reading Slotly, screen by screen', 'Starting with your customers')
+  ui.now('Reading the old app', 'Customers')
   await r.press('[data-nav]', 'Customers')
   const total = Number(/of (\d+)/.exec(r.text(r.look('.sl-pager span')))?.[1] ?? 0)
   for (;;) {
@@ -22,12 +22,12 @@ export async function survey({ r, ui, speed = 1, business }) {
     for (let k = 0; k < count; k++) {
       // The first few slowly, so you can see what Boo does. The rest at a glance.
       r.pace.move = seen.customers.length < 3 ? s(380) : 0
-      if (seen.customers.length === 3) ui.now('Reading Slotly: customers', `Reading the other ${total - 3} the same way`)
+      if (seen.customers.length === 3) ui.now('Reading the old app', `Customers · the other ${total - 3}`)
       await r.click(r.all('tbody tr[data-customer]')[k])
       const d = r.details('aside dl')
       seen.customers.push({ name: r.text(r.look('aside h2')), mobile: d.Mobile === '-' ? '' : d.Mobile, email: d.Email, visits: num(d.Visits), lastVisit: d['Last visit'], notes: r.look('aside textarea').value })
       const who = seen.customers.at(-1).name.replace(/\s*(★|\*\*VIP\*\*|\(.*?\))/g, '')
-      if (seen.customers.length <= 3) ui.now('Reading Slotly: opening each customer to read their notes', `${who} (${seen.customers.length} of ${total})`)
+      if (seen.customers.length <= 3) ui.now('Reading the old app', `${who}`)
       await r.press('aside [data-close]')
     }
     const next = r.all('[data-page="1"]')[0]
@@ -42,7 +42,7 @@ export async function survey({ r, ui, speed = 1, business }) {
   })
 
   r.pace.move = s(320)
-  ui.now('Reading Slotly: services', 'Names, prices and the descriptions your team typed')
+  ui.now('Reading the old app', 'Services')
   await r.press('[data-nav]', 'Services')
   seen.services = r.table().map(row => ({ name: row.Service, mins: num(row.Mins), price: num(row.Price), description: row.Description }))
   await glance(r, 'tbody tr', 5, s(320))
@@ -53,7 +53,7 @@ export async function survey({ r, ui, speed = 1, business }) {
     next: 'Next: staff',
   })
 
-  ui.now('Reading Slotly: staff', 'Who works here and what they do')
+  ui.now('Reading the old app', 'Staff')
   await r.press('[data-nav]', 'Staff')
   await glance(r, '[data-person]', 3, s(360))
   seen.staff = r.all('[data-person]').map(card => ({ name: r.text(card.querySelector('[data-k="name"]')), mobile: r.text(card.querySelector('[data-k="mobile"]')), notes: r.text(card.querySelector('[data-k="notes"]')) }))
@@ -64,7 +64,7 @@ export async function survey({ r, ui, speed = 1, business }) {
     next: 'Next: appointments',
   })
 
-  ui.now('Reading Slotly: appointments', 'Every booking in the diary, including the odd ones')
+  ui.now('Reading the old app', 'Appointments')
   await r.press('[data-nav]', 'Appointments')
   if (!r.look('[data-cal="list"][aria-pressed="true"]')) await r.press('[data-cal="list"]')
   await glance(r, 'tr[data-appt]', 5, s(300))
@@ -79,7 +79,7 @@ export async function survey({ r, ui, speed = 1, business }) {
     next: 'Next: reports and settings',
   })
 
-  ui.now('Reading Slotly: reports and settings', 'Sales history, SMS credits and your booking terms')
+  ui.now('Reading the old app', 'Reports and settings')
   await r.press('[data-nav]', 'Reports')
   await glance(r, '.sl-bars tr', 3, s(300))
   seen.sales = r.all('.sl-bars tr').map(tr => [r.text(tr.cells[0]), num(r.text(tr.cells[2]))])

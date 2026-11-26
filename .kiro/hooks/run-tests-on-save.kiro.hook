@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Run the tests on save",
+  "description": "When a file in web/, src/ or tests/ changes, run npm test and fix anything that fails.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "web/**/*.js",
+      "src/**/*.js",
+      "tests/**/*.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run `npm test`. If anything fails, find the cause in the file that just changed and fix it, keeping the change small. Then run the tests again."
+  }
+}

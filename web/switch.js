@@ -122,7 +122,7 @@ export async function prove({ seen, read, records, d, p, ui, speed = 1 }) {
     return p.table()
   }
   p.pace.move = s(220)
-  ui.now('Reading everything back from Idle', 'Every record, and every dollar')
+  ui.now('Checking', 'Every record, every dollar')
   const clients = await table('clients')
   for (const c of records.clients) tally(clients.some(x => x.Name.replace(/ VIP$/, '') === c.Name && x.Phone === (c.Phone || '-') && x.Email === c.Email && x.Visits === c.Visits), `Client ${c.Name}`)
   const pk = await table('packages')
@@ -150,12 +150,12 @@ export async function prove({ seen, read, records, d, p, ui, speed = 1 }) {
   p.hide()
   const money = n => `$${n.toLocaleString('en')}`
   const lines = [
-    `${seen.customers.length} customers → ${records.clients.length} clients`,
-    `${read.clients.flatMap(c => c.packages).length} packages from notes → ${pk.length} in Idle · ${money(prepaidOld)} = ${money(prepaidNew)}`,
-    d.credit !== false ? `Store credit from notes ${money(creditOld)} = ${money(creditNew)}` : 'Store credit left in the notes, as you chose',
-    `${seen.services.length} services in Slotly → ${records.services.length} services${records.products.length ? `, ${records.products.length} products` : ''}, 1 clean-up block`,
-    `${seen.staff.length} staff → ${records.staff.length} team members${records.merged.size ? ', 1 merged' : ''}`,
-    `${seen.appointments.length} appointments → ${records.bookings.length} bookings, ${read.cleanups.length} clean-ups now buffers, ${read.breaks.length} breaks`,
+    `${records.clients.length} clients`,
+    `${pk.length} packages · ${money(prepaidOld)} = ${money(prepaidNew)}`,
+    d.credit !== false ? `Store credit · ${money(creditOld)} = ${money(creditNew)}` : 'Store credit kept in notes',
+    `${records.services.length} services${records.products.length ? ` · ${records.products.length} products` : ''}`,
+    `${records.staff.length} team${records.merged.size ? ' (1 merged)' : ''}`,
+    `${records.bookings.length} bookings`,
   ]
   return { checks, matched, lines }
 }
