@@ -91,11 +91,35 @@ export const LANTERN = {
   palette: { k: '#4a3320', l: '#ffb347', y: '#fff3b0' },
 }
 
-/** Build a 16x16 grid of palette keys (or null) for a pose. */
-export function frame({ face = 'idle', tail = 'a', extra = null } = {}) {
+// Where each open-eyed face keeps its eyes, so they can look around.
+const EYES = { idle: [[6, 5], [11, 5]], look: [[7, 4], [12, 4]], knock: [[6, 5], [11, 5]] }
+
+/** The nearest gaze that keeps both eyes inside the body, never on the outline. */
+function fitGaze(face, [dx, dy], rows) {
+  if (!EYES[face]) return [0, 0]
+  const inside = (gx, gy) =>
+    EYES[face].every(([x, y]) => eye(x + gx, y + gy).every(([ex, ey]) => 'ws'.includes(rows[ey]?.[ex] ?? '.')))
+  for (const [gx, gy] of [[dx, dy], [dx, 0], [0, dy]]) if ((gx || gy) && inside(gx, gy)) return [gx, gy]
+  return [0, 0]
+}
+
+/** Faces whose eyes can follow your pointer. */
+export const GAZING_FACES = Object.keys(EYES)
+
+/**
+ * Build a 16x16 grid of palette keys (or null) for a pose.
+ * gaze is [dx, dy], each -1, 0 or 1: which way the eyes look, in sprite space.
+ */
+export function frame({ face = 'idle', tail = 'a', extra = null } = {}, gaze = [0, 0]) {
   const rows = [...BODY_TOP, ...TAILS[tail]]
   const grid = rows.map(r => [...r].map(c => (c === '.' ? null : c)))
   for (const [x, y, c] of FACES[face]) grid[y][x] = c
+  const [dx, dy] = fitGaze(face, gaze, rows)
+  if (dx || dy) {
+    // Wipe the eyes, then draw them again one pixel towards the pointer.
+    for (const [x, y] of EYES[face]) for (const [ex, ey] of eye(x, y)) grid[ey][ex] = 'w'
+    for (const [x, y] of EYES[face]) for (const [ex, ey, c] of eye(x + dx, y + dy)) grid[ey][ex] = c
+  }
   if (extra) for (const [x, y, c] of EXTRAS[extra]) grid[y][x] = c
   return grid
 }
@@ -117,8 +141,28 @@ export const POSES = {
   workB: { face: 'look', tail: 'b' },
 }
 
-/** Pose name to { grid, palette }. */
-export function pose(name) {
+/** Pose name to { grid, palette }, with the eyes turned by gaze. */
+export function pose(name, gaze = [0, 0]) {
   const p = POSES[name]
-  return { grid: frame(p), palette: PALETTES[p.palette ?? 'normal'] }
+  return { grid: frame(p, gaze), palette: PALETTES[p.palette ?? 'normal'] }
+}
+
+/** Does this pose have eyes that can follow the pointer? */
+export const canGaze = name => GAZING_FACES.includes(POSES[name]?.face)
+
+/**
+ * Which way to look: from the eyes towards the pointer, as [dx, dy] in -1..1.
+ * Straight ahead when the pointer is far away or right on top of Boo.
+ * flip mirrors the sprite, so x turns around too.
+ */
+export function gazeToward(eyes, pointer, flip, near = 650, dead = 18) {
+  if (!pointer) return [0, 0]
+  const vx = pointer.x - eyes.x
+  const vy = pointer.y - eyes.y
+  const dist = Math.hypot(vx, vy)
+  if (dist > near || dist < dead) return [0, 0]
+  let dx = Math.abs(vx) > dist * 0.38 ? Math.sign(vx) : 0
+  const dy = Math.abs(vy) > dist * 0.38 ? Math.sign(vy) : 0
+  if (flip) dx = -dx
+  return [dx, dy]
 }

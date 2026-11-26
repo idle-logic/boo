@@ -1,7 +1,7 @@
 // Boo's page: draws the ghost, runs the physics each frame, shows what it says,
 // and lets you grab and throw it. Everything else on screen stays clickable.
 
-import { pose, POSES, LANTERN, SIZE } from './sprites.js'
+import { pose, LANTERN, SIZE, canGaze, gazeToward } from './sprites.js'
 import { GHOST, ledgesFromWindows, step } from './world.js'
 import { Brain } from './brain.js'
 
@@ -34,23 +34,30 @@ function paint(grid, palette, scale) {
 }
 
 const SCALE = GHOST.w / SIZE
-const art = Object.fromEntries(Object.keys(POSES).map(name => {
-  const { grid, palette } = pose(name)
-  return [name, paint(grid, palette, SCALE)]
-}))
+// Each pose and eye direction is painted once, the first time it is needed.
+const artCache = new Map()
+function art(name, gaze) {
+  const key = `${name}:${gaze}`
+  if (!artCache.has(key)) {
+    const { grid, palette } = pose(name, gaze)
+    artCache.set(key, paint(grid, palette, SCALE))
+  }
+  return artCache.get(key)
+}
 {
   const lantern = paint(LANTERN.grid, LANTERN.palette, 4)
   lanternEl.getContext('2d').drawImage(lantern, 0, 0)
 }
 
-let drawn = { pose: '', flip: null }
-function drawPose(name, flip) {
-  if (drawn.pose === name && drawn.flip === flip) return
+let drawn = ''
+function drawPose(name, flip, gaze) {
+  const key = `${name}${flip}${gaze}`
+  if (drawn === key) return
   sprite.setTransform(1, 0, 0, 1, 0, 0)
   sprite.clearRect(0, 0, GHOST.w, GHOST.h)
   if (flip) sprite.setTransform(-1, 0, 0, 1, GHOST.w, 0)
-  sprite.drawImage(art[name], 0, 0)
-  drawn = { pose: name, flip }
+  sprite.drawImage(art(name, gaze), 0, 0)
+  drawn = key
 }
 
 // ---------------------------------------------------------------- world
@@ -250,7 +257,9 @@ function frame(now) {
   booEl.style.transform = `translate(${Math.round(body.x + shake)}px, ${Math.round(body.y + bob * (1 - tuck))}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`
   booEl.style.transformOrigin = out.tucked ? '100% 100%' : '50% 100%'
   booEl.style.opacity = String(1 - tuck * 0.15)
-  drawPose(out.pose, out.flip)
+  // The eyes follow your pointer when it is near.
+  const gaze = canGaze(out.pose) ? gazeToward({ x: body.x + GHOST.w / 2, y: body.y + GHOST.h * 0.4 }, cursor, out.flip) : [0, 0]
+  drawPose(out.pose, out.flip, gaze)
 
   // The lantern swings at Boo's front while Kiro works.
   lanternEl.classList.toggle('on', out.lantern)

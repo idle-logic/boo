@@ -1,7 +1,7 @@
 // Boo inside a web page. Same pixel art, physics and brain as the desktop app,
 // but the "screen" is this page and the windows are elements on it.
 
-import { pose, POSES, LANTERN, SIZE } from './lib/sprites.js'
+import { pose, LANTERN, SIZE, canGaze, gazeToward } from './lib/sprites.js'
 import { GHOST, ledgesFromWindows, step } from './lib/world.js'
 import { Brain } from './lib/brain.js'
 
@@ -52,17 +52,26 @@ export function createBoo({ windows, bounds, onClick = () => {} }) {
   const fx = fxEl.getContext('2d')
 
   const SCALE = GHOST.w / SIZE
-  const art = Object.fromEntries(Object.keys(POSES).map(n => [n, paint(pose(n).grid, pose(n).palette, SCALE)]))
+  // Each pose and eye direction is painted once, the first time it is needed.
+  const artCache = new Map()
+  function art(name, gaze) {
+    const key = `${name}:${gaze}`
+    if (!artCache.has(key)) {
+      const { grid, palette } = pose(name, gaze)
+      artCache.set(key, paint(grid, palette, SCALE))
+    }
+    return artCache.get(key)
+  }
   lanternEl.getContext('2d').drawImage(paint(LANTERN.grid, LANTERN.palette, 4), 0, 0)
 
   let drawn = ''
-  function drawPose(name, flip) {
-    const key = name + flip
+  function drawPose(name, flip, gaze) {
+    const key = `${name}${flip}${gaze}`
     if (drawn === key) return
     sprite.setTransform(1, 0, 0, 1, 0, 0)
     sprite.clearRect(0, 0, GHOST.w, GHOST.h)
     if (flip) sprite.setTransform(-1, 0, 0, 1, GHOST.w, 0)
-    sprite.drawImage(art[name], 0, 0)
+    sprite.drawImage(art(name, gaze), 0, 0)
     drawn = key
   }
 
@@ -195,7 +204,9 @@ export function createBoo({ windows, bounds, onClick = () => {} }) {
     const small = 1 - tuck * 0.45
     booEl.style.transformOrigin = out.tucked ? '100% 100%' : '50% 100%'
     booEl.style.transform = `translate(${Math.round(body.x + shake)}px, ${Math.round(body.y + bob)}px) scale(${((1 + squash * 0.6) * small).toFixed(3)}, ${((1 - squash) * small).toFixed(3)})`
-    drawPose(out.pose, out.flip)
+    // The eyes follow your pointer when it is near.
+    const gaze = canGaze(out.pose) ? gazeToward({ x: body.x + GHOST.w / 2, y: body.y + GHOST.h * 0.4 }, cursor, out.flip) : [0, 0]
+    drawPose(out.pose, out.flip, gaze)
 
     lanternEl.classList.toggle('on', out.lantern)
     if (out.lantern) {
