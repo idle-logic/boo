@@ -14,4 +14,9 @@ contextBridge.exposeInMainWorld('haunt', {
   onEvent: listen('haunt-event'),
   setInteractive: interactive => ipcRenderer.send('set-interactive', Boolean(interactive)),
   clicked: () => ipcRenderer.send('boo-clicked'),
+  onAsk: listen('ask'),
+  answer: (id, yes) => ipcRenderer.send('answer', { id, yes: Boolean(yes) }),
+  onOpenGoal: listen('open-goal'),
+  goal: text => ipcRenderer.send('goal', String(text).slice(0, 400)),
+  goalClosed: () => ipcRenderer.send('goal-closed'),
 })

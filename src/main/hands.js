@@ -17,6 +17,7 @@ export class Hands {
     if (this.proc || process.platform !== 'win32') return
     this.proc = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(here, 'hands.ps1')], {
       windowsHide: true,
+      env: { ...process.env, HAUNT_PID: String(process.pid) },
     })
     createInterface({ input: this.proc.stdout }).on('line', line => {
       let msg

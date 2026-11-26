@@ -18,6 +18,13 @@ public static class HauntInput {
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+  public static void Click(int x, int y) {
+    SetCursorPos(x, y);
+    mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+    mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+  }
 }
 "@
 [void][HauntInput]::SetProcessDPIAware()
@@ -29,9 +36,16 @@ $CT = [System.Windows.Automation.ControlType]
 $script:fields = @()
 $script:window = $null
 
+# Haunt's own windows are never a target.
+$script:selfPid = [int]($env:HAUNT_PID)
 function Find-Window([string]$title) {
-  if (-not $title) { return $A::FromHandle([HauntInput]::GetForegroundWindow()) }
+  if (-not $title) {
+    $w = $A::FromHandle([HauntInput]::GetForegroundWindow())
+    if ($w -and $w.Current.ProcessId -eq $script:selfPid) { return $null }
+    return $w
+  }
   foreach ($w in $A::RootElement.FindAll($Tree::Children, $Any)) {
+    if ($w.Current.ProcessId -eq $script:selfPid) { continue }
     if ($w.Current.Name.Contains($title)) { return $w }
   }
   return $null
@@ -90,6 +104,7 @@ function Escape-Keys([string]$text) {
 function Fill([int]$index, [string]$value) {
   $el = $script:fields[$index]
   if (-not $el) { return @{ ok = $false; error = 'no such field' } }
+  Bring-Into-View $el
   $hwnd = [IntPtr]$script:window.Current.NativeWindowHandle
   [void][HauntInput]::SetForegroundWindow($hwnd)
   $el.SetFocus()
@@ -156,6 +171,111 @@ function Press([int]$index) {
   return @{ ok = $true }
 }
 
+# Everything Boo can see and use in a window: buttons, links, fields, tabs,
+# list items and text, with names, values and positions. Properties are fetched
+# in one cached request, so even a large web app reads quickly. Inside a
+# browser, only the page is read, not the browser's own buttons.
+$script:kinds = @{
+  'Button' = 'button'; 'Hyperlink' = 'link'; 'Edit' = 'textbox'; 'ComboBox' = 'select'; 'CheckBox' = 'checkbox'
+  'RadioButton' = 'radio'; 'TabItem' = 'tab'; 'ListItem' = 'item'; 'MenuItem' = 'menuitem'; 'Text' = 'text'
+  'DataItem' = 'cell'; 'TreeItem' = 'item'; 'Header' = 'text'; 'HeaderItem' = 'text'
+}
+function Observe([string]$title, [int]$max) {
+  $win = if ($title -eq '@same' -and $script:window) { $script:window } else { Find-Window $title }
+  if (-not $win) { return @{ ok = $false; error = 'window not found' } }
+  $script:window = $win
+  $cache = New-Object System.Windows.Automation.CacheRequest
+  foreach ($p in @($A::NameProperty, $A::ControlTypeProperty, $A::BoundingRectangleProperty, $A::IsOffscreenProperty,
+                   $A::IsEnabledProperty, $A::IsPasswordProperty, $A::AutomationIdProperty, $A::HelpTextProperty,
+                   [System.Windows.Automation.ValuePattern]::ValueProperty,
+                   [System.Windows.Automation.SelectionItemPattern]::IsSelectedProperty)) { $cache.Add($p) }
+  $cache.TreeScope = $Tree::Element -bor $Tree::Descendants
+  # In a browser, read only the web page.
+  $root = $win
+  $doc = $win.FindFirst($Tree::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, $CT::Document)))
+  if ($doc) { $root = $doc }
+  $act = $cache.Activate()
+  try { $all = $root.FindAll($Tree::Descendants, $Any) } finally { $act.Dispose() }
+  $items = @()
+  $i = 0
+  foreach ($el in $all) {
+    $c = $el.Cached
+    $kind = $c.ControlType.ProgrammaticName -replace 'ControlType\.', ''
+    $role = $script:kinds[$kind]
+    if (-not $role) { continue }
+    # Text that is scrolled out of view can still be read, like a screen reader does.
+    # Things to press or type into must be on screen.
+    $offscreen = [bool]$c.IsOffscreen
+    if ($offscreen -and @('text', 'item', 'cell') -notcontains $role) { continue }
+    $r = $c.BoundingRectangle
+    if ($r.IsEmpty -or $r.Width -lt 2 -or $r.Height -lt 2) { continue }
+    if ($c.IsPassword) { $role = 'password' }
+    $name = $c.Name
+    if (-not $name) { $name = $c.HelpText }
+    $value = $null
+    try { $value = $el.GetCachedPropertyValue([System.Windows.Automation.ValuePattern]::ValueProperty) } catch {}
+    if ($value -eq $A::NotSupported) { $value = $null }
+    if ($role -eq 'password') { $value = $null }
+    if (($role -eq 'text' -or $role -eq 'item' -or $role -eq 'cell') -and -not $name) { continue }
+    $selected = $false
+    try {
+      $sel = $el.GetCachedPropertyValue([System.Windows.Automation.SelectionItemPattern]::IsSelectedProperty)
+      if ($sel -ne $A::NotSupported) { $selected = [bool]$sel }
+    } catch {}
+    $items += [pscustomobject]@{
+      index = $i; role = $role; name = [string]$name; value = $value; selected = $selected; enabled = $c.IsEnabled; offscreen = $offscreen
+      x = [int]$r.X; y = [int]$r.Y; w = [int]$r.Width; h = [int]$r.Height; el = $el
+    }
+    $i++
+    if ($items.Count -ge $max) { break }
+  }
+  $script:fields = @($items | ForEach-Object { $_.el })
+  $out = @($items | ForEach-Object {
+    [pscustomobject]@{ index = $_.index; role = $_.role; name = $_.name; value = $_.value; selected = $_.selected; enabled = $_.enabled; offscreen = $_.offscreen; x = $_.x; y = $_.y; w = $_.w; h = $_.h }
+  })
+  return @{ ok = $true; window = $win.Current.Name; url = (Read-Url $win); elements = $out }
+}
+
+# The address of the page in a browser window, from its address bar. Empty for other apps.
+function Read-Url($win) {
+  try {
+    $cond = New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, $CT::Edit)
+    foreach ($e in $win.FindAll($Tree::Descendants, $cond)) {
+      if ($e.Current.Name -match 'Address|address and search|Search or enter') {
+        return $e.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value
+      }
+    }
+  } catch {}
+  return ''
+}
+
+# Click anything: the element's own action when it has one, else a real mouse click on its centre.
+function Bring-Into-View($el) {
+  try { $el.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern).ScrollIntoView(); Start-Sleep -Milliseconds 120 } catch {}
+}
+
+function Click-Element([int]$index) {
+  $el = $script:fields[$index]
+  if (-not $el) { return @{ ok = $false; error = 'no such element' } }
+  Bring-Into-View $el
+  $hwnd = [IntPtr]$script:window.Current.NativeWindowHandle
+  [void][HauntInput]::SetForegroundWindow($hwnd)
+  Start-Sleep -Milliseconds 60
+  if ([HauntInput]::GetForegroundWindow() -ne $hwnd) { return @{ ok = $false; error = 'not-in-front' } }
+  foreach ($pattern in @([System.Windows.Automation.InvokePattern]::Pattern, [System.Windows.Automation.SelectionItemPattern]::Pattern, [System.Windows.Automation.TogglePattern]::Pattern)) {
+    try {
+      $p = $el.GetCurrentPattern($pattern)
+      if ($pattern -eq [System.Windows.Automation.InvokePattern]::Pattern) { $p.Invoke() }
+      elseif ($pattern -eq [System.Windows.Automation.SelectionItemPattern]::Pattern) { $p.Select() }
+      else { $p.Toggle() }
+      return @{ ok = $true; how = 'pattern' }
+    } catch {}
+  }
+  $r = $el.Current.BoundingRectangle
+  [HauntInput]::Click([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2))
+  return @{ ok = $true; how = 'mouse' }
+}
+
 # What the person can see in the foreground window, as plain text lines, top to
 # bottom. Password fields are never read. Haunt's own window is skipped.
 function Read-Screen([int]$skipPid) {
@@ -196,6 +316,8 @@ while ($true) {
       'fill' { $res = Fill $msg.index $msg.value }
       'press' { $res = Press $msg.index }
       'read' { $res = Read-Screen ([int]$msg.skipPid) }
+      'observe' { $res = Observe $msg.title ([int]($(if ($msg.max) { $msg.max } else { 260 }))) }
+      'click' { $res = Click-Element $msg.index }
       default { $res = @{ ok = $false; error = 'unknown command' } }
     }
   } catch {

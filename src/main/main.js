@@ -13,6 +13,7 @@ import { startEventServer, EVENT_PORT } from './events.js'
 import { Hands } from './hands.js'
 import { Migration } from './migrate.js'
 import { Ambient } from './ambient.js'
+import { Operator } from './operator.js'
 import { loadEnv } from './model.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -116,7 +117,26 @@ function sendCursor() {
 }
 
 function haunt(event) {
+  if (event.type === 'do') return void doGoal(event.text, event.window)
+  if (event.type === 'stop') return void operator.stop()
   if (!paused) overlay?.webContents.send('haunt-event', event)
+}
+
+// Questions for the person, answered with Yes or No in Boo's bubble.
+const pendingAsks = new Map()
+let askId = 0
+function askPerson(text) {
+  const id = ++askId
+  overlay?.webContents.send('ask', { id, text })
+  return new Promise(resolve => pendingAsks.set(id, resolve))
+}
+
+/** Boo does something in the app you were using. */
+async function doGoal(text, window = '') {
+  // Work in the named window, or remember the app in front now, before anything of Boo's can take focus.
+  if (!window) await hands.ask({ cmd: 'observe', title: '', max: 1 }, 15000)
+  await operator.run(text, { startTitle: window || '@same' })
+  refreshTray()
 }
 
 function buildTray() {
@@ -198,7 +218,8 @@ function toOverlay(rect) {
 
 const hands = new Hands()
 const migration = new Migration({ hands, haunt: e => overlay?.webContents.send('haunt-event', e), toOverlay })
-const ambient = new Ambient({ hands, haunt: e => haunt(e), busy: () => migration.active })
+const ambient = new Ambient({ hands, haunt: e => haunt(e), busy: () => migration.active || operator.running })
+const operator = new Operator({ hands, haunt: e => overlay?.webContents.send('haunt-event', e), toOverlay, ask: askPerson })
 
 app.whenReady().then(() => {
   createOverlay()
@@ -230,7 +251,32 @@ app.whenReady().then(() => {
     if (migration.active) {
       await migration.clicked()
       refreshTray()
+      return
     }
+    if (operator.running || pendingAsks.size) return
+    // Remember the app in front, then open the box. Typing needs Boo's window to take the keyboard.
+    await hands.ask({ cmd: 'observe', title: '', max: 1 }, 15000)
+    overlay.setFocusable(true)
+    overlay.focus()
+    overlay.webContents.send('open-goal')
+  })
+
+  ipcMain.on('goal-closed', () => {
+    overlay.blur()
+    overlay.setFocusable(false)
+  })
+
+  ipcMain.on('goal', async (_e, text) => {
+    overlay.blur()
+    overlay.setFocusable(false)
+    await operator.run(text, { startTitle: '@same' })
+    refreshTray()
+  })
+
+  ipcMain.on('answer', (_e, { id, yes }) => {
+    const resolve = pendingAsks.get(id)
+    pendingAsks.delete(id)
+    resolve?.(Boolean(yes))
   })
 
   ipcMain.on('set-interactive', (_e, interactive) => {

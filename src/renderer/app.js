@@ -86,6 +86,43 @@ api?.onCursor(p => {
 
 const brain = new Brain()
 let body = { x: Math.round(world.w * 0.72), y: -GHOST.h, vx: 0, vy: 0, ground: null }
+// Boo asks before doing something that matters: Yes and No in the bubble.
+let asking = null // { id }
+api?.onAsk?.(({ id, text }) => {
+  asking = { id }
+  brain.handle({ type: 'wait', text }, performance.now())
+})
+function answer(yes) {
+  if (!asking) return
+  api.answer(asking.id, yes)
+  asking = null
+  brain.bubble = null
+  brain.handle({ type: 'guide-say', text: yes ? 'On it.' : 'Okay, I will not.' }, performance.now())
+}
+
+// Click Boo to ask for something. The box needs the keyboard, so it is focused while open.
+const goalForm = document.getElementById('goal-form')
+const goalInput = document.getElementById('goal')
+api?.onOpenGoal?.(() => {
+  goalForm.hidden = false
+  setInteractive(true)
+  goalInput.value = ''
+  goalInput.focus()
+})
+function closeGoal() {
+  goalForm.hidden = true
+  api?.goalClosed?.()
+}
+goalForm.addEventListener('submit', e => {
+  e.preventDefault()
+  const text = goalInput.value.trim()
+  closeGoal()
+  if (text) api?.goal(text)
+})
+goalInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeGoal()
+})
+
 api?.onEvent(event => {
   brain.handle(event, performance.now())
   if (event.type === 'done') burst(body.x + GHOST.w / 2, body.y + 10, 46, CONFETTI)
@@ -155,6 +192,10 @@ function overBoo(x, y) {
     const b = bubbleEl.getBoundingClientRect()
     if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom + 12) return true
   }
+  if (!goalForm.hidden) {
+    const g = goalForm.getBoundingClientRect()
+    if (x >= g.left - 8 && x <= g.right + 8 && y >= g.top - 8 && y <= g.bottom + 8) return true
+  }
   return false
 }
 
@@ -199,6 +240,8 @@ const clampV = v => Math.max(-1600, Math.min(1600, v))
 
 bubbleEl.addEventListener('mousedown', e => {
   e.preventDefault()
+  const choice = e.target.closest('[data-answer]')
+  if (choice) return answer(choice.dataset.answer === 'yes')
   booClicked()
 })
 
@@ -273,6 +316,14 @@ function frame(now) {
   if (out.intent.fly && Math.hypot(body.vx, body.vy) > 10 && Math.random() < 0.5) burst(body.x + GHOST.w / 2, body.y + GHOST.h - 8, 1, SPARKLE, 0.15)
 
   renderBubble(out.bubble)
+  if (!goalForm.hidden) {
+    const gw = goalForm.offsetWidth
+    const gh = goalForm.offsetHeight
+    const gl = Math.max(world.x + 6, Math.min(world.x + world.w - gw - 6, body.x + GHOST.w / 2 - gw / 2))
+    let gt = body.y - gh - 16
+    if (gt < world.y + 6) gt = body.y + GHOST.h + 14
+    goalForm.style.transform = `translate(${Math.round(gl)}px, ${Math.round(gt)}px)`
+  }
   drawParticles(dt)
   requestAnimationFrame(frame)
 }
@@ -283,10 +334,17 @@ function renderBubble(bubble) {
     bubbleText = ''
     return
   }
-  if (bubble.text !== bubbleText || bubble.tone !== bubbleTone) {
-    bubbleText = bubble.text
+  const key = bubble.text + (asking ? '?' : '')
+  if (key !== bubbleText || bubble.tone !== bubbleTone) {
+    bubbleText = key
     bubbleTone = bubble.tone
     bubbleEl.textContent = bubble.text
+    if (asking) {
+      const row = document.createElement('span')
+      row.className = 'boo-ask'
+      row.innerHTML = '<button type="button" data-answer="yes">Yes</button><button type="button" data-answer="no">No</button>'
+      bubbleEl.appendChild(row)
+    }
     bubbleEl.className = bubble.tone
     bubbleEl.hidden = false
     // Restart the pop animation.

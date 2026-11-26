@@ -32,6 +32,7 @@ export function renderObservation(elements, maxPerApp = 80) {
       if (el.options?.length) line += ` options=[${el.options.slice(0, 20).map(o => clip(o, 40)).join(' | ')}]`
       if (el.selected) line += ' (selected)'
       if (el.disabled) line += ' (disabled)'
+      if (el.offscreen) line += ' (scrolled out of view)'
       out.push(line)
     }
     if (els.length > maxPerApp) out.push(`(${els.length - maxPerApp} more not shown)`)
@@ -70,6 +71,8 @@ export function validateAction(decision, elements) {
   if (a.type === 'select') {
     if (el.role !== 'select') return { ok: false, error: `${a.id} is not a drop-down.` }
     const want = String(a.option ?? '').trim().toLowerCase()
+    // Real apps often do not list a drop-down's options until it opens. Then the hands match it.
+    if (!el.options && want) return { ok: true, action: { type: 'select', id: el.id, option: String(a.option).trim().slice(0, 120) } }
     const option = (el.options ?? []).find(o => o.toLowerCase() === want) ?? (el.options ?? []).find(o => o.toLowerCase().includes(want))
     return option && want ? { ok: true, action: { type: 'select', id: el.id, option } } : { ok: false, error: `"${a.option}" is not an option of ${a.id}.` }
   }
@@ -137,6 +140,14 @@ export async function runAgent({ goal, adapter, think, approve, onStep = () => {
       const element = elements.find(e => e.id === action.id) ?? null
       const description = describeAction(action, elements)
 
+      // Doing the same thing over and over means it is not working. Say so and let the model rethink.
+      const signature = `${action.type}|${element?.name ?? action.id}|${action.text ?? action.option ?? ''}`
+      const repeats = history.slice(-3).filter(h => h.signature === signature).length
+      if (repeats >= 2 && action.type !== 'done' && action.type !== 'say') {
+        history.push({ thought, error: `You already did "${description}" ${repeats} times and it did not help. Read the screen again and try something different, or finish with what you know.` })
+        break
+      }
+
       if (action.type === 'done') {
         onStep({ kind: 'done', thought, action, description })
         history.push({ thought, action, result: 'Finished.' })
@@ -158,7 +169,7 @@ export async function runAgent({ goal, adapter, think, approve, onStep = () => {
       }
       onStep({ kind: 'act', thought, action, element, description })
       const result = String((await adapter.act(action)) ?? 'Done.')
-      history.push({ thought, action, result })
+      history.push({ thought, action, result, signature })
       onStep({ kind: 'acted', thought, action, element, description, result })
       // A click can change what is on screen, so look again before doing more.
       if (action.type === 'click') break

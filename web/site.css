@@ -359,3 +359,9 @@ button { font: inherit; color: inherit; }
 .app-glyph.tile { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; background: #c2452c; color: #fff; }
 .app[data-app^='Idle'] .titlebar { background: #f7f4ee; border-bottom-color: #e8e1d7; }
 .app[data-app^='Idle'] .title { font-family: 'DM Sans', system-ui, sans-serif; color: #262323; }
+
+/* Single-app view: one Idle app on its own, no desktop around it. */
+body.solo .icons, body.solo .taskbar, body.solo .toasts, body.solo .boo-layer { display: none; }
+body.solo .desktop { inset: 0; background: #f7f4ee; }
+body.solo .window { box-shadow: none; border-radius: 0; }
+body.solo .titlebar { display: none; }

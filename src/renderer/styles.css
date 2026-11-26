@@ -146,3 +146,18 @@ body {
 @media (prefers-reduced-motion: reduce) {
   #bubble, #bubble.alert, #bubble.sleep, #lantern.on { animation: none; }
 }
+
+/* Yes and No when Boo asks before doing something that matters. */
+.boo-ask { display: flex; gap: 6px; margin-top: 7px; }
+.boo-ask button { font: 500 14px 'Pixelify Sans', monospace; border: 2px solid var(--ink); background: #ffb347; padding: 3px 12px; cursor: pointer; }
+.boo-ask button[data-answer='no'] { background: #fff; }
+
+/* Ask Boo to do something, in the app you are using. */
+#goal-form {
+  position: fixed; left: 0; top: 0; width: 320px; padding: 10px 12px 12px;
+  background: var(--paper); border: 3px solid var(--ink); box-shadow: 4px 4px 0 rgba(43, 29, 66, 0.35);
+  font: 500 15px 'Pixelify Sans', monospace; color: var(--ink);
+}
+#goal-form[hidden] { display: none; }
+#goal-form label { display: block; margin-bottom: 6px; }
+#goal-form input { width: 100%; box-sizing: border-box; padding: 7px 9px; border: 2px solid var(--ink); font: 14px system-ui, sans-serif; }

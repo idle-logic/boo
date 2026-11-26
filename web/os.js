@@ -140,9 +140,20 @@ export function createDesktop() {
     place('ClinicMaster 98', 150, 200)
     place('Graveyard', 220, 120)
   }
-  arrange()
-  window.addEventListener('resize', arrange)
-  ;['Idle DMs', 'Idle Back office', 'Idle Bookings', 'Boo'].forEach(open)
+  // ?solo=<app> shows just that app, full screen, the way it looks on its own.
+  const solo = new URLSearchParams(location.search).get('solo')
+  if (solo && byName(solo)) {
+    document.body.classList.add('solo')
+    for (const w of windows) w.hidden = w.dataset.app !== solo
+    const w = byName(solo)
+    w.classList.add('maximised')
+    Object.assign(w.style, { left: '0px', top: '0px' })
+    document.title = `${solo} - Tuesday Grooming`
+  } else {
+    arrange()
+    window.addEventListener('resize', arrange)
+    ;['Idle DMs', 'Idle Back office', 'Idle Bookings', 'Boo'].forEach(open)
+  }
 
   // ------------------------------------------------------------- notifications
 

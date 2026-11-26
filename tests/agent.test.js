@@ -137,3 +137,20 @@ test('a planned list of actions stops at the first click and looks again', async
   assert.deepEqual(acted.map(a => a.type), ['select', 'type', 'click'])
   assert.equal(looks, 2)
 })
+
+test('the same useless action three times in a row is stopped and the model is told why', async () => {
+  let turns = 0
+  const acted = []
+  const result = await runAgent({
+    goal: 'x',
+    adapter: { observe: async () => screen(), act: async a => (acted.push(a), 'ok') },
+    think: async ({ history }) => {
+      turns++
+      const told = history.some(h => /did not help/.test(h.error ?? ''))
+      return told ? { action: { type: 'done', text: 'gave up nicely' } } : { action: { type: 'click', id: 'e5' } }
+    },
+    approve: async () => true,
+  })
+  assert.equal(result.summary, 'gave up nicely')
+  assert.equal(acted.length, 2)
+})

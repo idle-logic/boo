@@ -3,7 +3,7 @@
 import { createServer } from 'node:http'
 
 export const EVENT_PORT = Number(process.env.HAUNT_PORT ?? 47474)
-const TYPES = new Set(['start', 'tool', 'done', 'fail', 'needs-you', 'say'])
+const TYPES = new Set(['start', 'tool', 'done', 'fail', 'needs-you', 'say', 'do', 'stop'])
 const MAX_BODY = 4096
 
 /** Validate one event. Returns null when it is not something Boo understands. */
@@ -11,8 +11,11 @@ export function parseEvent(body) {
   if (!body || typeof body !== 'object') return null
   const type = String(body.type ?? '')
   if (!TYPES.has(type)) return null
-  const text = typeof body.text === 'string' ? body.text.replace(/\s+/g, ' ').trim().slice(0, 140) : ''
-  return { type, text }
+  const limit = type === 'do' ? 400 : 140
+  const text = typeof body.text === 'string' ? body.text.replace(/\s+/g, ' ').trim().slice(0, limit) : ''
+  // "do" may name the window to work in, by part of its title.
+  const window = type === 'do' && typeof body.window === 'string' ? body.window.trim().slice(0, 80) : ''
+  return window ? { type, text, window } : { type, text }
 }
 
 export function startEventServer(onEvent) {

@@ -7,11 +7,14 @@ import { join } from 'node:path'
 const MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest']
 
 export function loadEnv(root) {
-  const path = join(root, '.env.local')
-  if (!existsSync(path)) return
-  for (const line of readFileSync(path, 'utf-8').split(/\r?\n/)) {
-    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line)
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
+  // GEMINI_ENV_FILE can point at another .env file that holds the key.
+  for (const path of [process.env.GEMINI_ENV_FILE, join(root, '.env.local')]) {
+    if (!path || !existsSync(path)) continue
+    for (const line of readFileSync(path, 'utf-8').split(/\r?\n/)) {
+      const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line)
+      const value = m?.[2].replace(/^["']|["']$/g, '')
+      if (m && value && !process.env[m[1]]) process.env[m[1]] = value
+    }
   }
 }
 
