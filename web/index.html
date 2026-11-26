@@ -3,83 +3,84 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Haunt · Boo moves your clients</title>
-    <meta name="description" content="Boo is a pixel ghost that lives on your screen. It moves clients out of old software into new software, form by form, and tells you what is going on in your apps." />
+    <title>Haunt · Boo runs your front desk</title>
+    <meta name="description" content="Boo is an autonomous front desk and back office that lives on your screen and works the apps you already use. Talk to it, let it handle your messages, bookings, stock, payroll and reviews." />
     <link rel="icon" href="./icon.png" />
     <link rel="stylesheet" href="./site.css" />
   </head>
   <body>
     <div class="desktop" id="desktop">
-      <section class="intro" aria-labelledby="intro-title">
-        <h1 id="intro-title">Haunt</h1>
-        <p>Boo moves your clients out of old software and into new software, one form at a time. Then it keeps an eye on your apps and tells you what matters.</p>
-        <div class="controls">
-          <button type="button" id="migrate" class="btn primary">Move my clients</button>
-          <button type="button" id="ambient" class="btn" aria-pressed="false">Tell me what is going on</button>
-          <button type="button" id="tuck" class="btn quiet">Tuck Boo away</button>
-        </div>
-        <p class="small">Drag Boo to throw it. Double-click to tuck it away. Move the windows and Boo hops between them.</p>
-      </section>
+      <p class="wallpaper-title" aria-hidden="true">Haunt</p>
 
-      <!-- The old software. -->
-      <article class="window legacy" id="legacy" style="left: 3%; top: 260px" aria-label="ClinicMaster 98, the old software">
-        <header class="titlebar" data-drag>
-          <span class="title"><span class="app-icon" aria-hidden="true"></span>ClinicMaster 98 · Clients</span>
-          <span class="win-buttons" aria-hidden="true"><i>_</i><i>□</i><i>×</i></span>
-        </header>
-        <div class="menubar" aria-hidden="true"><u>F</u>ile <u>E</u>dit <u>V</u>iew <u>R</u>ecords <u>H</u>elp</div>
-        <div class="grid-wrap">
-          <table class="grid">
-            <thead><tr id="legacy-head"></tr></thead>
-            <tbody id="legacy-rows"></tbody>
-          </table>
+      <!-- Boo's own window: talk to Boo, see what it noticed. -->
+      <article class="window boo-window" data-app="Boo" data-boo-ignore style="left: 16px; top: 16px">
+        <header class="titlebar" data-drag><span class="title">Boo</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
+        <div class="boo-panel">
+          <p class="lede">Your front desk and back office, in the apps you already use. Ask me anything about the shop, or let me handle what needs doing.</p>
+          <section aria-labelledby="noticed-title">
+            <h2 id="noticed-title">I noticed</h2>
+            <ul id="jobs"></ul>
+            <div class="job-actions">
+              <button type="button" id="handle-all" class="btn primary">Handle everything</button>
+              <label class="switch"><input type="checkbox" id="autopilot" /> Act without asking</label>
+            </div>
+          </section>
+          <section aria-labelledby="talk-title" class="talk">
+            <h2 id="talk-title">Talk to Boo</h2>
+            <ol id="chat" aria-live="polite"></ol>
+            <form id="ask-form" autocomplete="off">
+              <label class="sr-only" for="ask">Ask Boo</label>
+              <input id="ask" placeholder="How is today looking?" />
+              <button type="button" id="mic" class="btn icon" aria-label="Talk out loud" hidden>🎙</button>
+              <button type="submit" class="btn">Ask</button>
+            </form>
+            <div class="chips">
+              <button type="button" data-ask="How is today looking?">How is today looking?</button>
+              <button type="button" data-ask="How much have we made today?">How much today?</button>
+              <button type="button" data-ask="What is running low?">What is low?</button>
+              <button type="button" data-ask="Is Hana free on Saturday afternoon?">Is Hana free Saturday?</button>
+            </div>
+            <label class="switch"><input type="checkbox" id="speak" checked /> Boo talks out loud</label>
+          </section>
         </div>
-        <div class="statusbar"><span id="legacy-status">0 records</span><span>Licensed to: Tuesday Grooming</span></div>
       </article>
 
-      <!-- The new software. -->
-      <article class="window modern" id="modern" style="right: 3%; top: 150px" aria-label="Bloom Booking, the new software">
+      <article class="window app" data-app="Messages" style="left: 372px; top: 92px">
+        <header class="titlebar" data-drag><span class="title">Messages</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
+        <div class="app-body messages"></div>
+      </article>
+
+      <article class="window app" data-app="Bloom Booking" style="left: 712px; top: 40px">
+        <header class="titlebar" data-drag><span class="title">Bloom Booking</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
+        <div class="app-body booking"></div>
+      </article>
+
+      <article class="window app" data-app="Back office" style="left: 940px; top: 300px">
+        <header class="titlebar" data-drag><span class="title">Back office</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
+        <div class="app-body office"></div>
+      </article>
+
+      <!-- The old software, for migration. Opened from the taskbar. -->
+      <article class="window legacy" data-app="ClinicMaster 98" data-boo-ignore hidden style="left: 140px; top: 220px">
         <header class="titlebar" data-drag>
-          <span class="title">Bloom Booking</span>
-          <span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="title"><span class="app-icon" aria-hidden="true"></span>ClinicMaster 98 · Clients</span>
+          <span class="win-buttons"><i aria-hidden="true">_</i><i aria-hidden="true">□</i><button type="button" class="close" id="legacy-close" aria-label="Close ClinicMaster 98">×</button></span>
         </header>
-        <div class="modern-body">
-          <aside class="today" aria-label="Today">
-            <h2>Today</h2>
-            <ul id="feed"><li class="muted">Quiet so far.</li></ul>
-            <h2>Clients <span id="client-count">0</span></h2>
-            <ul id="clients"><li class="muted">No clients yet.</li></ul>
-          </aside>
-          <form id="new-client" autocomplete="off" aria-label="New client">
-            <h2>New client</h2>
-            <div class="row">
-              <label>First name<input name="first" /></label>
-              <label>Last name<input name="last" /></label>
-            </div>
-            <div class="row">
-              <label>Mobile number<input name="phone" /></label>
-              <label>Email<input name="email" /></label>
-            </div>
-            <div class="row">
-              <label>Date of birth (DD/MM/YYYY)<input name="dob" /></label>
-              <label>Preferred staff
-                <select name="staff"><option value="">No preference</option><option>Hana</option><option>Tom</option></select>
-              </label>
-            </div>
-            <label>Pet name and breed<input name="pet" /></label>
-            <label>Notes and allergies<textarea name="notes" rows="2"></textarea></label>
-            <div class="actions">
-              <button type="reset" class="btn quiet">Clear</button>
-              <button type="submit" class="btn primary" id="save">Save client</button>
-            </div>
-          </form>
-        </div>
+        <div class="menubar" aria-hidden="true"><u>F</u>ile <u>E</u>dit <u>V</u>iew <u>R</u>ecords <u>H</u>elp</div>
+        <div class="grid-wrap"><table class="grid"><thead><tr id="legacy-head"></tr></thead><tbody id="legacy-rows"></tbody></table></div>
+        <div class="statusbar"><span id="legacy-status"></span><button type="button" id="migrate" class="w98">Move these clients to Bloom Booking</button></div>
       </article>
 
       <footer class="taskbar">
         <span class="start"><img src="./icon.png" alt="" width="20" height="20" />Haunt</span>
-        <span class="note">A browser demo. The desktop app does this with any software on your computer.</span>
-        <a class="download" href="https://github.com/" id="download">Get the desktop app</a>
+        <nav class="task-apps" aria-label="Apps">
+          <button type="button" data-open="Boo">Boo</button>
+          <button type="button" data-open="Messages">Messages</button>
+          <button type="button" data-open="Bloom Booking">Bloom Booking</button>
+          <button type="button" data-open="Back office">Back office</button>
+          <button type="button" data-open="ClinicMaster 98">ClinicMaster 98</button>
+        </nav>
+        <span class="note">A browser demo with made-up apps. The desktop app works the same way with any software on your computer.</span>
         <span class="clock" id="clock"></span>
       </footer>
     </div>

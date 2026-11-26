@@ -146,7 +146,7 @@ export class Brain {
         break
       case 'release':
         this.guide = null
-        if (this.mode === 'guide' || this.mode === 'alert') this.mode = 'wander'
+        if (this.mode === 'guide' || this.mode === 'alert' || this.mode === 'work') this.mode = 'wander'
         if (this.bubble?.sticky) this.bubble = null
         break
     }

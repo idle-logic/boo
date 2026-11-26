@@ -12,7 +12,7 @@ export const ACTION_TYPES = ['click', 'type', 'select', 'say', 'done']
 export const MAX_STEPS = 18
 
 // Buttons that change the world. Boo asks before pressing these.
-const CONSEQUENTIAL = /^(book|send|save|confirm|pay|charge|refund|delete|remove|cancel booking|submit|post|reply)\b/i
+const CONSEQUENTIAL = /^(book|send|save|confirm|pay|charge|refund|delete|remove|cancel|submit|post|reply|reorder|order|run payroll)\b/i
 
 /** Plain-text view of the screen for the model. Long lists are cut. */
 export function renderObservation(elements, maxPerApp = 80) {

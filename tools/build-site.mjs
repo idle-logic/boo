@@ -8,6 +8,7 @@ mkdirSync('site/fonts', { recursive: true })
 cpSync('web', 'site', { recursive: true })
 for (const f of ['sprites.js', 'world.js', 'brain.js']) copyFileSync(`src/renderer/${f}`, `site/lib/${f}`)
 copyFileSync('src/main/mapping.js', 'site/lib/mapping.js')
+copyFileSync('src/agent/agent.js', 'site/lib/agent.js')
 copyFileSync('assets/icon.png', 'site/icon.png')
 copyFileSync(
   'node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-500-normal.woff2',

@@ -160,10 +160,27 @@ export function createBoo({ windows, bounds, onClick = () => {} }) {
       onClick()
     }
   })
-  bubbleEl.addEventListener('click', () => {
+  bubbleEl.addEventListener('click', e => {
+    const answer = e.target.closest('[data-answer]')
+    if (answer) {
+      e.stopPropagation()
+      answerAsk(answer.dataset.answer === 'yes')
+      return
+    }
     brain.handle({ type: 'click' }, performance.now())
     onClick()
   })
+
+  // A question for the person, with Yes and No in the bubble.
+  let asking = null
+  function answerAsk(yes) {
+    if (!asking) return
+    const { resolve } = asking
+    asking = null
+    brain.bubble = null
+    brain.handle({ type: 'guide-say', text: yes ? 'On it.' : 'Okay, I will not.' }, performance.now())
+    resolve(yes)
+  }
   window.addEventListener('pointermove', e => {
     cursor = { x: e.clientX, y: e.clientY }
   })
@@ -221,10 +238,16 @@ export function createBoo({ windows, bounds, onClick = () => {} }) {
       bubbleEl.hidden = true
       bubbleKey = ''
     } else {
-      const key = b.text + b.tone
+      const key = b.text + b.tone + (asking ? 'ask' : '')
       if (key !== bubbleKey) {
         bubbleKey = key
         bubbleEl.textContent = b.text
+        if (asking) {
+          const row = document.createElement('span')
+          row.className = 'boo-ask'
+          row.innerHTML = '<button type="button" data-answer="yes">Yes</button><button type="button" data-answer="no">No</button>'
+          bubbleEl.appendChild(row)
+        }
         bubbleEl.className = `boo-bubble ${b.tone}`
         bubbleEl.hidden = false
       }
@@ -264,6 +287,21 @@ export function createBoo({ windows, bounds, onClick = () => {} }) {
     },
     get mode() {
       return brain.mode
+    },
+    /** Ask the person something. Resolves true for Yes, false for No. */
+    ask(text) {
+      if (asking) asking.resolve(false)
+      return new Promise(resolve => {
+        asking = { resolve }
+        brain.handle({ type: 'wait', text }, performance.now())
+      })
+    },
+    /** Answer the open question from elsewhere, like Boo's window. */
+    answer(yes) {
+      answerAsk(yes)
+    },
+    get asking() {
+      return Boolean(asking)
     },
   }
 }
