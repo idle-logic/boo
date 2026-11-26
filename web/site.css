@@ -365,3 +365,124 @@ body.solo .icons, body.solo .taskbar, body.solo .toasts, body.solo .boo-layer { 
 body.solo .desktop { inset: 0; background: #f7f4ee; }
 body.solo .window { box-shadow: none; border-radius: 0; }
 body.solo .titlebar { display: none; }
+
+/* ------------------------------------------------------------- reincarnation */
+
+/* Boo's card. */
+.rebirth { display: grid; gap: 8px; padding: 12px; border: 1px solid #e3dcf5; border-radius: 12px; background: #fff; }
+.rebirth h2 { margin: 0; font: 500 16px/1.25 'Pixelify Sans', system-ui, sans-serif; color: var(--ink); }
+.rebirth-intro { margin: 0; font-size: 13px; color: var(--muted); }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; counter-reset: step; }
+.steps li { position: relative; padding: 3px 0 3px 26px; font-size: 13px; color: var(--muted); counter-increment: step; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: 3px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid #d8d3e8; font-size: 11px; display: grid; place-items: center; color: var(--muted); background: #fff; }
+.steps li small { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.steps li small:empty { display: none; }
+.steps li[data-state='now'] { color: var(--ink); font-weight: 600; }
+.steps li[data-state='now']::before { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); animation: step-pulse 1.2s ease-in-out infinite; }
+.steps li[data-state='wait'] { color: var(--ink); font-weight: 600; }
+.steps li[data-state='wait']::before { content: '!'; border-color: var(--alert); background: #fdeee9; color: var(--alert); }
+.steps li[data-state='done'] { color: var(--text); }
+.steps li[data-state='done']::before { content: '✓'; border-color: var(--calm); background: var(--calm); color: #fff; }
+@keyframes step-pulse { 50% { box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.18); } }
+.rebirth-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.proof { display: grid; gap: 6px; }
+.meter { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; border: 1px solid var(--line); }
+.meter span { display: block; height: 100%; width: 0; background: var(--calm); transition: width 0.15s linear; }
+.meter span.bad { background: linear-gradient(90deg, var(--calm), #e0a03a); }
+#proof-line { margin: 0; font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; }
+#diffs { margin: 0; padding-left: 16px; font-size: 12px; color: #8a3b24; display: grid; gap: 3px; }
+#diffs li.money { color: #8a6417; }
+#diffs[data-more]:not([data-more=''])::after { content: 'and ' attr(data-more) ' more'; font-size: 12px; color: var(--muted); }
+
+/* ClinicMaster 98, the old app. */
+.legacy .legacy-app { display: flex; flex-direction: column; background: #c0c0c0; }
+.legacy .menubar { display: flex; gap: 2px; padding: 3px 4px; border-bottom: 1px solid #808080; }
+.w98.menu { border-color: transparent; background: transparent; padding: 2px 8px; }
+.w98.menu:hover { border-color: #fff #404040 #404040 #fff; }
+.w98.menu.on { border-color: #404040 #fff #fff #404040; background: #d4d0c8; }
+.w98-panel { padding: 4px 0; min-height: 210px; }
+.w98-actions { display: flex; gap: 6px; padding: 4px 6px; }
+.w98:active { border-color: #404040 #fff #fff #404040; }
+.w98-dialog { margin: 6px; padding: 0 0 6px; background: #c0c0c0; border: 2px solid; border-color: #fff #404040 #404040 #fff; display: grid; gap: 4px; }
+.w98-dialog-title { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; padding: 2px 6px; font-weight: bold; }
+.w98-field { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 6px; padding: 0 8px; }
+.w98-field input, .w98-field select { font: 12px Tahoma, sans-serif; padding: 2px 3px; border: 2px solid; border-color: #404040 #fff #fff #404040; background: #fff; border-radius: 0; }
+.legacy .statusbar { background: #c0c0c0; font-size: 12px; }
+.w98-status { border: 1px solid; border-color: #808080 #fff #fff #808080; padding: 1px 6px; flex: 1; margin-right: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ClinicMaster Reborn, in Idle's look. */
+.reborn { width: 560px; }
+.reborn .titlebar { background: #f7f4ee; border-bottom-color: #e8e1d7; }
+.reborn .title { font-family: 'DM Sans', system-ui, sans-serif; color: #262323; }
+.reborn-body .app-shell { grid-template-columns: 164px 1fr; min-height: 380px; }
+.reborn-body .store-pill { font-size: 12.5px; }
+.reborn-body .sidebar [role='tab'] { all: unset; display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 10px; border-radius: 12px; font-size: 13.5px; font-weight: 500; cursor: pointer; }
+.reborn-body .sidebar [role='tab'] .ico { color: var(--i-muted); }
+.reborn-body .sidebar [role='tab'][aria-selected='true'] { background: var(--i-tint); font-weight: 600; }
+.reborn-body .sidebar [role='tab'][aria-selected='true'] .ico { color: var(--i-primary); }
+.reborn-note { margin: auto 0 0; padding: 8px 10px 2px; font-size: 11px; color: var(--i-muted); }
+.reborn-body .app-main { padding: 12px 14px 14px; min-width: 0; }
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.reborn-body .page-title { margin: 0; font-size: 18px; }
+.reborn-body .mini { padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.reborn-body .mini.primary { background: var(--i-primary); border-color: var(--i-primary); color: #fff; font-weight: 600; }
+.notice { margin: 0 0 8px; font-size: 12.5px; border-radius: 10px; }
+.notice.good { padding: 6px 10px; background: var(--i-sage-bg); color: var(--i-sage); }
+.notice.bad { padding: 6px 10px; background: #fbeae4; color: #9a3a22; }
+.reborn-form { background: var(--i-card); border: 1px solid var(--i-line); border-radius: 14px; padding: 10px 12px 12px; margin-bottom: 10px; }
+.reborn-form h4 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.reborn-form .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.reborn-form .field { margin-top: 6px; }
+.reborn-form .field span { display: block; margin-bottom: 3px; }
+.reborn-form .field em { font-style: normal; color: #a39a90; font-size: 11.5px; }
+.reborn-form .field small { display: block; margin-top: 2px; font-size: 11px; color: var(--i-muted); }
+.reborn-form [aria-invalid='true'] { border-color: #c2452c; box-shadow: 0 0 0 3px rgba(194, 69, 44, 0.18); }
+.form-actions { display: flex; gap: 8px; margin-top: 10px; }
+.reborn-form button[type='submit'] { color: #fff; border: none; cursor: pointer; }
+.table-card { background: var(--i-card); border: 1px solid var(--i-line); border-radius: 14px; overflow: auto; max-height: 240px; }
+.reborn-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.reborn-table th { position: sticky; top: 0; background: var(--i-card); text-align: left; font-weight: 600; color: var(--i-muted); padding: 8px 10px; border-bottom: 1px solid var(--i-line); white-space: nowrap; }
+.reborn-table td { padding: 7px 10px; border-bottom: 1px solid var(--i-line); white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.reborn-table tr:last-child td { border-bottom: none; }
+.reborn-table td.empty { color: var(--i-muted); }
+.reborn-table tr.arrived td { animation: arrive 1.2s ease-out; }
+@keyframes arrive { from { background: var(--i-tint); } }
+.window.risen { box-shadow: 0 0 0 2px rgba(194, 69, 44, 0.5), 0 0 40px 8px rgba(255, 214, 170, 0.7), 0 20px 50px rgba(10, 6, 30, 0.45); transition: box-shadow 1.5s ease-out; }
+
+/* The spec, in an editor-like view. */
+.spec { width: 640px; background: #17131f; color: #e8e3f3; }
+.spec .titlebar { background: #221c2e; border-bottom-color: #2f2740; }
+.spec .title { color: #d8d0ea; font: 500 12.5px ui-monospace, 'Cascadia Code', Consolas, monospace; }
+.spec .controls button { color: #b8afcc; }
+.spec-tabs { display: flex; align-items: center; gap: 2px; padding: 4px 6px 0; background: #1d1828; border-bottom: 1px solid #2f2740; }
+.spec-tabs [role='tab'] { all: unset; padding: 6px 10px; font: 12px ui-monospace, Consolas, monospace; color: #a79dbd; border-radius: 6px 6px 0 0; cursor: pointer; }
+.spec-tabs [role='tab'][aria-selected='true'] { background: #17131f; color: #fff; }
+.spec-download { margin-left: auto; margin-bottom: 4px; font: 600 12px system-ui, sans-serif; color: #fff; background: #7c5cff; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.spec-body { max-height: 440px; }
+#spec-text { margin: 0; padding: 12px 14px 18px; font: 12px/1.55 ui-monospace, 'Cascadia Code', Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+#spec-text .md-h { color: #c9b6ff; font-weight: 700; }
+#spec-text .md-k { color: #ffb86b; font-weight: 700; }
+#spec-text .md-box { color: #7ee2a8; }
+#spec-text i { color: #9d93b3; }
+
+/* The tombstone left behind. */
+.tombstone {
+  position: absolute; z-index: 3; width: 170px; height: 150px; padding: 26px 12px 0; box-sizing: border-box;
+  display: grid; align-content: start; justify-items: center; gap: 1px; text-align: center; padding-top: 20px;
+  background: linear-gradient(90deg, #c9cede 0 8%, #a7adc0 8% 88%, #7a8098 88%); border: 3px solid #2b2b3a; border-bottom: none;
+  border-radius: 85px 85px 0 0; box-shadow: 0 10px 0 -2px #5b3a24; color: #2b2b3a; font-family: 'Pixelify Sans', system-ui, sans-serif;
+}
+.tombstone .rip { font-size: 20px; letter-spacing: 2px; }
+.tombstone::after { content: ''; position: absolute; left: -34px; right: -34px; bottom: -16px; height: 18px; background: #7a5236; border-top: 4px solid #3e2716; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+.tombstone strong { font-weight: 500; font-size: 15px; }
+.tombstone .years { font-size: 13px; }
+.tombstone em { font-style: normal; font-size: 11px; color: #3d3f52; }
+
+@media (prefers-reduced-motion: reduce) {
+  .steps li[data-state='now']::before { animation: none; }
+}
+@media (max-width: 900px) {
+  .reborn-form .fields { grid-template-columns: 1fr; }
+  .reborn-body .app-shell { grid-template-columns: 1fr; }
+}

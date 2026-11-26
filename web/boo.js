@@ -102,9 +102,9 @@ export function burst(...args) {
  * windows(): elements to stand on, front to back. bounds(): the area to live in.
  * colour: 'normal' (Boo) or a worker colour ('mint', 'peach', 'sky').
  * size: drawn size, 1 is full. interactive: can be clicked, grabbed and thrown.
- * at: where it appears, top-left { x, y }.
+ * at: where it appears, top-left { x, y }. pop: grow from nothing there (false when it is already visible, like after rising from the grave).
  */
-export function createBoo({ windows, bounds, onClick = () => {}, colour = 'normal', size = 1, interactive = true, at = null, label = 'Boo the ghost' }) {
+export function createBoo({ windows, bounds, onClick = () => {}, colour = 'normal', size = 1, interactive = true, at = null, pop = true, label = 'Boo the ghost' }) {
   const { el: host, burst: puff, cursor: _ } = layer()
   const shared = layer()
 
@@ -158,7 +158,7 @@ export function createBoo({ windows, bounds, onClick = () => {}, colour = 'norma
   let body = { x: at?.x ?? world.x + world.w * 0.62, y: at?.y ?? world.y, vx: 0, vy: 0, ground: null }
   let ledges = []
   let alive = true
-  let grow = at ? 0 : 1 // new worker ghosts pop out of nothing
+  let grow = at && pop ? 0 : 1 // new worker ghosts pop out of nothing
   let targetSize = size
 
   function readWorld() {

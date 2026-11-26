@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Haunt · your business, quietly handled</title>
-    <meta name="description" content="Boo is an autonomous operations crew that lives on your desktop. It catches the noise from every app you use, handles the routine work, and tells you only what needs you." />
+    <title>Haunt · old software, reborn</title>
+    <meta name="description" content="Boo possesses old software, learns every rule by using it, writes a Kiro spec, raises it again as a modern app and proves the two behave the same. Then it runs the shop." />
     <link rel="icon" href="./icon.png" />
     <link rel="stylesheet" href="./site.css" />
   </head>
@@ -17,6 +17,7 @@
         <button type="button" class="icon" data-open="Idle Bookings"><span class="glyph tile" aria-hidden="true" data-icon="calendar"></span>Idle Bookings</button>
         <button type="button" class="icon" data-open="Idle Back office"><span class="glyph tile" aria-hidden="true" data-icon="receipt"></span>Idle Back office</button>
         <button type="button" class="icon" data-open="ClinicMaster 98"><span class="glyph" aria-hidden="true">💾</span>ClinicMaster 98</button>
+        <button type="button" class="icon" data-open="Spec"><span class="glyph" aria-hidden="true">📜</span>Spec</button>
         <button type="button" class="icon" data-open="Graveyard"><span class="glyph" aria-hidden="true">🪦</span>Graveyard</button>
       </nav>
 
@@ -29,6 +30,28 @@
         <div class="window-body boo-panel">
           <p class="headline" id="headline" aria-live="polite">Good morning. Nothing needs you yet.</p>
           <p class="subline" id="subline">Press Start the day and I will look after the shop.</p>
+
+          <section class="rebirth" aria-labelledby="rebirth-title">
+            <h2 id="rebirth-title">Bring old software back to life</h2>
+            <p class="rebirth-intro">ClinicMaster 98 has run this shop since 1998. Nobody has its code or its manual. I can learn it by using it, write the spec, and raise it again as a modern app.</p>
+            <ol class="steps" id="steps">
+              <li data-step="possess"><span>Possess it and learn every rule</span><small></small></li>
+              <li data-step="spec"><span>Write the spec for Kiro</span><small></small></li>
+              <li data-step="rise"><span>Raise the new app</span><small></small></li>
+              <li data-step="move"><span>Move the records in</span><small></small></li>
+              <li data-step="prove"><span>Prove it works the same</span><small></small></li>
+              <li data-step="rest"><span>Lay the old one to rest</span><small></small></li>
+            </ol>
+            <div class="proof" id="proof" hidden>
+              <div class="meter" aria-hidden="true"><span id="proof-bar"></span></div>
+              <p id="proof-line" aria-live="polite"></p>
+              <ul id="diffs"></ul>
+            </div>
+            <div class="rebirth-actions">
+              <button type="button" id="reincarnate" class="btn primary">Reincarnate ClinicMaster 98</button>
+              <button type="button" id="rest" class="btn" hidden>Lay ClinicMaster 98 to rest</button>
+            </div>
+          </section>
 
           <div class="day-controls">
             <button type="button" id="run-day" class="btn primary">Start the day</button>
@@ -81,15 +104,37 @@
         <div class="window-body idle app-body office"></div>
       </article>
 
-      <!-- The old software. -->
-      <article class="window legacy" data-app="ClinicMaster 98" data-boo-ignore hidden aria-label="ClinicMaster 98">
+      <!-- The old software: a real app with rules nobody wrote down. -->
+      <article class="window legacy" data-app="ClinicMaster 98" data-boo-ignore aria-label="ClinicMaster 98">
         <header class="titlebar" data-drag>
-          <span class="title"><span class="legacy-icon" aria-hidden="true"></span>ClinicMaster 98 · Clients</span>
+          <span class="title"><span class="legacy-icon" aria-hidden="true"></span>ClinicMaster 98</span>
           <span class="controls"><button type="button" data-min aria-label="Minimise ClinicMaster 98">_</button><button type="button" data-max aria-label="Maximise ClinicMaster 98">□</button><button type="button" data-close aria-label="Close ClinicMaster 98">×</button></span>
         </header>
-        <div class="menubar" aria-hidden="true"><u>F</u>ile <u>E</u>dit <u>V</u>iew <u>R</u>ecords <u>H</u>elp</div>
-        <div class="grid-wrap"><table class="grid"><thead><tr id="legacy-head"></tr></thead><tbody id="legacy-rows"></tbody></table></div>
-        <div class="statusbar"><span id="legacy-status"></span><button type="button" id="migrate" class="w98">Move these clients to Idle Bookings</button></div>
+        <div class="window-body legacy-app"></div>
+      </article>
+
+      <!-- The same app, reborn from Boo's spec in Idle's look. -->
+      <article class="window app reborn" data-app="ClinicMaster Reborn" data-boo-ignore hidden aria-label="ClinicMaster Reborn">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="store"></span>ClinicMaster Reborn</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise ClinicMaster Reborn">–</button><button type="button" data-max aria-label="Maximise ClinicMaster Reborn">□</button><button type="button" data-close aria-label="Close ClinicMaster Reborn">×</button></span>
+        </header>
+        <div class="window-body idle app-body reborn-body"></div>
+      </article>
+
+      <!-- The spec Boo writes, in Kiro's format. -->
+      <article class="window spec" data-app="Spec" data-boo-ignore hidden aria-label="Spec for Kiro">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="app-glyph" aria-hidden="true">📜</span>.kiro/specs/clinicmaster-reborn</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Spec">–</button><button type="button" data-max aria-label="Maximise Spec">□</button><button type="button" data-close aria-label="Close Spec">×</button></span>
+        </header>
+        <div class="spec-tabs" role="tablist" aria-label="Spec files">
+          <button type="button" role="tab" data-file="requirements.md" aria-selected="true">requirements.md</button>
+          <button type="button" role="tab" data-file="design.md" aria-selected="false">design.md</button>
+          <button type="button" role="tab" data-file="tasks.md" aria-selected="false">tasks.md</button>
+          <button type="button" class="spec-download" id="spec-download">Download for Kiro</button>
+        </div>
+        <div class="window-body spec-body"><pre id="spec-text" tabindex="0"></pre></div>
       </article>
 
       <article class="window graveyard" data-app="Graveyard" data-boo-ignore hidden aria-label="Graveyard">

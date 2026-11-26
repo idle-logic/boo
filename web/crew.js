@@ -149,6 +149,10 @@ export function createCrew({ desktop, mother, think, context = () => '', onJobDo
   return {
     add,
     catchToast,
+    /** A ghost for special work (exploring, proving). Merge it back when done. */
+    split,
+    flyTo,
+    merge,
     get working() {
       return [...workers].filter(g => g.job).map(g => g.job)
     },

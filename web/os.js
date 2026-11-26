@@ -137,8 +137,23 @@ export function createDesktop() {
     place('Idle DMs', 104, 24)
     place('Idle Bookings', Math.min(right - 500, 104 + 250), 70)
     place('Idle Back office', Math.min(right - 470, 104 + 120), 300)
-    place('ClinicMaster 98', 150, 200)
     place('Graveyard', 220, 120)
+    pair()
+  }
+
+  /** The old app and its reborn twin, side by side left of Boo, with the spec over them. */
+  function pair() {
+    if (window.innerWidth <= 900) return
+    const W = desktop.clientWidth
+    const room = W - 372 - 104 - 24
+    const each = Math.max(380, Math.min(560, Math.floor((room - 16) / 2)))
+    for (const [name, left] of [['ClinicMaster 98', 104], ['ClinicMaster Reborn', 104 + each + 16]]) {
+      const w = byName(name)
+      if (w.classList.contains('maximised')) continue
+      Object.assign(w.style, { left: `${left}px`, top: '24px', width: `${each}px` })
+    }
+    const spec = byName('Spec')
+    if (!spec.classList.contains('maximised')) Object.assign(spec.style, { left: `${120}px`, top: '60px', width: `${Math.min(680, room)}px` })
   }
   // ?solo=<app> shows just that app, full screen, the way it looks on its own.
   const solo = new URLSearchParams(location.search).get('solo')
@@ -152,7 +167,12 @@ export function createDesktop() {
   } else {
     arrange()
     window.addEventListener('resize', arrange)
-    ;['Idle DMs', 'Idle Back office', 'Idle Bookings', 'Boo'].forEach(open)
+    // The Idle apps wait in the taskbar. The old software is what is open today.
+    for (const name of ['Idle DMs', 'Idle Back office', 'Idle Bookings']) {
+      open(name)
+      minimise(byName(name))
+    }
+    ;['ClinicMaster 98', 'Boo'].forEach(open)
   }
 
   // ------------------------------------------------------------- notifications
@@ -189,6 +209,9 @@ export function createDesktop() {
       open(name)
     },
     toast,
+    minimise,
+    close,
+    pair,
     holdClock(on) {
       held = on
     },

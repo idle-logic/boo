@@ -1,0 +1,492 @@
+{
+  "source": "ClinicMaster 98",
+  "name": "ClinicMaster Reborn",
+  "probes": 61,
+  "screens": [
+    {
+      "name": "Clients",
+      "columns": [
+        "Name",
+        "HP",
+        "DOB",
+        "Pet",
+        "Breed",
+        "Remarks"
+      ],
+      "action": "New client",
+      "title": "New client",
+      "success": "Record saved.",
+      "fields": [
+        {
+          "label": "Name",
+          "kind": "text",
+          "required": true,
+          "options": null,
+          "source": null,
+          "prices": null
+        },
+        {
+          "label": "HP",
+          "kind": "digits",
+          "required": true,
+          "options": null,
+          "source": null,
+          "prices": null
+        },
+        {
+          "label": "DOB",
+          "kind": "date",
+          "required": false,
+          "options": null,
+          "source": null,
+          "prices": null
+        },
+        {
+          "label": "Pet",
+          "kind": "text",
+          "required": false,
+          "options": null,
+          "source": null,
+          "prices": null
+        },
+        {
+          "label": "Breed",
+          "kind": "text",
+          "required": false,
+          "options": null,
+          "source": null,
+          "prices": null
+        },
+        {
+          "label": "Remarks",
+          "kind": "text",
+          "required": false,
+          "options": null,
+          "source": null,
+          "prices": null
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "columns": [
+        "Date",
+        "Time",
+        "Client"
+      ],
+      "action": "Book",
+      "title": "Book appointment",
+      "success": "Appointment booked.",
+      "fields": [
+        {
+          "label": "Client",
+          "kind": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "Priya Nair",
+              "text": "Priya Nair"
+            },
+            {
+              "value": "Ken Wong",
+              "text": "Ken Wong"
+            },
+            {
+              "value": "Aisha Rahman",
+              "text": "Aisha Rahman"
+            },
+            {
+              "value": "Lily Chua",
+              "text": "Lily Chua"
+            }
+          ],
+          "source": {
+            "screen": "Clients",
+            "column": "Name"
+          },
+          "prices": null
+        },
+        {
+          "label": "Date",
+          "kind": "date",
+          "required": true,
+          "options": null,
+          "source": null,
+          "prices": null
+        },
+        {
+          "label": "Time",
+          "kind": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "09:00",
+              "text": "09:00"
+            },
+            {
+              "value": "10:00",
+              "text": "10:00"
+            },
+            {
+              "value": "11:00",
+              "text": "11:00"
+            },
+            {
+              "value": "12:00",
+              "text": "12:00"
+            },
+            {
+              "value": "14:00",
+              "text": "14:00"
+            },
+            {
+              "value": "15:00",
+              "text": "15:00"
+            },
+            {
+              "value": "16:00",
+              "text": "16:00"
+            },
+            {
+              "value": "17:00",
+              "text": "17:00"
+            }
+          ],
+          "source": null,
+          "prices": null
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "columns": [
+        "Client",
+        "Service",
+        "Subtotal",
+        "GST",
+        "Total"
+      ],
+      "action": "New invoice",
+      "title": "New invoice",
+      "success": "Invoice saved.",
+      "fields": [
+        {
+          "label": "Client",
+          "kind": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "Priya Nair",
+              "text": "Priya Nair"
+            },
+            {
+              "value": "Ken Wong",
+              "text": "Ken Wong"
+            },
+            {
+              "value": "Aisha Rahman",
+              "text": "Aisha Rahman"
+            },
+            {
+              "value": "Lily Chua",
+              "text": "Lily Chua"
+            }
+          ],
+          "source": {
+            "screen": "Clients",
+            "column": "Name"
+          },
+          "prices": null
+        },
+        {
+          "label": "Service",
+          "kind": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "Bath",
+              "text": "Bath ($45.00)"
+            },
+            {
+              "value": "Full groom",
+              "text": "Full groom ($85.50)"
+            },
+            {
+              "value": "Deshed",
+              "text": "Deshed ($69.95)"
+            },
+            {
+              "value": "Nail trim",
+              "text": "Nail trim ($15.25)"
+            }
+          ],
+          "source": null,
+          "prices": {
+            "Bath": 45,
+            "Full groom": 85.5,
+            "Deshed": 69.95,
+            "Nail trim": 15.25
+          }
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "screen": "Clients",
+      "kind": "required",
+      "fields": [
+        "Name"
+      ],
+      "code": "101",
+      "message": "Name is required.",
+      "evidence": [
+        "Left Name empty: \"Error 101: Name is required.\""
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Clients",
+      "kind": "required",
+      "fields": [
+        "HP"
+      ],
+      "code": "102",
+      "message": "HP must be 8 digits starting with 8 or 9.",
+      "evidence": [
+        "Left HP empty: \"Error 102: HP must be 8 digits starting with 8 or 9.\""
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Clients",
+      "kind": "digits",
+      "fields": [
+        "HP"
+      ],
+      "code": "102",
+      "message": "HP must be 8 digits starting with 8 or 9.",
+      "length": 8,
+      "first": [
+        8,
+        9
+      ],
+      "digitsOnly": true,
+      "evidence": [
+        "8678954 (one digit short): error 102",
+        "867895510 (one digit long): error 102",
+        "867895ab (letters): error 102",
+        "06789565 (starts with 0): error 102",
+        "16789572 (starts with 1): error 102",
+        "26789579 (starts with 2): error 102",
+        "36789586 (starts with 3): error 102",
+        "46789593 (starts with 4): error 102",
+        "56789600 (starts with 5): error 102",
+        "66789607 (starts with 6): error 102",
+        "76789614 (starts with 7): error 102",
+        "86789621 (starts with 8): accepted",
+        "96789628 (starts with 9): accepted"
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Clients",
+      "kind": "date",
+      "fields": [
+        "DOB"
+      ],
+      "code": "103",
+      "message": "DOB must be DD/MM/YYYY.",
+      "format": "DD/MM/YYYY",
+      "realDate": true,
+      "evidence": [
+        "2026-12-15 (year first): error 103",
+        "15/12/26 (short year): error 103",
+        "31/02/2027 (a day that does not exist): error 103"
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Clients",
+      "kind": "unique",
+      "fields": [
+        "HP"
+      ],
+      "code": "104",
+      "message": "HP already on file.",
+      "evidence": [
+        "Used HP 86789012, already on file: \"Error 104: HP already on file.\"",
+        "The same again, everything else changed: refused again"
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Clients",
+      "kind": "maxLength",
+      "fields": [
+        "Name"
+      ],
+      "code": "105",
+      "message": "Name is too long (30 letters at most).",
+      "max": 30,
+      "foundBy": "random testing",
+      "evidence": [
+        "Entry 32: old app \"Error 105: Name is too long (30 letters at most).\", new app saved it",
+        "Name with 30 letters: accepted",
+        "Name with 31 letters: error 105"
+      ]
+    },
+    {
+      "screen": "Appointments",
+      "kind": "required",
+      "fields": [
+        "Client"
+      ],
+      "code": "201",
+      "message": "Choose a client, date and time.",
+      "evidence": [
+        "Left Client empty: \"Error 201: Choose a client, date and time.\""
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Appointments",
+      "kind": "required",
+      "fields": [
+        "Date"
+      ],
+      "code": "201",
+      "message": "Choose a client, date and time.",
+      "evidence": [
+        "Left Date empty: \"Error 201: Choose a client, date and time.\""
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Appointments",
+      "kind": "required",
+      "fields": [
+        "Time"
+      ],
+      "code": "201",
+      "message": "Choose a client, date and time.",
+      "evidence": [
+        "Left Time empty: \"Error 201: Choose a client, date and time.\""
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Appointments",
+      "kind": "date",
+      "fields": [
+        "Date"
+      ],
+      "code": "202",
+      "message": "Date must be DD/MM/YYYY.",
+      "format": "DD/MM/YYYY",
+      "realDate": true,
+      "evidence": [
+        "2026-12-15 (year first): error 202",
+        "15/12/26 (short year): error 202",
+        "31/02/2027 (a day that does not exist): error 202"
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Appointments",
+      "kind": "closed",
+      "fields": [
+        "Date"
+      ],
+      "code": "210",
+      "message": "Closed on Sundays.",
+      "days": [
+        0
+      ],
+      "evidence": [
+        "Sunday 10/01/2027: \"Error 210: Closed on Sundays.\"",
+        "Monday, Tuesday, Wednesday, Thursday, Friday, Saturday of the same week: accepted"
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Appointments",
+      "kind": "unique",
+      "fields": [
+        "Date",
+        "Time"
+      ],
+      "code": "211",
+      "message": "Slot already taken.",
+      "evidence": [
+        "Date 08/12/2026 with Time 10:00, already on file: \"Error 211: Slot already taken.\"",
+        "The same pair again, everything else changed: refused again",
+        "Each one alone with new values: accepted"
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Invoices",
+      "kind": "required",
+      "fields": [
+        "Client"
+      ],
+      "code": "301",
+      "message": "Choose a client and a service.",
+      "evidence": [
+        "Left Client empty: \"Error 301: Choose a client and a service.\""
+      ],
+      "foundBy": "exploring"
+    },
+    {
+      "screen": "Invoices",
+      "kind": "required",
+      "fields": [
+        "Service"
+      ],
+      "code": "301",
+      "message": "Choose a client and a service.",
+      "evidence": [
+        "Left Service empty: \"Error 301: Choose a client and a service.\""
+      ],
+      "foundBy": "exploring"
+    }
+  ],
+  "money": {
+    "screen": "Invoices",
+    "priceField": "Service",
+    "columns": {
+      "subtotal": "Subtotal",
+      "tax": "GST",
+      "total": "Total"
+    },
+    "rate": 9,
+    "rounding": "down",
+    "evidence": [
+      "Bath: 45.00 × 9% = 4.0500, app shows 4.05",
+      "Full groom: 85.50 × 9% = 7.6950, app shows 7.69",
+      "Deshed: 69.95 × 9% = 6.2955, app shows 6.29",
+      "Nail trim: 15.25 × 9% = 1.3725, app shows 1.37"
+    ],
+    "use": "nearest",
+    "decision": "fix"
+  },
+  "learned": [
+    {
+      "screen": "Clients",
+      "kind": "maxLength",
+      "fields": [
+        "Name"
+      ],
+      "code": "105",
+      "message": "Name is too long (30 letters at most).",
+      "max": 30,
+      "foundBy": "random testing",
+      "evidence": [
+        "Entry 32: old app \"Error 105: Name is too long (30 letters at most).\", new app saved it",
+        "Name with 30 letters: accepted",
+        "Name with 31 letters: error 105"
+      ]
+    }
+  ]
+}

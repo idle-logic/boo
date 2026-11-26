@@ -1,18 +1,27 @@
 # Haunt
 
-**Boo is a pixel ghost that lives on your screen. It moves your clients out of old software, fills in forms for you, and tells you what is going on in your apps.**
+**Boo is a pixel ghost that brings dead software back to life. It possesses an old app, learns every rule by using it, writes a Kiro spec, raises the app again in a modern form, and proves the two behave the same before the old one is laid to rest.**
 
-Small clinics, spas, salons and groomers run on software. Switching to a new system means retyping every client by hand, and once you switch, the important things still get missed: the new booking, the unread message, the customer who just arrived.
+Clinics, spas, salons and groomers often run on software from another era. Nobody has its code or its manual, and the rules live only in the error messages. Rewriting it by hand is how migrations go wrong: a check nobody knew about disappears, a tax sum changes by a cent, and nobody notices until a customer does.
 
-Haunt brings back the desktop pets of the 1990s, like eSheep, and makes them useful. Boo walks along your taskbar and hops between the tops of your windows. Then it gets to work.
-
-Entered in the **Resurrection** category of Kiroween 2026: dead software and dead desktop pets, brought back to life.
+Entered in the **Resurrection** category of Kiroween 2026.
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box. Press **Move my clients** and watch Boo carry six clients out of "ClinicMaster 98" into a modern booking app, field by field. Then press **Tell me what is going on**.
+Open the live demo from the link in this repo's About box. Boo climbs out of a grave. Press **Reincarnate ClinicMaster 98** and watch, in about a minute and a half:
 
-The browser demo is a simulation of two apps on one page. The desktop app does the same thing with real software on your computer.
+1. **Possess.** A ghost uses "ClinicMaster 98" the way new staff would: 61 entries, good and bad, on every screen. From what the app says back it works out 13 rules: required fields, phone number shape, date format, real dates only, unique phone numbers, closed on Sundays, one booking per slot, 9% GST rounded down.
+2. **Spec.** Boo writes what it learned as a Kiro spec (requirements in EARS form, design, tasks), with the evidence for every rule. **Download for Kiro** gives you `.kiro/specs/clinicmaster-reborn/`.
+3. **Rise.** The new app climbs out of the ground in Idle's look. It has no rules of its own: every check comes from the spec.
+4. **Move in.** A ghost carries every record across and checks each row reads the same in both apps.
+5. **Prove.** Two ghosts make the same 62 entries in both apps at once: every rule tried from both sides, then random entries. Random testing catches a rule exploring missed (names longer than 30 letters). Boo finds the exact limit, adds it to the spec, and the new app follows it at once. The one real difference, tax rounded down, goes to you under **Needs you**: keep it, or round to the nearest cent.
+6. **Rest.** The old app sinks into its grave and leaves a headstone.
+
+Then press **Start the day** and Boo's crew runs the shop in the Idle apps: messages, bookings, stock, reviews, payroll. It catches notifications before they reach you and shows you only what needs you.
+
+The browser demo runs its apps on one page. The desktop app works the same way with real software on your computer, through Windows UI Automation.
+
+The spec Boo wrote in a real run of the demo is checked in at [.kiro/specs/clinicmaster-reborn](.kiro/specs/clinicmaster-reborn), and [tests/reincarnation.test.js](tests/reincarnation.test.js) holds its correctness properties as property-based tests: for any entry, the reborn app gives the same answer as ClinicMaster 98.
 
 ## What Boo does
 
@@ -88,11 +97,13 @@ The tests are property-based, using fast-check. They prove that:
 src/main/       Electron main process: the overlay, the window watcher, Boo's hands, migration, watching apps, the event server
 src/renderer/   Boo: pixel art, physics, behaviour, drawing
 web/            the browser demo, built into site/ for Netlify
+                legacy.js (ClinicMaster 98), explore.js (possession), spec.js (the Kiro spec),
+                reborn.js (the app run from the spec), parity.js (the proof), rebirth.js (graves)
 bin/            the haunt command for Kiro hooks
 mcp/            the MCP server for Kiro's agent
 demo/           a sample old-system export and a sample new-client form
 tests/          property-based tests
-.kiro/          steering and settings used to build Haunt in Kiro
+.kiro/          steering, MCP settings, and the spec Boo wrote for ClinicMaster Reborn
 ```
 
 ## Licence
