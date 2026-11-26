@@ -2,9 +2,12 @@
 // Windows live inside the desktop's own stacking layer, so however often you
 // click them they can never rise above the ghosts or the taskbar.
 
+import { icon } from './icons.js'
+
 const $ = id => document.getElementById(id)
 
 export function createDesktop() {
+  document.querySelectorAll('[data-icon]').forEach(el => (el.innerHTML = icon(el.dataset.icon, el.classList.contains('app-glyph') ? 13 : 22)))
   const desktop = $('desktop')
   const windows = [...desktop.querySelectorAll('.window')]
   const byName = name => windows.find(w => w.dataset.app === name)
@@ -131,15 +134,15 @@ export function createDesktop() {
     }
     const right = W - 372
     place('Boo', right, 16)
-    place('Messages', 104, 24)
-    place('Bloom Booking', Math.min(right - 500, 104 + 250), 70)
-    place('Back office', Math.min(right - 470, 104 + 120), 300)
+    place('Idle DMs', 104, 24)
+    place('Idle Bookings', Math.min(right - 500, 104 + 250), 70)
+    place('Idle Back office', Math.min(right - 470, 104 + 120), 300)
     place('ClinicMaster 98', 150, 200)
     place('Graveyard', 220, 120)
   }
   arrange()
   window.addEventListener('resize', arrange)
-  ;['Messages', 'Back office', 'Bloom Booking', 'Boo'].forEach(open)
+  ;['Idle DMs', 'Idle Back office', 'Idle Bookings', 'Boo'].forEach(open)
 
   // ------------------------------------------------------------- notifications
 

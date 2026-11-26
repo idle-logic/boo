@@ -43,7 +43,7 @@ export function buildUserTurn({ goal, observation, history }) {
       return `${i + 1}. ${h.thought ? `(${h.thought}) ` : ''}${what}`
     })
     .join('\n')
-  return `Goal: ${String(goal).slice(0, 600)}
+  return `Goal: ${String(goal).slice(0, 2400)}
 
 Already done:
 ${done || '(nothing yet)'}

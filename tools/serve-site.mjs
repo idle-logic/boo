@@ -28,7 +28,7 @@ createServer(async (req, res) => {
     let raw = ''
     for await (const chunk of req) raw += chunk
     const body = cleanThinkRequest(JSON.parse(raw || 'null'))
-    if (!body) return res.writeHead(400, { 'content-type': 'application/json' }).end('{"error":"Bad request."}')
+    if (!body) return res.writeHead(400, { 'content-type': 'application/json' }).end('{"error":"I could not see the app. Open it and try again."}')
     try {
       const out = await think(body, process.env.GEMINI_API_KEY)
       return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(out))

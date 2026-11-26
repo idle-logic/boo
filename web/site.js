@@ -295,7 +295,7 @@ async function ask(question) {
   const result = await crew.add({
     kind: 'question',
     title: 'Answer your question',
-    apps: ['Messages', 'Bloom Booking', 'Back office'],
+    apps: ['Idle DMs', 'Idle Bookings', 'Idle Back office'],
     goal: `The person at the shop asked: "${question}". If it is a question, look in the apps to find the answer. You may click sections and days to look, but do not change anything they did not ask for. Then finish with done, with the answer in one or two short, friendly sentences with the actual numbers or names. If it is a request, do it.`,
   })
   $('answer').textContent = result.summary
@@ -367,7 +367,7 @@ $('migrate').addEventListener('click', async () => {
     desktop.open('ClinicMaster 98')
     mother.handle({ type: 'guide', ...spot(trs[i]), text: `${i + 1} of ${legacy.rows.length}: ${recordName(row)}` })
     await pause(800)
-    desktop.open('Bloom Booking')
+    desktop.open('Idle Bookings')
     const form = apps.showClientForm()
     const controls = [...form.querySelectorAll('input, select, textarea')]
     const fields = controls.map((el, index) => ({ index, type: el.tagName === 'SELECT' ? 'ComboBox' : 'Edit', label: el.closest('label').childNodes[0].textContent.trim(), id: el.name, el }))
@@ -387,7 +387,7 @@ $('migrate').addEventListener('click', async () => {
     trs[i].classList.add('moved')
   }
   mother.handle({ type: 'release' })
-  booSays(`${legacy.rows.length} clients moved into Bloom Booking.`, { tone: 'done' })
+  booSays(`${legacy.rows.length} clients moved into Idle Bookings.`, { tone: 'done' })
 })
 
 // ------------------------------------------------------------- start

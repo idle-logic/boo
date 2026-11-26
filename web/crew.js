@@ -107,7 +107,13 @@ export function createCrew({ desktop, mother, think, context = () => '', onJobDo
     workers.add(ghost)
     onChange()
     const hands = domAdapter({
-      windows: () => desktop.windows.filter(w => job.apps.includes(w.dataset.app)),
+      // Like a person, a ghost opens the apps it needs if they are minimised or closed.
+      windows: () =>
+        desktop.windows.filter(w => {
+          if (!job.apps.includes(w.dataset.app)) return false
+          if (w.hidden || w.classList.contains('minimised')) desktop.open(w.dataset.app)
+          return true
+        }),
       beforeAct: async el => {
         desktop.focusFor(el.closest('.window'))
         el.scrollIntoView({ block: 'nearest', inline: 'nearest' })

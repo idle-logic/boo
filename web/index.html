@@ -13,9 +13,9 @@
       <!-- Desktop icons. Double-click to open, like a real computer. -->
       <nav class="icons" aria-label="Desktop apps">
         <button type="button" class="icon" data-open="Boo"><span class="glyph ghost" aria-hidden="true"></span>Boo</button>
-        <button type="button" class="icon" data-open="Messages"><span class="glyph" aria-hidden="true">💬</span>Messages</button>
-        <button type="button" class="icon" data-open="Bloom Booking"><span class="glyph" aria-hidden="true">📅</span>Bloom Booking</button>
-        <button type="button" class="icon" data-open="Back office"><span class="glyph" aria-hidden="true">🧾</span>Back office</button>
+        <button type="button" class="icon" data-open="Idle DMs"><span class="glyph tile" aria-hidden="true" data-icon="chat"></span>Idle DMs</button>
+        <button type="button" class="icon" data-open="Idle Bookings"><span class="glyph tile" aria-hidden="true" data-icon="calendar"></span>Idle Bookings</button>
+        <button type="button" class="icon" data-open="Idle Back office"><span class="glyph tile" aria-hidden="true" data-icon="receipt"></span>Idle Back office</button>
         <button type="button" class="icon" data-open="ClinicMaster 98"><span class="glyph" aria-hidden="true">💾</span>ClinicMaster 98</button>
         <button type="button" class="icon" data-open="Graveyard"><span class="glyph" aria-hidden="true">🪦</span>Graveyard</button>
       </nav>
@@ -57,28 +57,28 @@
         </div>
       </article>
 
-      <article class="window app" data-app="Messages" aria-label="Messages">
+      <article class="window app" data-app="Idle DMs" aria-label="Idle DMs">
         <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph" aria-hidden="true">💬</span>Messages</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Messages">–</button><button type="button" data-max aria-label="Maximise Messages">□</button><button type="button" data-close aria-label="Close Messages">×</button></span>
+          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="chat"></span>Idle DMs</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Idle DMs">–</button><button type="button" data-max aria-label="Maximise Idle DMs">□</button><button type="button" data-close aria-label="Close Idle DMs">×</button></span>
         </header>
-        <div class="window-body app-body messages"></div>
+        <div class="window-body idle app-body messages"></div>
       </article>
 
-      <article class="window app" data-app="Bloom Booking" aria-label="Bloom Booking">
+      <article class="window app" data-app="Idle Bookings" aria-label="Idle Bookings">
         <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph" aria-hidden="true">📅</span>Bloom Booking</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Bloom Booking">–</button><button type="button" data-max aria-label="Maximise Bloom Booking">□</button><button type="button" data-close aria-label="Close Bloom Booking">×</button></span>
+          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="calendar"></span>Idle Bookings</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Idle Bookings">–</button><button type="button" data-max aria-label="Maximise Idle Bookings">□</button><button type="button" data-close aria-label="Close Idle Bookings">×</button></span>
         </header>
-        <div class="window-body app-body booking"></div>
+        <div class="window-body idle app-body booking"></div>
       </article>
 
-      <article class="window app" data-app="Back office" aria-label="Back office">
+      <article class="window app" data-app="Idle Back office" aria-label="Idle Back office">
         <header class="titlebar" data-drag>
-          <span class="title"><span class="app-glyph" aria-hidden="true">🧾</span>Back office</span>
-          <span class="controls"><button type="button" data-min aria-label="Minimise Back office">–</button><button type="button" data-max aria-label="Maximise Back office">□</button><button type="button" data-close aria-label="Close Back office">×</button></span>
+          <span class="title"><span class="app-glyph tile" aria-hidden="true" data-icon="receipt"></span>Idle Back office</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Idle Back office">–</button><button type="button" data-max aria-label="Maximise Idle Back office">□</button><button type="button" data-close aria-label="Close Idle Back office">×</button></span>
         </header>
-        <div class="window-body app-body office"></div>
+        <div class="window-body idle app-body office"></div>
       </article>
 
       <!-- The old software. -->
@@ -89,7 +89,7 @@
         </header>
         <div class="menubar" aria-hidden="true"><u>F</u>ile <u>E</u>dit <u>V</u>iew <u>R</u>ecords <u>H</u>elp</div>
         <div class="grid-wrap"><table class="grid"><thead><tr id="legacy-head"></tr></thead><tbody id="legacy-rows"></tbody></table></div>
-        <div class="statusbar"><span id="legacy-status"></span><button type="button" id="migrate" class="w98">Move these clients to Bloom Booking</button></div>
+        <div class="statusbar"><span id="legacy-status"></span><button type="button" id="migrate" class="w98">Move these clients to Idle Bookings</button></div>
       </article>
 
       <article class="window graveyard" data-app="Graveyard" data-boo-ignore hidden aria-label="Graveyard">

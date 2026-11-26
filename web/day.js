@@ -34,20 +34,20 @@ export function plan(event) {
         job: {
           kind: 'message',
           title: `Reply to ${event.from}`,
-          apps: ['Messages', 'Bloom Booking'],
-          goal: `Handle the newest message from ${event.from} in Messages. Open their chat and read it. Check the calendar, their client notes and the store rules. Do what they ask if the store can: book, move or cancel in Bloom Booking. Then reply to them in the chat. If they ask something the store cannot do, offer the nearest option.`,
+          apps: ['Idle DMs', 'Idle Bookings'],
+          goal: `Handle the newest message from ${event.from} in Idle DMs. Open their chat and read it. Check the calendar, their client notes and the store rules. Do what they ask if the store can: book, move or cancel in Idle Bookings. Then reply to them in the chat. If they ask something the store cannot do, offer the nearest option.`,
         },
-        toast: { app: 'Messages', title: event.from, text: event.text },
+        toast: { app: 'Idle DMs', title: event.from, text: event.text },
       }
     case 'sale':
       return {
         job: {
           kind: 'stock',
           title: 'Reorder low stock',
-          apps: ['Back office'],
-          goal: 'Open Back office, go to Stock, and reorder anything marked low.',
+          apps: ['Idle Back office'],
+          goal: 'Open Idle Back office, go to Stock, and reorder anything marked low.',
         },
-        toast: { app: 'Back office', title: 'Stock running low', text: `${event.item}: only a few left` },
+        toast: { app: 'Idle Back office', title: 'Stock running low', text: `${event.item}: only a few left` },
       }
     case 'review':
       if (event.review.stars <= 3) {
@@ -59,21 +59,21 @@ export function plan(event) {
             job: {
               kind: 'review',
               title: `Reply to ${event.review.who}`,
-              apps: ['Back office'],
-              goal: `Open Back office, go to Reviews, and reply to ${event.review.who}'s review. Apologise sincerely in two short sentences and offer 10% off their next visit. Then post the reply.`,
+              apps: ['Idle Back office'],
+              goal: `Open Idle Back office, go to Reviews, and reply to ${event.review.who}'s review. Apologise sincerely in two short sentences and offer 10% off their next visit. Then post the reply.`,
             },
           },
-          toast: { app: 'Back office', title: 'New review', text: `${'★'.repeat(event.review.stars)} from ${event.review.who}` },
+          toast: { app: 'Idle Back office', title: 'New review', text: `${'★'.repeat(event.review.stars)} from ${event.review.who}` },
         }
       }
       return {
         job: {
           kind: 'review',
           title: `Thank ${event.review.who}`,
-          apps: ['Back office'],
-          goal: `Open Back office, go to Reviews, and reply to ${event.review.who}'s review with a warm thank you in one or two short sentences. Then post it.`,
+          apps: ['Idle Back office'],
+          goal: `Open Idle Back office, go to Reviews, and reply to ${event.review.who}'s review with a warm thank you in one or two short sentences. Then post it.`,
         },
-        toast: { app: 'Back office', title: 'New review', text: `${'★'.repeat(event.review.stars)} from ${event.review.who}` },
+        toast: { app: 'Idle Back office', title: 'New review', text: `${'★'.repeat(event.review.stars)} from ${event.review.who}` },
       }
     case 'sick':
       return {
@@ -84,8 +84,8 @@ export function plan(event) {
           job: {
             kind: 'sick',
             title: `Cover ${event.staff}'s bookings`,
-            apps: ['Messages', 'Bloom Booking'],
-            goal: `${event.staff} is off sick tomorrow. In Bloom Booking, open tomorrow in the calendar and find ${event.staff}'s bookings. For each one, cancel it and book the same client and service with Hana at the same time if she is free, or her nearest free time that day. Then message each client in Messages to say who will look after them and when.`,
+            apps: ['Idle DMs', 'Idle Bookings'],
+            goal: `${event.staff} is off sick tomorrow. In Idle Bookings, open tomorrow in the calendar and find ${event.staff}'s bookings. For each one, cancel it and book the same client and service with Hana at the same time if she is free, or her nearest free time that day. Then message each client in Idle DMs to say who will look after them and when.`,
           },
         },
         toast: { app: 'Phone', title: `${event.staff}`, text: 'Feeling rough, cannot come in tomorrow. Sorry!' },
@@ -99,11 +99,11 @@ export function plan(event) {
           job: {
             kind: 'refund',
             title: `Reply to ${event.from}`,
-            apps: ['Messages'],
-            goal: `Reply to ${event.from} in Messages. Say sorry about the nick on Biscuit's paw, that the owner will call her today about the refund, and ask if Biscuit is okay. Two or three short sentences. Do not promise an amount.`,
+            apps: ['Idle DMs'],
+            goal: `Reply to ${event.from} in Idle DMs. Say sorry about the nick on Biscuit's paw, that the owner will call her today about the refund, and ask if Biscuit is okay. Two or three short sentences. Do not promise an amount.`,
           },
         },
-        toast: { app: 'Messages', title: event.from, text: event.text },
+        toast: { app: 'Idle DMs', title: event.from, text: event.text },
         message: true,
       }
     case 'payroll':
@@ -111,10 +111,10 @@ export function plan(event) {
         job: {
           kind: 'payroll',
           title: 'Run payroll',
-          apps: ['Back office'],
-          goal: 'Open Back office, go to Staff and payroll, check the hours, then run payroll for this week.',
+          apps: ['Idle Back office'],
+          goal: 'Open Idle Back office, go to Staff and payroll, check the hours, then run payroll for this week.',
         },
-        toast: { app: 'Back office', title: 'Payroll', text: 'Payroll for this week is due Friday' },
+        toast: { app: 'Idle Back office', title: 'Payroll', text: 'Payroll for this week is due Friday' },
       }
     default:
       return {}

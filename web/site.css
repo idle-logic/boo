@@ -272,3 +272,90 @@ button { font: inherit; color: inherit; }
   .toast, .toast.caught { animation: none; }
   .toast.caught { opacity: 0; }
 }
+
+/* ------------------------------------------------------------- Idle, the software Boo runs */
+/* Idle's own design language: DM Sans, travertine canvas, terracotta accent, warm hairlines. */
+
+@font-face { font-family: 'DM Sans'; src: url('./fonts/dm-sans-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('./fonts/dm-sans-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('./fonts/dm-sans-latin-600-normal.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('./fonts/dm-sans-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+
+.idle {
+  --i-bg: #f7f4ee;
+  --i-card: #fffdf9;
+  --i-ink: #262323;
+  --i-muted: #5e5853;
+  --i-primary: #c2452c;
+  --i-primary-hover: #ad3a22;
+  --i-tint: #f8e7dc;
+  --i-tint-border: #ebc9b8;
+  --i-inset: #f0ebe2;
+  --i-line: #e8e1d7;
+  --i-line-strong: #d7cfc3;
+  --i-sage: #4e7a63;
+  --i-sage-bg: #e9f0eb;
+  --i-slate: #56748c;
+  --i-slate-bg: #eaf0f4;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--i-ink);
+  background: var(--i-bg);
+}
+.idle .app-shell { grid-template-columns: 172px 1fr; background: var(--i-bg); }
+.idle .sidebar { background: var(--i-bg); border-right: 1px solid var(--i-line); padding: 10px 8px; gap: 2px; }
+.idle .store-pill {
+  display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 10px; margin-bottom: 8px;
+  border: 1px solid rgba(194, 69, 44, 0.2); background: rgba(194, 69, 44, 0.1); color: var(--i-primary);
+  border-radius: 12px; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden;
+}
+.idle .store-pill span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.idle .sidebar [role='tab'] { height: 40px; gap: 10px; padding: 0 10px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--i-ink); }
+.idle .sidebar [role='tab'] .ico { color: var(--i-muted); flex: none; }
+.idle .sidebar [role='tab']:hover { background: rgba(38, 35, 35, 0.04); }
+.idle .sidebar [role='tab'][aria-selected='true'] { background: var(--i-tint); color: var(--i-ink); box-shadow: none; font-weight: 600; }
+.idle .sidebar [role='tab'][aria-selected='true'] .ico { color: var(--i-primary); }
+.idle .app-main { padding: 14px 16px 16px; }
+.idle .page-title { margin: 0 0 12px; font-size: 20px; font-weight: 600; letter-spacing: -0.2px; }
+
+.idle input, .idle select, .idle textarea { background: var(--i-card); border: 1px solid var(--i-line-strong); border-radius: 10px; font-family: inherit; color: var(--i-ink); padding: 8px 10px; }
+.idle input:focus, .idle select:focus, .idle textarea:focus { outline: none; border-color: var(--i-primary); box-shadow: 0 0 0 3px rgba(194, 69, 44, 0.25); }
+.idle label { color: var(--i-muted); font-size: 12.5px; }
+.idle button[type='submit'], .idle [data-payroll] { background: var(--i-primary); border-radius: 10px; height: 36px; padding: 0 16px; font-family: inherit; font-weight: 600; }
+.idle button[type='submit']:hover, .idle [data-payroll]:hover { background: var(--i-primary-hover); }
+.idle .mini { border: 1px solid var(--i-line-strong); background: var(--i-card); border-radius: 8px; color: var(--i-ink); font-family: inherit; font-weight: 500; }
+.idle .status { background: var(--i-sage-bg); border: 1px solid #cfe0d5; color: var(--i-sage); border-radius: 10px; }
+
+.idle .day-strip [role='tab'] { border: 1px solid var(--i-line-strong); background: var(--i-card); color: var(--i-ink); font-family: inherit; font-weight: 500; }
+.idle .day-strip [role='tab'][aria-selected='true'] { background: var(--i-tint); border-color: var(--i-tint-border); color: var(--i-primary); }
+.idle .cal th { color: var(--i-muted); }
+.idle .cal td.free { background: transparent; border: 1px dashed var(--i-tint-border); }
+.idle .cal td.busy { background: var(--i-card); color: var(--i-ink); border: 1px solid var(--i-line); }
+.idle .cal td.busy.starts { box-shadow: inset 3px 0 0 var(--i-primary); }
+.idle .faint { color: #b3aaa0; }
+
+.idle .rows li, .idle .client-cards li { background: var(--i-card); border: 1px solid var(--i-line); border-radius: 12px; }
+.idle .rows li.warn { background: #fdf3e6; border-color: #f0d7b4; }
+.idle .rows .reply { color: var(--i-sage); }
+.idle .client-form { border-top-color: var(--i-line); }
+
+/* Idle DMs */
+.idle.messages { background: var(--i-card); }
+.idle .chat-list { background: var(--i-bg); border-right-color: var(--i-line); }
+.idle .chat-item { border-bottom-color: var(--i-line); }
+.idle .chat-item.open { background: var(--i-tint); }
+.idle .chat-item .dot { background: var(--i-primary); }
+.idle .thread h3 { border-bottom-color: var(--i-line); font-weight: 600; }
+.idle .bubbles { background: var(--i-bg); }
+.idle .bubbles li { background: var(--i-card); border: 1px solid var(--i-line); box-shadow: none; border-radius: 14px 14px 14px 4px; }
+.idle .bubbles li.us { background: var(--i-tint); border-color: var(--i-tint-border); border-radius: 14px 14px 4px 14px; }
+.idle .composer { border-top-color: var(--i-line); background: var(--i-card); }
+.idle .pretend { background: var(--i-inset); border-top: 1px dashed var(--i-line-strong); }
+.idle .pretend > span { color: var(--i-muted); }
+.idle .pretend button[type='submit'] { background: var(--i-ink); }
+.idle .examples button { background: var(--i-card); border-color: var(--i-line); border-radius: 10px; color: var(--i-ink); font-family: inherit; }
+
+/* Icon tiles for Idle's sections on the desktop and in title bars. Never the Idle logo. */
+.glyph.tile { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #c2452c; color: #fff; font-size: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+.app-glyph.tile { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; background: #c2452c; color: #fff; }
+.app[data-app^='Idle'] .titlebar { background: #f7f4ee; border-bottom-color: #e8e1d7; }
+.app[data-app^='Idle'] .title { font-family: 'DM Sans', system-ui, sans-serif; color: #262323; }

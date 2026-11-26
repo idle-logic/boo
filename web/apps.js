@@ -1,4 +1,4 @@
-// The demo's apps: Messages, Bloom Booking, Back office and ClinicMaster 98.
+// The demo's apps: Messages, Idle Bookings, Idle Back office and ClinicMaster 98.
 // Plain, accessible HTML: labelled fields, real buttons, readable text. Boo
 // operates them the same way it operates real software on a desktop.
 
@@ -6,9 +6,13 @@ import {
   STAFF, SERVICES, HOURS, CLIENTS, openDays, dayLabel, timeLabel, seedBookings,
   STOCK, SALES_TODAY, HOURS_THIS_WEEK, REVIEWS, INBOX, EXAMPLES,
 } from './shop.js'
+import { icon } from './icons.js'
 
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 const money = n => `$${n.toLocaleString('en-US')}`
+
+/** The store switcher at the top of Idle's sidebar. */
+const storePill = () => `<div class="store-pill" data-boo-ignore>${icon('store', 16)}<span>Tuesday Grooming</span>${icon('chevron', 14)}</div>`
 
 export function createApps({ onChange = () => {}, inbox = INBOX, reviews = REVIEWS } = {}) {
   const days = openDays()
@@ -31,7 +35,7 @@ export function createApps({ onChange = () => {}, inbox = INBOX, reviews = REVIE
 
   // ----------------------------------------------------------- Messages
 
-  const messages = document.querySelector('[data-app="Messages"] .app-body')
+  const messages = document.querySelector('[data-app="Idle DMs"] .app-body')
   function renderMessages() {
     const names = [...state.chats.keys()]
     if (!state.openChat && names.length) state.openChat = names[0]
@@ -110,19 +114,21 @@ export function createApps({ onChange = () => {}, inbox = INBOX, reviews = REVIE
     changed()
   }
 
-  // ----------------------------------------------------------- Bloom Booking
+  // ----------------------------------------------------------- Idle Bookings
 
-  const booking = document.querySelector('[data-app="Bloom Booking"] .app-body')
+  const booking = document.querySelector('[data-app="Idle Bookings"] .app-body')
   const taken = (day, hour, staff) => state.bookings.find(b => b.day === day && b.staff === staff && b.hour <= hour && hour < b.hour + (SERVICES.find(s => s.name === b.service)?.hours ?? 1))
 
   function renderBooking() {
-    const nav = [['Calendar', '🗓'], ['Clients', '👥'], ['New booking', '＋']]
+    const nav = [['Calendar', 'calendar'], ['Clients', 'users'], ['New booking', 'plus']]
     booking.innerHTML = `
       <div class="app-shell">
-        <nav class="sidebar" role="tablist" aria-label="Bloom Booking sections" aria-orientation="vertical">
-          ${nav.map(([t, g]) => `<button type="button" role="tab" aria-selected="${t === state.bookingTab}" data-btab="${t}"><span aria-hidden="true">${g}</span>${t}</button>`).join('')}
+        <nav class="sidebar" role="tablist" aria-label="Idle Bookings sections" aria-orientation="vertical">
+          ${storePill()}
+          ${nav.map(([t, g]) => `<button type="button" role="tab" aria-selected="${t === state.bookingTab}" data-btab="${t}">${icon(g)}${t}</button>`).join('')}
         </nav>
         <div class="app-main">
+          <h2 class="page-title">${state.bookingTab}</h2>
           ${state.bookingStatus ? `<p class="status" role="status" data-boo-text>${esc(state.bookingStatus)}</p>` : ''}
           ${state.bookingTab === 'Calendar' ? calendarHtml() : state.bookingTab === 'Clients' ? clientsHtml() : bookingFormHtml()}
         </div>
@@ -236,17 +242,18 @@ export function createApps({ onChange = () => {}, inbox = INBOX, reviews = REVIE
     return `Booked ${f.client}${f.pet ? ` (${f.pet})` : ''}: ${f.service} with ${f.staff}, ${f.day} ${f.time}.`
   }
 
-  // ----------------------------------------------------------- Back office
+  // ----------------------------------------------------------- Idle Back office
 
-  const office = document.querySelector('[data-app="Back office"] .app-body')
+  const office = document.querySelector('[data-app="Idle Back office"] .app-body')
   function renderOffice() {
-    const nav = [['Sales', '💷'], ['Stock', '📦'], ['Staff and payroll', '🧑‍🤝‍🧑'], ['Reviews', '⭐']]
+    const nav = [['Sales', 'receipt'], ['Stock', 'box'], ['Staff and payroll', 'coins'], ['Reviews', 'star']]
     office.innerHTML = `
       <div class="app-shell">
-        <nav class="sidebar" role="tablist" aria-label="Back office sections" aria-orientation="vertical">
-          ${nav.map(([t, g]) => `<button type="button" role="tab" aria-selected="${t === state.officeTab}" data-otab="${t}"><span aria-hidden="true">${g}</span>${t}</button>`).join('')}
+        <nav class="sidebar" role="tablist" aria-label="Idle Back office sections" aria-orientation="vertical">
+          ${storePill()}
+          ${nav.map(([t, g]) => `<button type="button" role="tab" aria-selected="${t === state.officeTab}" data-otab="${t}">${icon(g)}${t}</button>`).join('')}
         </nav>
-        <div class="app-main">${officePanel()}</div>
+        <div class="app-main"><h2 class="page-title">${state.officeTab}</h2>${officePanel()}</div>
       </div>`
   }
 
@@ -329,7 +336,7 @@ export function createApps({ onChange = () => {}, inbox = INBOX, reviews = REVIE
     sell,
     addReview,
     renderAll,
-    /** Open Bloom Booking's client form, for the migration. */
+    /** Open Idle Bookings's client form, for the migration. */
     showClientForm() {
       state.bookingTab = 'Clients'
       renderBooking()

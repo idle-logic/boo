@@ -14,7 +14,7 @@ export class BrainBusyError extends Error {
 /** Keep requests small and well formed. Returns null if the body is unusable. */
 export function cleanThinkRequest(body) {
   if (!body || typeof body !== 'object') return null
-  const goal = typeof body.goal === 'string' ? body.goal.slice(0, 600) : ''
+  const goal = typeof body.goal === 'string' ? body.goal.slice(0, 2400) : ''
   const observation = typeof body.observation === 'string' ? body.observation.slice(0, 12000) : ''
   const history = Array.isArray(body.history)
     ? body.history.slice(-14).map(h => ({

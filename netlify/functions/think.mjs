@@ -10,7 +10,7 @@ export default async (req, context) => {
     return Response.json({ error: 'Boo needs a short rest. Try again in a minute.' }, { status: 429 })
   }
   const body = cleanThinkRequest(await req.json().catch(() => null))
-  if (!body) return Response.json({ error: 'Bad request.' }, { status: 400 })
+  if (!body) return Response.json({ error: 'I could not see the app. Open it and try again.' }, { status: 400 })
   try {
     return Response.json(await think(body, process.env.GEMINI_API_KEY))
   } catch (err) {

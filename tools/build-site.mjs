@@ -14,4 +14,7 @@ copyFileSync(
   'node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-500-normal.woff2',
   'site/fonts/pixelify-sans-latin-500-normal.woff2',
 )
+for (const w of [400, 500, 600, 700]) {
+  copyFileSync(`node_modules/@fontsource/dm-sans/files/dm-sans-latin-${w}-normal.woff2`, `site/fonts/dm-sans-latin-${w}-normal.woff2`)
+}
 console.log('Built the browser demo into site/')
