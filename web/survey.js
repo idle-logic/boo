@@ -26,15 +26,33 @@ export async function survey({ r, ui, speed = 1, business }) {
     if (!next || next.disabled) break
     await r.click(next)
   }
+  await ui.collected({
+    title: `Collected ${seen.customers.length} customers`,
+    head: ['Name', 'Mobile', 'Notes'],
+    rows: seen.customers.map(c => [c.name, c.mobile || '-', c.notes || '-']),
+    next: 'Next: services',
+  })
 
   r.pace.move = s(320)
   ui.now('Reading Slotly: services', 'Names, prices and the descriptions your team typed')
   await r.press('[data-nav]', 'Services')
   seen.services = r.table().map(row => ({ name: row.Service, mins: num(row.Mins), price: num(row.Price), description: row.Description }))
+  await ui.collected({
+    title: `Collected ${seen.services.length} services`,
+    head: ['Service', 'Mins', 'Price', 'Description'],
+    rows: seen.services.map(s => [s.name, String(s.mins), `$${s.price}`, s.description || '-']),
+    next: 'Next: staff',
+  })
 
   ui.now('Reading Slotly: staff', 'Who works here and what they do')
   await r.press('[data-nav]', 'Staff')
   seen.staff = r.all('[data-person]').map(card => ({ name: r.text(card.querySelector('[data-k="name"]')), mobile: r.text(card.querySelector('[data-k="mobile"]')), notes: r.text(card.querySelector('[data-k="notes"]')) }))
+  await ui.collected({
+    title: `Collected ${seen.staff.length} staff`,
+    head: ['Name', 'Mobile', 'Notes'],
+    rows: seen.staff.map(s => [s.name, s.mobile, s.notes]),
+    next: 'Next: appointments',
+  })
 
   ui.now('Reading Slotly: appointments', 'Every booking in the diary, including the odd ones')
   await r.press('[data-nav]', 'Appointments')
@@ -42,6 +60,12 @@ export async function survey({ r, ui, speed = 1, business }) {
   seen.appointments = r.all('tr[data-appt]').map(tr => {
     const c = [...tr.cells].map(r.text)
     return { date: tr.cells[0].dataset.date, time: c[1], customer: c[2], service: c[3], staff: c[4], mins: num(c[5]) }
+  })
+  await ui.collected({
+    title: `Collected ${seen.appointments.length} appointments`,
+    head: ['Date', 'Time', 'Customer', 'Service'],
+    rows: seen.appointments.map(a => [a.date.slice(5).split('-').reverse().join('/'), a.time, a.customer, a.service]),
+    next: 'Next: reports and settings',
   })
 
   ui.now('Reading Slotly: reports and settings', 'Sales history, SMS credits and your booking terms')
@@ -52,5 +76,11 @@ export async function survey({ r, ui, speed = 1, business }) {
   seen.smsCredits = num(r.text(r.look('[data-sms]')))
   await r.press('[data-nav]', 'Appointments')
   r.hide()
+  await ui.collected({
+    title: 'Collected reports and settings',
+    head: ['What', 'In Slotly'],
+    rows: [...seen.sales.map(([m, v]) => [`Sales, ${m}`, `$${v.toLocaleString('en')}`]), ['SMS credits', seen.smsCredits.toLocaleString('en')], ['Booking terms', seen.terms]],
+    next: 'Next: find the workarounds',
+  })
   return seen
 }

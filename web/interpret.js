@@ -197,9 +197,24 @@ export function findingsFor(old, read) {
     terms: 'Slotly has no cancellation settings, so the rules are just a paragraph of text.',
     stays: 'A few things only exist in Slotly.',
   }
+  const BUT = {
+    vip: 'But Idle has a VIP tag on every client.',
+    alerts: 'But Idle has health alerts that show on every booking.',
+    packages: 'But Idle tracks packages: sessions left, counted off by itself, with an expiry date.',
+    credit: 'But Idle keeps store credit on each client and uses it at checkout.',
+    phones: 'But Idle keeps one clean phone number, with any other number in the notes.',
+    retail: 'But Idle sells products, with prices and stock.',
+    deposits: 'But Idle takes a deposit % on each service by itself.',
+    cleanup: 'But Idle adds buffer time after a service by itself.',
+    breaks: "But Idle keeps breaks in each person's working hours.",
+    merge: 'But Idle has one profile per person, with everything they do.',
+    terms: 'But Idle has real cancellation settings and a policy note.',
+    stays: 'But Idle messages clients on WhatsApp and starts its reports today.',
+  }
   for (const x of f) {
     x.value = x.choices[0][0]
     x.why = WHY[x.key]
+    x.but = BUT[x.key]
   }
   return f
 }

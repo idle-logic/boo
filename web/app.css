@@ -475,9 +475,9 @@ fieldset.idl-field legend { margin-bottom: 4px; }
 
 /* ------------------------------------------------------------- telling the story plainly */
 
-.h-chapters { list-style: none; margin: 0; padding: 10px 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; border-bottom: 1px solid #ebe7f7; background: #fff; }
-.h-chapters li { display: grid; justify-items: center; gap: 4px; text-align: center; font-size: 11.5px; line-height: 1.25; font-weight: 600; color: #a3a8b8; }
-.h-chapters span { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; border: 2px solid #dcd8ea; font-size: 11px; background: #fff; }
+.h-chapters { list-style: none; margin: 0; padding: 10px 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; border-bottom: 1px solid #ebe7f7; background: #fff; }
+.h-chapters li { display: grid; justify-items: center; gap: 4px; text-align: center; font-size: 10.5px; line-height: 1.25; font-weight: 600; color: #a3a8b8; }
+.h-chapters span { min-width: 26px; height: 22px; padding: 0 4px; border-radius: 99px; display: grid; place-items: center; border: 2px solid #dcd8ea; font: 700 10.5px Georgia, 'Times New Roman', serif; background: #fff; }
 .h-chapters li[data-state='now'] { color: #1d1840; }
 .h-chapters li[data-state='now'] span { border-color: #6d4dff; background: #6d4dff; color: #fff; box-shadow: 0 0 0 4px #ece7ff; }
 .h-chapters li[data-state='done'] { color: #0f7a54; }
@@ -566,3 +566,23 @@ fieldset.idl-field legend { margin-bottom: 4px; }
 .h-clean li.now { opacity: 1; background: #fff7ed; box-shadow: inset 3px 0 0 #f59e0b; }
 .h-clean li.clean { opacity: 1; background: #eefaf3; box-shadow: inset 3px 0 0 #0f9d6b; }
 .h-clean li.clean b::after { content: '  ✓ clean'; color: #0f9d6b; font-weight: 700; }
+
+/* ------------------------------------------------------------- what Boo collected from each part of Slotly */
+
+.h-list { max-height: 360px; overflow: auto; border: 1px solid #ebe7f7; border-radius: 10px; }
+.h-list table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.h-list th { position: sticky; top: 0; background: #f7f6fc; text-align: left; padding: 6px 8px; font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: #6b7185; }
+.h-list td { padding: 5px 8px; border-top: 1px solid #f1eff8; vertical-align: top; color: #2c3142; }
+.h-list td:first-child { font-weight: 600; white-space: nowrap; }
+.h-list tbody tr:nth-child(even) td { background: #fcfbfe; }
+
+/* ------------------------------------------------------------- the acts, and "but Idle..." */
+
+.h-acts { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 7px; }
+.h-acts li { display: grid; gap: 1px; padding: 8px 10px; border-radius: 10px; background: #fff; border: 1px solid #ebe7f7; }
+.h-acts b { font: 700 13.5px 'DM Sans', system-ui, sans-serif; color: #1d1840; }
+.h-acts span { font-size: 12.5px; color: #6b7185; }
+.h-but { margin: 0; font-size: 13px; font-weight: 600; color: #a8381f; }
+.h-but::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: #c2452c; margin-right: 6px; vertical-align: 1px; }
+.h-finds .h-but { grid-column: 1 / -1; font-size: 12.5px; }
+.h-tour .h-but { font-size: 14px; }

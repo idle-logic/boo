@@ -42,10 +42,11 @@
             <span class="boo-home" id="boo-home" aria-hidden="true"></span>
           </header>
 
-          <ol class="h-chapters" id="chapters" aria-label="What Haunt does">
-            <li data-ch="find" data-state="now"><span>1</span>Find the mess</li>
-            <li data-ch="clean"><span>2</span>Clean and standardise</li>
-            <li data-ch="move"><span>3</span>Move to Idle</li>
+          <ol class="h-chapters" id="chapters" aria-label="The four acts">
+            <li data-ch="read" data-state="now"><span>I</span>Rise of the Dead</li>
+            <li data-ch="find"><span>II</span>Ghosts in the Notes</li>
+            <li data-ch="clean"><span>III</span>The Exorcism</li>
+            <li data-ch="move"><span>IV</span>Crossing Over</li>
           </ol>
           <div class="h-body">
             <section class="h-start" id="start-card">
@@ -55,7 +56,11 @@
               <table class="h-compare" aria-label="What each app can hold">
                 <thead><tr><th></th><th>Slotly</th><th>Idle</th></tr></thead>
                 <tbody>
-                <tr><th>Customers, services, staff, appointments</th><td class="y">✓</td><td class="y">✓</td></tr>
+                <tr><th>Customers</th><td class="y">✓</td><td class="y">✓</td></tr>
+                <tr><th>Services</th><td class="y">✓</td><td class="y">✓</td></tr>
+                <tr><th>Staff</th><td class="y">✓</td><td class="y">✓</td></tr>
+                <tr><th>Appointments</th><td class="y">✓</td><td class="y">✓</td></tr>
+                <tr><th>Sales reports</th><td class="y">✓</td><td class="y">✓</td></tr>
                 <tr><th>Allergy alerts</th><td class="n">✗</td><td class="y">✓</td></tr>
                 <tr><th>VIP tags</th><td class="n">✗</td><td class="y">✓</td></tr>
                 <tr><th>Packages</th><td class="n">✗</td><td class="y">✓</td></tr>
@@ -67,12 +72,20 @@
                 <tr><th>SMS credits</th><td class="y">✓</td><td class="n">✗ <small>WhatsApp instead</small></td></tr>
                 </tbody>
               </table>
-              <p>Slotly doesn't have these features, so your team hid that data in names, notes and fake bookings. Before the move, Boo finds it, cleans it and standardises it. Then it goes into its proper place in Idle.</p>
-              <button type="button" class="h-btn primary" id="start">Let Boo look around Slotly</button>
+              <p>Slotly doesn't have these features, so your team hid that data in names, notes and fake bookings. It has to be cleaned up before it moves.</p>
+              <p class="h-eyebrow">Tonight, in four acts</p>
+              <ol class="h-acts">
+                <li><b>Act I · Rise of the Dead</b><span>Boo wakes and reads every screen of Slotly.</span></li>
+                <li><b>Act II · Ghosts in the Notes</b><span>Boo finds the data hiding where it doesn't belong.</span></li>
+                <li><b>Act III · The Exorcism</b><span>The mess is cleaned and standardised, once you say yes.</span></li>
+                <li><b>Act IV · Crossing Over</b><span>Everything moves into Idle, every record accounted for.</span></li>
+              </ol>
+              <button type="button" class="h-btn primary" id="start">Begin Act I: Rise of the Dead</button>
             </section>
 
             <section class="h-now" id="now" hidden><b id="now-title"></b><span id="now-sub"></span></section>
 
+            <section class="h-card h-collected" id="collected" hidden></section>
             <section class="h-card h-tour" id="tour" hidden></section>
             <section class="h-card" id="found" hidden></section>
             <section class="h-card" id="live" hidden></section>

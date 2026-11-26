@@ -164,7 +164,7 @@ watch('people')
 
 const feedLines = []
 const show = id => {
-  for (const x of ['tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt']) $(x).hidden = x !== id
+  for (const x of ['collected', 'tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt']) $(x).hidden = x !== id
   $(id).scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
 }
 const gem = (on, model) => (on ? `<span class="gem" title="${esc(model || 'Gemini')}">✦ Gemini</span>` : '')
@@ -180,6 +180,19 @@ const ui = {
   },
   log(text) {
     feedLines.push(text)
+  },
+  /** One part of Slotly is read: show everything collected, and wait until you say move on. */
+  async collected({ title, head, rows, next }) {
+    ui.now(`${title} from Slotly`, 'Have a look, then move to the next step')
+    $('collected').innerHTML = `<p class="h-eyebrow">Act I · Rise of the Dead</p><h2>${esc(title)}</h2>
+      <div class="h-list"><table><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <button type="button" class="h-btn primary" id="collected-next">${esc(next)}</button>`
+    show('collected')
+    free()
+    await new Promise(r => $('collected-next').addEventListener('click', r, { once: true }))
+    $('collected').hidden = true
+    busy()
   },
   /** A ghost finished one record in Idle. Shown when you are watching that ghost. */
   moved(lane, what, done, total) {
@@ -238,7 +251,7 @@ const ui = {
 
 /** The three chapters at the top of the panel. */
 function chapter(name) {
-  const order = ['find', 'clean', 'move']
+  const order = ['read', 'find', 'clean', 'move']
   for (const li of document.querySelectorAll('#chapters [data-ch]')) {
     const i = order.indexOf(li.dataset.ch)
     li.dataset.state = i < order.indexOf(name) ? 'done' : i === order.indexOf(name) ? 'now' : ''
@@ -345,8 +358,9 @@ async function tour() {
     const { el, real, from } = await stop.find()
     boo.say(stop.say, 3200)
     const last = i === stops.length - 1
-    $('tour').innerHTML = `<p class="h-eyebrow">Workaround ${i + 1} of ${stops.length}</p>
+    $('tour').innerHTML = `<p class="h-eyebrow">Act II · Ghosts in the Notes · ${i + 1} of ${stops.length}</p>
       <h2>${esc(f.why)}</h2>
+      <p class="h-but">${esc(f.but)}</p>
       <dl><div><dt>In Slotly today</dt><dd><code>${esc(from)}</code></dd></div>
       <div><dt>What it really is ${gem(read.by === 'ai', read.model)}</dt><dd class="real"><code>${esc(real)}</code></dd></div></dl>
       <button type="button" class="h-btn primary" id="tour-next">${last ? `See all ${findings.filter(x => x.key !== 'stays').length} workarounds` : 'Next'}</button>`
@@ -375,6 +389,7 @@ async function lookAround() {
   await pause(400)
   $('start-card').hidden = true
   seen = await survey({ r: reader, ui, speed, business: BUSINESS })
+  chapter('find')
   ui.now(`Gemini is reading ${seen.customers.length} customers' names and notes`, 'To work out what your team has been doing by hand, and why')
   boo.mode('look')
   boo.say('Reading between the lines...', 3000)
@@ -389,10 +404,10 @@ function showFindings() {
   const by = read.by === 'ai'
   const hand = findings.filter(f => f.key !== 'stays')
   ui.now(`Slotly's data hides ${hand.length} workarounds`, 'Each one is something Slotly cannot hold, kept somewhere it does not belong')
-  $('found').innerHTML = `<h2>What's messy in Slotly's data ${gem(by, read.model)}</h2>
+  $('found').innerHTML = `<p class="h-eyebrow">Act II · Ghosts in the Notes</p><h2>What's messy in Slotly's data ${gem(by, read.model)}</h2>
     <p class="h-sub">Slotly has no place for these, so your team hid them in names, notes and fake bookings. Before anything moves to Idle, they need cleaning up.</p>
-    <ul class="h-finds">${hand.map(f => `<li><p>${esc(f.why)}</p><span class="n">${f.count}</span><code>${esc(f.from[0])}</code></li>`).join('')}</ul>
-    <button type="button" class="h-btn primary" id="to-clean">Clean and standardise it</button>`
+    <ul class="h-finds">${hand.map(f => `<li><p>${esc(f.why)}</p><span class="n">${f.count}</span><p class="h-but">${esc(f.but)}</p><code>${esc(f.from[0])}</code></li>`).join('')}</ul>
+    <button type="button" class="h-btn primary" id="to-clean">Begin Act III: The Exorcism</button>`
   show('found')
   $('caption').hidden = true
   free()
@@ -408,11 +423,11 @@ function standardise() {
   Object.assign(read, (({ bookings, cleanups, breaks }) => ({ bookings, cleanups, breaks }))(readWithRules(seen)))
   findings = findingsFor(seen, read)
   ui.now('The standard way for each workaround. Is this right?', 'Idle has a proper place for each one. Nothing is cleaned or moved until you say yes.')
-  $('confirm').innerHTML = `<h2>How each workaround gets cleaned ${gem(read.by === 'ai', read.model)}</h2>
+  $('confirm').innerHTML = `<p class="h-eyebrow">Act III · The Exorcism</p><h2>How each workaround gets cleaned ${gem(read.by === 'ai', read.model)}</h2>
     <div class="h-map-head"><span>Messy in Slotly</span><span></span><span>Clean and standard</span></div>
     <ol class="h-map">${findings
       .map(
-        (f, i) => `<li data-i="${i}"><b>${esc(f.title)}</b><span class="n">${f.count}</span><p>${esc(f.why)}</p>${f.sub ? `<small>${esc(f.sub)}</small>` : ''}
+        (f, i) => `<li data-i="${i}"><b>${esc(f.title)}</b><span class="n">${f.count}</span><p>${esc(f.why)}</p><p class="h-but">${esc(f.but)}</p>${f.sub ? `<small>${esc(f.sub)}</small>` : ''}
         <div class="map"><code>${f.from.map(esc).join('<br>')}</code><span class="arrow" aria-hidden="true">→</span><code class="to">${f.to.map(esc).join('<br>')}</code></div>
         <div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div></li>`,
       )
@@ -436,7 +451,7 @@ function standardise() {
 async function clean() {
   busy()
   const done = findings.filter(f => f.key !== 'stays')
-  $('live').innerHTML = `<h2>Cleaning Slotly's data</h2><p class="h-sub">Each workaround becomes a proper field, ready for Idle.</p>
+  $('live').innerHTML = `<p class="h-eyebrow">Act III · The Exorcism</p><h2>Cleaning Slotly's data</h2><p class="h-sub">Each workaround becomes a proper field, ready for Idle.</p>
     <ol class="h-clean">${done.map(f => `<li data-k="${f.key}"><b>${esc(f.title)}</b><em>${f.count}</em><div class="map"><code>${esc(f.from[0])}</code><span class="arrow" aria-hidden="true">→</span><code class="to">${esc(f.to[0])}</code></div></li>`).join('')}</ol>`
   show('live')
   boo.mode('work')
@@ -451,7 +466,7 @@ async function clean() {
     row.classList.replace('now', 'clean')
     burst(r.left + 20, r.top + 10, 10, SPARKLE, 0.3, 200)
   }
-  ui.now('Slotly\'s data is clean and standard', `${done.length} workarounds turned into proper fields. Moving it into Idle next.`)
+  ui.now('Slotly\'s data is clean and standard', `${done.length} workarounds turned into proper fields. Act IV: Crossing Over is next.`)
   boo.react('happy', 'All clean!', 1600)
   await pause(1600 * speed)
   switchToIdle()
@@ -476,7 +491,7 @@ async function switchToIdle() {
     ['packages', 'Packages', records.packages.length],
     ['bookings', 'Bookings', records.bookings.length],
   ].filter(r => r[2])
-  $('moving').innerHTML = `<h2>Moving into Idle</h2><ul class="h-move">${rows.map(([k, label, n]) => `<li data-key="${k}"><span class="ghost-slot"></span><b>${label}</b><em>0 of ${n}</em><div class="bar"><i></i></div></li>`).join('')}</ul>`
+  $('moving').innerHTML = `<p class="h-eyebrow">Act IV · Crossing Over</p><h2>Moving into Idle</h2><ul class="h-move">${rows.map(([k, label, n]) => `<li data-key="${k}"><span class="ghost-slot"></span><b>${label}</b><em>0 of ${n}</em><div class="bar"><i></i></div></li>`).join('')}</ul>`
   show('moving')
   ui.now('Moving everything into Idle', 'Three ghosts work at once, through Idle\'s own screens. Click Setup, Clients or Bookings above Idle to watch one.')
   await split(['setup', 'people', 'books'])
@@ -493,7 +508,7 @@ function done(result, d) {
   ui.now('Maple & Mint now runs on Idle', `${result.matched} of ${result.checks} checks match`)
   const salesFile = d.stays !== false
   $('receipt').innerHTML = `
-    <p class="h-eyebrow">Switch complete</p>
+    <p class="h-eyebrow">The end · Slotly can rest in peace</p>
     <h2>Cleaned, standardised, and moved. Nothing lost.</h2>
     <p class="h-check">${findings.filter(f => f.key !== 'stays').length} workarounds cleaned up. Each one is a proper field in Idle now.</p>
     <ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
