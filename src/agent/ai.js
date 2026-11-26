@@ -73,6 +73,47 @@ export async function readOldRecords(req, apiKey) {
   return { ...json, model }
 }
 
+// ------------------------------------------------------------- chat: questions, and changes to the clean-up plan
+
+const CHAT_SYSTEM = `You are Boo, a friendly ghost helping a hair salon move from its old booking software (Slotly) into Idle.
+The owner types to you in a chat box. Today is Thursday 26 November 2026.
+You get: what stage the move is at, the clean-up decisions with their options and the current choice, and the salon's records.
+If the owner asks a question, answer it from the records only, with real names and numbers.
+If the owner asks to change a decision, pick the matching decision and option. Only change something when they clearly ask.
+If the owner says Boo read something wrong about one client, service or staff member, return an edit with the right value.
+Edit fields: for a client "alert" (text, or "" for none), "credit" (dollars), "vip" (true or false), "packageLeft" (sessions left);
+for a service "category" (Cuts, Styling, Colour, Treatments or Brows), "buffer" (minutes), "deposit" (percent); for staff "does" (a list of categories).
+Answer with JSON only: {"reply": "<one or two short, friendly sentences>",
+ "change": {"key": "<decision key>", "option": <option number>} or null,
+ "edit": {"target": "client|service|staff", "name": "<exact name>", "field": "<field>", "value": <new value>} or null}`
+
+export function cleanChatRequest(body) {
+  if (!body || typeof body !== 'object') return null
+  const message = str(body.message, 400).trim()
+  if (!message) return null
+  const decisions = (Array.isArray(body.decisions) ? body.decisions : []).slice(0, 20).map(d => ({
+    key: str(d?.key, 30),
+    title: str(d?.title, 120),
+    options: (Array.isArray(d?.options) ? d.options : []).slice(0, 4).map(o => str(o, 80)),
+    chosen: Number(d?.chosen) || 0,
+  }))
+  return { message, stage: str(body.stage, 120), decisions, records: str(typeof body.records === 'string' ? body.records : JSON.stringify(body.records ?? ''), 20000) }
+}
+
+export async function chatWithBoo(req, apiKey) {
+  const user = [
+    `Stage: ${req.stage}`,
+    `Decisions (key: title; options numbered from 0; chosen):\n${req.decisions.map(d => `${d.key}: ${d.title}; ${d.options.map((o, i) => `${i}=${o}`).join(' | ')}; chosen ${d.chosen}`).join('\n') || 'none yet'}`,
+    `Records:\n${req.records}`,
+    `Owner: ${req.message}`,
+  ].join('\n\n')
+  const { json, model } = await askGemini({ system: CHAT_SYSTEM, user, apiKey, maxTokens: 512 })
+  const change = json.change && typeof json.change === 'object' ? { key: str(json.change.key, 30), option: Number(json.change.option) } : null
+  const e = json.edit && typeof json.edit === 'object' ? json.edit : null
+  const edit = e ? { target: str(e.target, 10), name: str(e.name, 80), field: str(e.field, 20), value: Array.isArray(e.value) ? e.value.slice(0, 5).map(v => str(v, 20)) : typeof e.value === 'boolean' || typeof e.value === 'number' ? e.value : str(e.value, 80) } : null
+  return { reply: str(json.reply, 500), change, edit, model }
+}
+
 // ------------------------------------------------------------- ask: questions about the salon, from its records
 
 const ASK_SYSTEM = `You are Boo, a friendly assistant for a hair salon that has just moved into new software.

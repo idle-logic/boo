@@ -1,14 +1,16 @@
 // The switch's AI steps for the browser demo, on the Gemini free tier:
 //   POST /api/read      what the old software's workarounds really mean
 //   POST /api/ask       questions about the salon, from its moved records
+//   POST /api/chat      the chat bar: questions, and changes to the clean-up plan
 // Set GEMINI_API_KEY in the Netlify site's environment variables.
-import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest } from '../../src/agent/ai.js'
+import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest } from '../../src/agent/ai.js'
 import { makeRateLimiter, BrainBusyError } from '../../src/agent/gemini.js'
 
 const allow = makeRateLimiter({ perMinute: 12, perDay: 300 })
 const TASKS = {
   '/api/read': [cleanReadRequest, readOldRecords],
   '/api/ask': [cleanAskRequest, askAboutSalon],
+  '/api/chat': [cleanChatRequest, chatWithBoo],
 }
 
 export default async (req, context) => {
@@ -26,4 +28,4 @@ export default async (req, context) => {
   }
 }
 
-export const config = { path: ['/api/read', '/api/ask'] }
+export const config = { path: ['/api/read', '/api/ask', '/api/chat'] }

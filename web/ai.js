@@ -64,6 +64,59 @@ export function recordsFor(store) {
   })
 }
 
+/**
+ * The chat bar. Gemini answers, and may ask to change one clean-up decision.
+ * The change is only used if that decision and option really exist.
+ */
+export async function chatBoo({ message, stage, decisions, records }) {
+  const out = await callAi('/api/chat', { message, stage, records, decisions: decisions.map(d => ({ key: d.key, title: d.title, options: d.choices.map(c => c[1]), chosen: d.choices.findIndex(c => c[0] === d.value) })) })
+  if (!out?.reply) return { reply: 'Gemini is busy right now. Try me again in a minute.', change: null }
+  const d = decisions.find(x => x.key === out.change?.key)
+  const change = d && Number.isInteger(out.change.option) && d.choices[out.change.option] ? { key: d.key, option: out.change.option } : null
+  return { reply: out.reply, change, edit: out.edit ?? null, model: out.model }
+}
+
+const CATS = ['Cuts', 'Styling', 'Colour', 'Treatments', 'Brows']
+const same = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase()
+
+/**
+ * A correction from the owner ("Kenji's allergy is latex"), checked before it touches anything.
+ * Returns a sentence saying what changed, or null if the edit does not fit the data.
+ */
+export function applyEdit(read, edit) {
+  if (!edit || !read) return null
+  const v = edit.value
+  if (edit.target === 'client') {
+    const c = read.clients.find(x => same(x.name, edit.name))
+    if (!c) return null
+    if (edit.field === 'alert' && typeof v === 'string' && v.length <= 60) return (c.alert = v.trim()), v.trim() ? `${c.name}'s alert is now “${c.alert}”` : `${c.name} has no alert now`
+    if (edit.field === 'credit' && Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 10000) return (c.credit = Number(v)), `${c.name}'s store credit is now $${c.credit}`
+    if (edit.field === 'vip' && typeof v === 'boolean') return (c.vip = v), `${c.name} is ${v ? 'now' : 'no longer'} a VIP`
+    if (edit.field === 'packageLeft' && c.packages.length && Number.isInteger(Number(v))) {
+      const p = c.packages[0]
+      if (Number(v) < 0 || Number(v) > p.of) return null
+      p.left = Number(v)
+      return `${c.name}'s ${p.name} now has ${p.left} of ${p.of} left`
+    }
+    return null
+  }
+  if (edit.target === 'service') {
+    const s = read.services.find(x => same(x.name, edit.name))
+    if (!s) return null
+    if (edit.field === 'category' && CATS.includes(v)) return (s.category = v), `${s.name} is now in ${v}`
+    if (edit.field === 'buffer' && Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= 120) return (s.buffer = Number(v)), `${s.name} now has ${s.buffer} min after it`
+    if (edit.field === 'deposit' && Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 100) return (s.deposit = Number(v)), `${s.name} now takes a ${s.deposit}% deposit`
+    return null
+  }
+  if (edit.target === 'staff') {
+    const s = read.staff.find(x => same(x.name, edit.name))
+    if (!s || edit.field !== 'does' || !Array.isArray(v) || !v.length || !v.every(c => CATS.includes(c))) return null
+    s.does = [...new Set(v)]
+    return `${s.name} now does ${s.does.join(', ')}`
+  }
+  return null
+}
+
 export async function askBoo(question, store) {
   const out = await callAi('/api/ask', { question, records: recordsFor(store) })
   return out?.answer ? { answer: out.answer, model: out.model, by: 'ai' } : { answer: 'Gemini is busy right now. Ask me again in a minute.', by: 'none' }

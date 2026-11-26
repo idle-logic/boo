@@ -104,7 +104,7 @@ export function burst(...args) {
  * size: drawn size, 1 is full. interactive: can be clicked, grabbed and thrown.
  * at: where it appears, top-left { x, y }. pop: grow from nothing there (false when it is already visible, like after rising from the grave).
  */
-export function createBoo({ windows, bounds, onClick = () => {}, colour = 'normal', size = 1, interactive = true, at = null, pop = true, label = 'Boo the ghost' }) {
+export function createBoo({ windows, bounds, onClick = () => {}, colour = 'normal', size = 1, interactive = true, at = null, pop = true, label = 'Boo the ghost', obstacles = () => [], nap = null }) {
   const { el: host, burst: puff, cursor: _ } = layer()
   const shared = layer()
 
@@ -163,10 +163,13 @@ export function createBoo({ windows, bounds, onClick = () => {}, colour = 'norma
 
   function readWorld() {
     world = bounds()
-    const rects = windows().map(el => {
-      const r = el.getBoundingClientRect()
-      return { x: r.left, y: r.top, w: r.width, h: r.height }
-    })
+    const rects = [
+      ...obstacles().map(o => ({ x: o.left, y: o.top, w: o.right - o.left, h: o.bottom - o.top })),
+      ...windows().map(el => {
+        const r = el.getBoundingClientRect()
+        return { x: r.left, y: r.top, w: r.width, h: r.height }
+      }),
+    ]
     ledges = ledgesFromWindows(rects, world)
     if (body.ground && !body.ground.floor) {
       const c = body.x + GHOST.w / 2
@@ -254,6 +257,15 @@ export function createBoo({ windows, bounds, onClick = () => {}, colour = 'norma
   let squash = 0
   let tuck = 0
   let bubbleKey = ''
+  let lastBump = 0
+  let lastHopSaid = 0
+  let lastPoke = performance.now()
+  let napping = false
+  // Anything you do with Boo keeps it awake.
+  booEl.addEventListener('pointerdown', () => {
+    lastPoke = performance.now()
+    napping = false
+  })
 
   function frame(now) {
     if (!alive) return
@@ -266,6 +278,44 @@ export function createBoo({ windows, bounds, onClick = () => {}, colour = 'norma
     if (!held) {
       const intent = !body.ground && Math.abs(body.vx) > 300 ? { ...out.intent, move: 0, speed: Math.abs(body.vx) } : out.intent
       body = step(body, intent, ledges, world, dt)
+    }
+    for (const o of held ? [] : obstacles()) {
+      const inside = body.x + GHOST.w > o.left + 2 && body.x < o.right - 2 && body.y + GHOST.h > o.top + 6 && body.y < o.bottom
+      if (!inside) continue
+      // Came in from above: stand on it. Otherwise: bump off the nearer side.
+      if (before.y + GHOST.h <= o.top + 8) {
+        body = { ...body, y: o.top - GHOST.h, vy: 0 }
+        continue
+      }
+      const fromLeft = body.x + GHOST.w / 2 < (o.left + o.right) / 2
+      const edge = fromLeft ? o.left - GHOST.w : o.right
+      if (body.ground) {
+        // Bumped into it again: hop up and land on top of it.
+        body = { ...body, x: edge, vy: -760, vx: (fromLeft ? 1 : -1) * 160, ground: null }
+        squash = -0.22
+        if (now - lastHopSaid > 9000) brain.handle({ type: 'say', text: 'Up we go!' }, now), (lastHopSaid = now)
+        lastBump = 0
+        continue
+      }
+      body = { ...body, x: edge, vx: (fromLeft ? -1 : 1) * Math.max(80, Math.abs(body.vx) * 0.4) }
+      squash = 0.25
+      if (now - lastBump > 900) puff(fromLeft ? o.left : o.right, body.y + GHOST.h / 2, 5, DUST, 0.2)
+      if (now - lastBump > 7000) brain.handle({ type: 'say', text: ['Oof!', 'Hey, who put that there?', 'Ow.'][Math.floor(Math.random() * 3)] }, now)
+      lastBump = now
+    }
+    if (nap) {
+      if (brain.mode === 'wander' && !held && !napping && now - lastPoke > nap.after) {
+        napping = true
+        const s = nap.spot(world)
+        brain.handle({ type: 'goto', x: s.x, y: s.y }, now)
+      } else if (napping && brain.mode === 'goto') {
+        const s = nap.spot(world)
+        if (Math.hypot(body.x - s.x, body.y - s.y) < 10) {
+          brain.handle({ type: 'release' }, now)
+          brain.lastActivity = -Infinity // so it dozes off right here
+        }
+      } else if (napping && !['goto', 'wander', 'sleep'].includes(brain.mode)) napping = false
+      if (napping && brain.mode === 'wander' && now - lastPoke < 500) napping = false
     }
     if (!before.ground && body.ground && before.vy > 300) {
       squash = Math.min(0.35, before.vy / 2600)

@@ -40,70 +40,67 @@ export function idleRecords(read, d) {
   }
 }
 
-export async function move({ records, lanes, store, ui, speed = 1 }) {
+/**
+ * Who does what in the move. Big jobs are shared, so the whole swarm works at once:
+ * one ghost each for rules, services, products and the team, four for clients,
+ * one for packages and two for bookings.
+ */
+export function crewsFor(records) {
+  const share = (list, n) => Array.from({ length: n }, (_, i) => list.filter((_, k) => k % n === i))
+  const crews = []
+  if (records.policies) crews.push({ id: 'rules', name: 'Rules ghost', key: 'terms', policies: records.policies })
+  crews.push({ id: 'setup', name: 'Services ghost', key: 'services', page: 'services', open: 'Add service', list: records.services })
+  if (records.products.length) crews.push({ id: 'products', name: 'Products ghost', key: 'retail', page: 'products', open: 'Add product', list: records.products })
+  crews.push({ id: 'team', name: 'Team ghost', key: 'merge', page: 'team', open: 'Add team member', list: records.staff })
+  share(records.clients, 4).forEach((list, i) => crews.push({ id: i ? `clients-${i + 1}` : 'people', name: `Clients ghost ${i + 1}`, key: 'clients', page: 'clients', open: 'Add client', list }))
+  crews.push({ id: 'packages', name: 'Packages ghost', key: 'packages', page: 'packages', open: 'Sell a package', list: records.packages, ready: (v, store) => store.clients.some(c => c.name === v.Client) })
+  share(records.bookings, 2).forEach((list, i) =>
+    crews.push({
+      id: i ? `bookings-${i + 1}` : 'books',
+      name: `Bookings ghost ${i + 1}`,
+      key: 'bookings',
+      page: 'calendar',
+      open: 'New booking',
+      list,
+      ready: (v, store) => store.clients.some(c => c.name === v.Client) && store.services.some(x => x.name === v.Service) && store.staff.some(x => x.name === v['Team member']),
+    }),
+  )
+  return crews.filter(c => c.policies || c.list.length)
+}
+
+/** Every crew at once, each in its own Idle tab. */
+export async function move({ crews, lane, store, ui, speed = 1 }) {
   const s = ms => ms * speed
-  const [setup, people, books] = lanes
-  const LANES = new Map([[setup, 'setup'], [people, 'people'], [books, 'books']])
-  const TOTAL = { services: records.services.length, products: records.products.length, team: records.staff.length, clients: records.clients.length, packages: records.packages.length, calendar: records.bookings.length }
-  async function enter(h, page, open, values, i) {
-    if (!h.look(`[data-nav="${page}"][aria-current="page"]`)) await h.press(`[data-nav="${page}"]`)
-    await h.press('button', open)
-    await h.fill(values, { typing: i < 1 })
-    await h.submit()
-    const lane = [...LANES].find(([l]) => l.hands === h)?.[1]
-    const what = page === 'packages' ? `${values.Client}'s ${values.Package}` : page === 'calendar' ? `${values.Client}'s ${values.Service} booking` : values.Name
-    ui.moved?.(lane, what, i + 1, TOTAL[page])
-  }
-  const laneSetup = (async () => {
-    const h = setup.hands
-    h.pace.move = s(260)
-    if (records.policies) {
-      ui.working('setup', 'terms')
-      await h.press('[data-nav="settings"]')
-      await h.press('button', 'Edit')
-      await h.fill(records.policies, { typing: true })
-      await h.submit()
-      ui.progress('terms', 1, 1)
-    }
-    for (const [key, page, open, list] of [['services', 'services', 'Add service', records.services], ['retail', 'products', 'Add product', records.products], ['merge', 'team', 'Add team member', records.staff]]) {
-      ui.working('setup', key)
-      for (const [i, v] of list.entries()) {
-        h.pace.move = i < 1 ? s(260) : s(80)
-        await enter(h, page, open, v, i)
-        ui.progress(key, i + 1, list.length)
+  const total = {}
+  for (const c of crews) total[c.key] = (total[c.key] ?? 0) + (c.policies ? 1 : c.list.length)
+  const done = Object.fromEntries(Object.keys(total).map(k => [k, 0]))
+  await Promise.all(
+    crews.map(async c => {
+      const h = lane(c.id).hands
+      h.pace.move = s(220)
+      if (c.policies) {
+        await h.press('[data-nav="settings"]')
+        await h.press('button', 'Edit')
+        await h.fill(c.policies, { typing: true })
+        await h.submit()
+        ui.progress(c.key, ++done[c.key], total[c.key])
+        ui.moved?.(c.id, 'the cancellation rules', 1, 1)
+        return h.hide()
       }
-    }
-    h.hide()
-  })()
-  const lanePeople = (async () => {
-    const h = people.hands
-    ui.working('people', 'clients')
-    for (const [i, c] of records.clients.entries()) {
-      h.pace.move = i < 1 ? s(260) : s(60)
-      await enter(h, 'clients', 'Add client', c, i)
-      ui.progress('clients', i + 1, records.clients.length)
-    }
-    h.hide()
-  })()
-  const laneBooks = (async () => {
-    const h = books.hands
-    ui.working('books', 'packages')
-    for (const [i, p] of records.packages.entries()) {
-      await waitFor(() => store.clients.some(c => c.name === p.Client))
-      h.pace.move = i < 1 ? s(260) : s(80)
-      await enter(h, 'packages', 'Sell a package', p, i)
-      ui.progress('packages', i + 1, records.packages.length)
-    }
-    ui.working('books', 'bookings')
-    await waitFor(() => store.clients.length === records.clients.length && store.services.length === records.services.length && store.staff.length === records.staff.length)
-    for (const [i, b] of records.bookings.entries()) {
-      h.pace.move = i < 1 ? s(260) : s(80)
-      await enter(h, 'calendar', 'New booking', b, i)
-      ui.progress('bookings', i + 1, records.bookings.length)
-    }
-    h.hide()
-  })()
-  await Promise.all([laneSetup, lanePeople, laneBooks])
+      for (const [i, v] of c.list.entries()) {
+        if (c.ready) await waitFor(() => c.ready(v, store))
+        if (!h.look(`[data-nav="${c.page}"][aria-current="page"]`)) await h.press(`[data-nav="${c.page}"]`)
+        await h.press('button', c.open)
+        await h.fill(v, { typing: i < 1 })
+        await h.submit()
+        h.pace.move = s(70)
+        ui.progress(c.key, ++done[c.key], total[c.key])
+        const what = c.page === 'packages' ? `${v.Client}'s ${v.Package}` : c.page === 'calendar' ? `${v.Client}'s ${v.Service} booking` : v.Name
+        ui.moved?.(c.id, what, done[c.key], total[c.key])
+      }
+      h.hide()
+    }),
+  )
 }
 
 /**

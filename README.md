@@ -1,20 +1,19 @@
 # Haunt
 
-**Moving to new software? Your old data is a mess, because your team spent years working around everything the old software couldn't do. Haunt finds those workarounds, cleans and standardises the data, and moves it into the new software with nothing lost.**
+**Switch software. Lose nothing.** Haunt moves a business from any old software to any new software.
 
-Old booking software has no place for allergies, packages, store credit, products, deposits, clean-up time or cancellation rules. So teams improvise: allergies typed into names, packages written in notes, products sold as fake services, "CLEAN UP" appointments booked by hand after every colour, rules kept as a paragraph of text. An export copies that mess straight into the new system, where the new system's proper features never get used.
+Old software can't hold everything, so teams hide data where it doesn't belong: credit and prepaid passes in notes, allergies in names, products sold as fake services, blocked time as fake appointments, rules as a paragraph of text. Exports copy that mess into the new system, so switching means days of retyping and lost data. Haunt reads the old app screen by screen, works out what every workaround really is, cleans it into the new app's proper fields, moves it, and proves nothing was lost.
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box. Boo rises from a grave. The first screen sets the scene: Maple & Mint is moving from "Slotly" (a made-up booking app from 2011) to Idle, and here is what each can hold.
+Open the live demo from the link in this repo's About box and press **Play**. It runs by itself in about a minute and a half. The example is a salon moving from "Slotly" (a made-up app from 2011) to Idle.
 
-1. **Find the mess.** Boo reads Slotly screen by screen, the way a person would: no export, no API. Gemini reads every name, note and description. Boo then walks you to three real workarounds in Slotly, rings the exact text, and the panel says plainly what Slotly lacks and what the text really means.
-2. **Clean and standardise.** For each workaround Boo shows the messy Slotly text beside the clean, standard version for Idle, and asks: is this right? Some things change shape (packages need an expiry date), some stay behind (SMS credits), and the owner decides. Then Boo cleans the data one kind at a time while you watch.
-3. **Move to Idle.** Three ghosts move the clean data in through Idle's own screens. Then every Slotly record is accounted for and the money read out of notes is matched to the dollar. Ask Boo questions about the salon, answered by Gemini from the moved records.
+1. **Rise of the Dead.** Boo reads every screen of the old app. No export, no API.
+2. **Ghosts in the Notes.** Gemini reads every name, note and description. Boo shows three pieces of hidden data in the old app, and how each will look in the new one.
+3. **The Exorcism.** One screen: old → new for every kind of hidden data. Change anything, or tell Boo in the chat ("Kenji's allergy is latex"). Then it cleans.
+4. **Crossing Over.** A swarm of ghosts moves everything at once through the new app's own screens, then every record and every dollar is checked.
 
-A caption along the bottom always says what Boo is doing right now. When Boo is not working it roams the page: click it, grab it and throw it.
-
-For the makers of old software, the same list is a roadmap: the features their customers have been faking.
+Ask Boo anything in the chat box at any time. When Boo is not working it roams the page: click it, throw it, or leave it alone and it naps in the corner.
 
 ## Haunt on real software
 

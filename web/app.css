@@ -586,3 +586,73 @@ fieldset.idl-field legend { margin-bottom: 4px; }
 .h-but::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: #c2452c; margin-right: 6px; vertical-align: 1px; }
 .h-finds .h-but { grid-column: 1 / -1; font-size: 12.5px; }
 .h-tour .h-but { font-size: 14px; }
+
+/* ------------------------------------------------------------- act cards */
+
+.h-act { position: relative; overflow: hidden; background: linear-gradient(160deg, #1d1840, #2c2458); color: #fff; border: none; }
+.h-act .h-eyebrow { color: #c9b6ff; }
+.h-act h2 { font: 700 24px/1.15 'DM Sans', system-ui, sans-serif; color: #fff; letter-spacing: -0.4px; }
+.h-act-num { position: absolute; right: 12px; top: -6px; font: 700 86px/1 Georgia, 'Times New Roman', serif; color: rgba(255, 255, 255, 0.08); pointer-events: none; }
+.h-act dl { margin: 0; display: grid; gap: 10px; }
+.h-act dt { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #c9b6ff; }
+.h-act dd { margin: 3px 0 0; font-size: 13.5px; color: #ece8ff; }
+.h-act dd ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; }
+.h-act dd li::marker { color: #7ee2a8; }
+
+/* ------------------------------------------------------------- the chat bar */
+
+.h-chat { flex: none; display: grid; gap: 6px; padding: 10px 14px 12px; border-top: 1px solid #ebe7f7; background: #fff; }
+.h-chat .row { display: flex; gap: 6px; }
+.h-chat input { flex: 1; min-width: 0; height: 40px; border: 1px solid #d9d4ee; border-radius: 12px; padding: 0 12px; font: inherit; font-size: 13.5px; }
+.h-chat input:focus { outline: none; border-color: #6d4dff; box-shadow: 0 0 0 3px #ece7ff; }
+.h-chat .h-btn { width: 44px; padding: 0; font-size: 16px; }
+.h-chat small { font-size: 11px; color: #8a90a3; }
+.h-chat-reply { margin: 0; max-height: 140px; overflow: auto; padding: 8px 10px; border-radius: 10px; background: #f7f6fc; font-size: 12.5px; color: #2c3142; }
+.h-chat-reply em { color: #0f7a54; font-style: normal; font-weight: 600; }
+.h-map > li.changed { background: #fffbea; border-radius: 8px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ------------------------------------------------------------- a small piece of Idle, for previews */
+
+.idlp { border: 1px solid #e8e1d7; border-radius: 12px; overflow: hidden; background: #fffdf9; font-family: 'DM Sans', system-ui, sans-serif; color: #262323; box-shadow: 0 6px 16px rgba(60, 40, 20, 0.06); }
+.idlp-bar { padding: 5px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: #c2452c; background: #f7f4ee; border-bottom: 1px solid #e8e1d7; }
+.idlp-row { display: flex; gap: 10px; padding: 10px; align-items: flex-start; }
+.idlp-av { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #e47b55, #c2452c); }
+.idlp-av.sq { border-radius: 10px; font-size: 15px; }
+.idlp-main { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.idlp-main b { font-size: 13.5px; font-weight: 600; }
+.idlp-main span { font-size: 12.5px; color: #5e5853; }
+.idlp-main small { font-size: 11.5px; color: #8a827a; }
+.idlp-meter { height: 6px; border-radius: 3px; background: #f0ebe2; overflow: hidden; }
+.idlp-meter i { display: block; height: 100%; background: linear-gradient(90deg, #e47b55, #c2452c); }
+.idlp-alert { justify-self: start; padding: 2px 8px; border-radius: 6px; background: #fbeae4; color: #a1361f !important; font-weight: 600; }
+.idlp-tag { font-style: normal; font-size: 10px; font-weight: 700; color: #c2452c; background: #f8e7dc; padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
+.idlp-chip { font-style: normal; font-size: 11px; font-weight: 700; color: #4e7a63; background: #e9f0eb; padding: 1px 7px; border-radius: 99px; margin-left: 4px; }
+.h-hint { margin: 0; font-size: 12px; color: #6b7185; }
+.has-badge .h-chat { padding-bottom: var(--badge-room, 76px); }
+
+/* ------------------------------------------------------------- the short run: act titles, working signs, the start card */
+
+.act-banner { position: absolute; z-index: 1460; left: 16px; right: 388px; top: 50%; transform: translateY(-60%); margin: 0 auto; max-width: 640px; padding: 26px 30px; border-radius: 20px; text-align: center; color: #fff; background: rgba(17, 13, 34, 0.9); box-shadow: 0 24px 60px rgba(10, 6, 30, 0.5); display: grid; gap: 4px; animation: banner-in 0.45s cubic-bezier(.2, 1.2, .3, 1); pointer-events: none; }
+.act-banner span { font: 700 13px Georgia, 'Times New Roman', serif; letter-spacing: 0.2em; text-transform: uppercase; color: #c9b6ff; }
+.act-banner b { font: 700 40px/1.05 'DM Sans', system-ui, sans-serif; letter-spacing: -1px; text-shadow: 0 0 30px rgba(155, 107, 255, 0.55); }
+.act-banner small { font-size: 15px; color: #d6cff3; }
+.act-banner.out { animation: banner-out 0.35s ease-in forwards; }
+@keyframes banner-in { from { opacity: 0; transform: translateY(-50%) scale(0.92); } }
+@keyframes banner-out { to { opacity: 0; transform: translateY(-70%) scale(1.03); } }
+.caption.working::after { content: ''; position: absolute; left: 18px; right: 18px; bottom: 6px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, #9b6bff, #7ee2a8, transparent); background-size: 200% 100%; animation: shimmer 1.1s linear infinite; }
+.caption.working b::before, .h-now.working b::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; vertical-align: 1px; animation: spin 0.8s linear infinite; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.h-tally { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.h-tally li { padding: 8px 10px; border-radius: 10px; background: #eefaf3; color: #0b3b2a; font-weight: 600; font-size: 14px; animation: pop 0.3s ease-out; }
+.h-tally li::before { content: '✓ '; color: #0f9d6b; }
+.h-example { display: flex; gap: 8px; align-items: baseline; margin: 0 0 10px; font-size: 13px; }
+.h-example span { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #6b7185; }
+.h-holds { display: grid; gap: 8px; margin: 0 0 14px; }
+.h-holds div { padding: 9px 11px; border-radius: 10px; background: #fff; border: 1px solid #ebe7f7; }
+.h-holds div.new { border-color: #f3c9b9; background: #fff8f5; }
+.h-holds small { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7185; }
+.h-holds .new small { color: #c2452c; }
+.h-holds p { margin: 3px 0 0; font-size: 13px; color: #2c3142; }
+#go-count { opacity: 0.75; font-weight: 500; }
+@media (max-width: 900px) { .act-banner { position: fixed; right: 16px; } .act-banner b { font-size: 30px; } }

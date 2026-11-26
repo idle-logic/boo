@@ -32,6 +32,7 @@
           <div class="idle-views" id="idle-views"></div>
         </section>
 
+        <div class="act-banner" id="act-banner" hidden aria-live="polite"></div>
         <div class="caption" id="caption" hidden role="status" aria-live="polite"><b id="cap-title"></b><span id="cap-sub"></span></div>
 
         <aside class="haunt" id="haunt" aria-label="Haunt">
@@ -51,36 +52,15 @@
           <div class="h-body">
             <section class="h-start" id="start-card">
               <div class="boo-spot" id="boo-spot" aria-hidden="true"></div>
-              <p class="h-eyebrow">Moving to Idle</p>
-              <h1>Maple &amp; Mint is moving from Slotly to Idle.</h1>
-              <table class="h-compare" aria-label="What each app can hold">
-                <thead><tr><th></th><th>Slotly</th><th>Idle</th></tr></thead>
-                <tbody>
-                <tr><th>Customers</th><td class="y">✓</td><td class="y">✓</td></tr>
-                <tr><th>Services</th><td class="y">✓</td><td class="y">✓</td></tr>
-                <tr><th>Staff</th><td class="y">✓</td><td class="y">✓</td></tr>
-                <tr><th>Appointments</th><td class="y">✓</td><td class="y">✓</td></tr>
-                <tr><th>Sales reports</th><td class="y">✓</td><td class="y">✓</td></tr>
-                <tr><th>Allergy alerts</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>VIP tags</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>Packages</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>Store credit</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>Products and stock</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>Deposits</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>Clean-up time after a service</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>Cancellation rules</th><td class="n">✗</td><td class="y">✓</td></tr>
-                <tr><th>SMS credits</th><td class="y">✓</td><td class="n">✗ <small>WhatsApp instead</small></td></tr>
-                </tbody>
-              </table>
-              <p>Slotly doesn't have these features, so your team hid that data in names, notes and fake bookings. It has to be cleaned up before it moves.</p>
-              <p class="h-eyebrow">Tonight, in four acts</p>
-              <ol class="h-acts">
-                <li><b>Act I · Rise of the Dead</b><span>Boo wakes and reads every screen of Slotly.</span></li>
-                <li><b>Act II · Ghosts in the Notes</b><span>Boo finds the data hiding where it doesn't belong.</span></li>
-                <li><b>Act III · The Exorcism</b><span>The mess is cleaned and standardised, once you say yes.</span></li>
-                <li><b>Act IV · Crossing Over</b><span>Everything moves into Idle, every record accounted for.</span></li>
-              </ol>
-              <button type="button" class="h-btn primary" id="start">Begin Act I: Rise of the Dead</button>
+              <p class="h-eyebrow">Haunt</p>
+              <h1>Switch software. Lose nothing.</h1>
+              <p>Old software can't hold everything, so teams hide data in names, notes and fake records. Exports copy the mess. Boo finds it, cleans it and moves it properly.</p>
+              <div class="h-example"><span>Example</span><b>A salon moving from Slotly to Idle</b></div>
+              <div class="h-holds">
+                <div><small>Old app holds</small><p>Customers · Services · Staff · Appointments · Sales</p></div>
+                <div class="new"><small>New app also holds</small><p>Alerts · VIPs · Packages · Store credit · Products · Deposits · Buffer time · Cancellation rules</p></div>
+              </div>
+              <button type="button" class="h-btn primary" id="start">▶ Play</button>
             </section>
 
             <section class="h-now" id="now" hidden><b id="now-title"></b><span id="now-sub"></span></section>
@@ -102,6 +82,12 @@
             <section class="h-receipt" id="receipt" hidden></section>
 
           </div>
+          <form class="h-chat" id="chat-form" autocomplete="off">
+            <p class="h-chat-reply" id="chat-reply" aria-live="polite" hidden></p>
+            <label class="sr-only" for="chat-q">Ask Boo, or tell it what to change</label>
+            <div class="row"><input id="chat-q" placeholder="Ask Boo, or tell it what to fix" /><button class="h-btn primary" aria-label="Send">✦</button></div>
+            <small>Ask anything, or correct Boo before the move.</small>
+          </form>
         </aside>
       </div>
     </div>

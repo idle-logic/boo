@@ -5,8 +5,8 @@ import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { readFileSync, existsSync } from 'node:fs'
 import { think, cleanThinkRequest, BrainBusyError } from '../src/agent/gemini.js'
-import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest } from '../src/agent/ai.js'
-const AI = { '/api/read': [cleanReadRequest, readOldRecords], '/api/ask': [cleanAskRequest, askAboutSalon] }
+import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest } from '../src/agent/ai.js'
+const AI = { '/api/read': [cleanReadRequest, readOldRecords], '/api/ask': [cleanAskRequest, askAboutSalon], '/api/chat': [cleanChatRequest, chatWithBoo] }
 
 const envFile = process.env.GEMINI_ENV_FILE
 if (!process.env.GEMINI_API_KEY && envFile && existsSync(envFile)) {
