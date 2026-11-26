@@ -9,7 +9,7 @@ import { createHands } from './hands.js'
 import { createGhost, burst, SPARKLE, CONFETTI } from './ghost.js'
 import { playIntro } from './intro.js'
 import { survey } from './survey.js'
-import { readOldApp, readWithRules, findingsFor } from './interpret.js'
+import { readWithRules, findingsFor, mergeReading, askGeminiToRead } from './interpret.js'
 import { idleRecords, crewsFor, move, prove } from './switch.js'
 import { chatBoo, recordsFor, applyEdit } from './ai.js'
 import { createBoo as createPet } from './pet.js'
@@ -49,7 +49,7 @@ let pet = null
 let lineAt = 0
 const PET_LINES = ['Boo!', 'Hehe, that tickles.', 'I live in your software now.', 'Press the purple button and I get to work.', 'I only haunt the boring bits.', 'Wheee!', 'Your team works so hard. Let me help.']
 const standables = () =>
-  [...document.querySelectorAll('#haunt .h-card, #haunt .h-start, #haunt .h-receipt, #haunt .h-proof, .sl-toolbar, .idl-head')].filter(el => !el.closest('[hidden]') && el.getClientRects().length)
+  [...document.querySelectorAll('.pop > section, .sl-toolbar, .idl-head')].filter(el => !el.closest('[hidden]') && el.getClientRects().length)
 
 /**
  * Netlify adds a "Powered by Netlify" badge to the live site. Boo treats it as
@@ -197,9 +197,11 @@ watch('people')
 // ------------------------------------------------------------- the panel: one calm thing at a time
 
 const feedLines = []
+// One popup at a time, floating over the apps. Where it sits depends on what you need to see.
+const POP_AT = { collected: 'right', tour: 'right', found: 'center', live: 'center', confirm: 'center', moving: 'left', proof: 'left', receipt: 'center' }
 const show = id => {
-  for (const x of ['collected', 'tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt']) $(x).hidden = x !== id
-  $(id).scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+  for (const x of ['start-card', 'collected', 'tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt']) $(x).hidden = x !== id
+  $('pop').dataset.pos = POP_AT[id] ?? 'center'
 }
 const gem = (on, model) => (on ? `<span class="gem" title="${esc(model || 'Gemini')}">✦ Gemini</span>` : '')
 const ui = {
@@ -431,6 +433,8 @@ async function tour() {
       <div><dt>New app ${gem(read.by === 'ai', read.model)}</dt><dd>${idle}</dd></div></dl>
       <button type="button" class="h-btn" id="tour-next">Next</button>`
     show('tour')
+    const er = rect(el)
+    $('pop').dataset.pos = er.left + er.width / 2 > innerWidth / 2 ? 'left' : 'right'
     await pause(250)
     const unring = mark(el, 'Workaround', $('tour'))
     ui.now(f.title, `${f.count} found`, { wait: true })
@@ -451,22 +455,31 @@ let findings = null
 async function lookAround() {
   $('start').disabled = true
   $('start-card').hidden = true
+  $('pop').dataset.pos = 'right'
   stage = 'reading'
   busy()
   await actBanner('I', 'Rise of the Dead', 'Read the old app', 'read')
   seen = await survey({ r: reader, ui, speed, business: BUSINESS })
   await actBanner('II', 'Ghosts in the Notes', 'Find the hidden data', 'find')
   stage = 'touring'
-  ui.now('Gemini is reading', `${seen.customers.length + seen.services.length + seen.staff.length} records`)
-  const t0 = performance.now()
-  const ticking = setInterval(() => ($('now-sub').textContent = $('cap-sub').textContent = `${seen.customers.length + seen.services.length + seen.staff.length} records · ${Math.round((performance.now() - t0) / 1000)}s`), 500)
-  boo.mode('look')
-  boo.say('Reading between the lines...', 3000)
-  read = await readOldApp(seen)
-  clearInterval(ticking)
+  // Boo starts with its own reading; Gemini reads everything in the background and is merged in when it answers.
+  read = readWithRules(seen)
   findings = findingsFor(seen, read)
-  ui.log(read.by === 'ai' ? `Gemini (${read.model}) read the records. ${read.aiCount} of its answers matched the original text and were used.` : 'Gemini was busy, so plain rules read the records.')
+  const records = seen.customers.length + seen.services.length + seen.staff.length
+  $('gem-chip').hidden = false
+  $('gem-chip').textContent = `✦ Gemini is reading ${records} records…`
+  const gemini = askGeminiToRead(seen).then(ai => {
+    if (!ai) return ($('gem-chip').textContent = '✦ Gemini busy · Boo used its own reading')
+    const merged = mergeReading(seen, read, ai)
+    if (merged.by === 'ai') {
+      Object.assign(read, merged)
+      $('gem-chip').textContent = `✦ Gemini read ${records} records · ${merged.aiCount} answers checked and used`
+      $('gem-chip').classList.add('done')
+    }
+  })
   await tour()
+  // Give Gemini a few more seconds if it is still reading, then carry on either way.
+  await Promise.race([gemini, pause(6000 * speed)])
   await actBanner('III', 'The Exorcism', 'Clean it', 'clean')
   standardise()
 }
@@ -484,9 +497,10 @@ function standardise() {
       .map(
         f => `<li data-i="${findings.indexOf(f)}"><b>${esc(f.title)}</b><span class="n">${f.count}</span>
         <div class="map"><code>${esc(f.from[0])}</code><span class="arrow" aria-hidden="true">→</span><code class="to">${esc(f.to[0])}</code></div>
-        ${f.choices.length > 1 ? `<div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div>` : ''}</li>`,
+        ${['packages', 'merge'].includes(f.key) ? `<div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div>` : ''}</li>`,
       )
       .join('')}</ol>
+    <p class="h-hint">Anything else wrong? Tell Boo: click the ghost at the top.</p>
     <button type="button" class="h-btn primary" id="go">Looks right <span id="go-count"></span></button>`
   let left = 10
   let held = false
@@ -681,9 +695,10 @@ $('chat-form').addEventListener('submit', async e => {
   speak(out.reply, 5000)
 })
 $('haunt-toggle').addEventListener('click', () => {
-  const open = $('haunt').hidden
-  $('haunt').hidden = !open
+  const open = $('chat-pop').hidden
+  $('chat-pop').hidden = !open
   $('haunt-toggle').setAttribute('aria-pressed', String(open))
+  if (open) $('chat-q').focus()
 })
 
 window.__haunt = { store, old, views, ui, feed: feedLines, boo, get read() { return read }, get findings() { return findings } }

@@ -16,11 +16,20 @@
           <div class="tab on" id="tab-slotly"><span class="fav slotly-fav" aria-hidden="true"></span>Slotly · Maple &amp; Mint</div>
           <div class="tab" id="tab-idle" hidden><span class="fav idle-fav" aria-hidden="true"></span>Idle · Maple &amp; Mint</div>
         </div>
-        <button type="button" class="ext" id="haunt-toggle" aria-label="Show or hide Haunt" aria-pressed="true">
+        <span class="boo-home" id="boo-home" aria-hidden="true"></span>
+        <button type="button" class="ext" id="haunt-toggle" aria-label="Chat with Boo" aria-pressed="false">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.4-1.8L14.3 20 12 18.2 9.7 20l-2.3-1.8z" fill="currentColor"/><circle cx="9.5" cy="10.5" r="1.4" fill="#fff"/><circle cx="14.5" cy="10.5" r="1.4" fill="#fff"/></svg>
         </button>
       </header>
 
+      <div class="chat-pop" id="chat-pop" hidden>
+        <form class="h-chat" id="chat-form" autocomplete="off">
+          <p class="h-chat-reply" id="chat-reply" aria-live="polite" hidden></p>
+          <label class="sr-only" for="chat-q">Ask Boo, or tell it what to change</label>
+          <div class="row"><input id="chat-q" placeholder="Ask Boo, or tell it what to fix" /><button class="h-btn primary" aria-label="Send">✦</button></div>
+          
+        </form>
+      </div>
       <div class="viewport" id="viewport">
         <section class="pane" id="pane-slotly" aria-label="Slotly, the current software">
           <div class="pane-url"><span class="lock" aria-hidden="true"></span>app.slotly.example/maple-and-mint</div>
@@ -33,23 +42,16 @@
         </section>
 
         <div class="act-banner" id="act-banner" hidden aria-live="polite"></div>
+        <div class="gem-chip" id="gem-chip" hidden aria-live="polite"></div>
         <div class="caption" id="caption" hidden role="status" aria-live="polite"><b id="cap-title"></b><span id="cap-sub"></span></div>
 
-        <aside class="haunt" id="haunt" aria-label="Haunt">
-          <header class="h-head">
-            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.4-1.8L14.3 20 12 18.2 9.7 20l-2.3-1.8z" fill="currentColor"/><circle cx="9.5" cy="10.5" r="1.4" fill="#fff"/><circle cx="14.5" cy="10.5" r="1.4" fill="#fff"/></svg>
-            <strong>Haunt</strong>
-            <span class="h-clock" id="clock" hidden>0:00</span>
-            <span class="boo-home" id="boo-home" aria-hidden="true"></span>
-          </header>
-
-          <ol class="h-chapters" id="chapters" aria-label="The four acts">
-            <li data-ch="read" data-state="now"><span>I</span>Rise of the Dead</li>
-            <li data-ch="find"><span>II</span>Ghosts in the Notes</li>
-            <li data-ch="clean"><span>III</span>The Exorcism</li>
-            <li data-ch="move"><span>IV</span>Crossing Over</li>
-          </ol>
-          <div class="h-body">
+        <ol class="h-chapters" id="chapters" aria-label="The four acts">
+          <li data-ch="read" data-state="now"><span>I</span>Rise of the Dead</li>
+          <li data-ch="find"><span>II</span>Ghosts in the Notes</li>
+          <li data-ch="clean"><span>III</span>The Exorcism</li>
+          <li data-ch="move"><span>IV</span>Crossing Over</li>
+        </ol>
+        <div class="pop" id="pop" data-pos="center">
             <section class="h-start" id="start-card">
               <div class="boo-spot" id="boo-spot" aria-hidden="true"></div>
               <p class="h-eyebrow">Haunt</p>
@@ -81,14 +83,7 @@
 
             <section class="h-receipt" id="receipt" hidden></section>
 
-          </div>
-          <form class="h-chat" id="chat-form" autocomplete="off">
-            <p class="h-chat-reply" id="chat-reply" aria-live="polite" hidden></p>
-            <label class="sr-only" for="chat-q">Ask Boo, or tell it what to change</label>
-            <div class="row"><input id="chat-q" placeholder="Ask Boo, or tell it what to fix" /><button class="h-btn primary" aria-label="Send">✦</button></div>
-            
-          </form>
-        </aside>
+        </div>
       </div>
     </div>
     <script type="module" src="./main.js"></script>

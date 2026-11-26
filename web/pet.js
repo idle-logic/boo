@@ -154,6 +154,8 @@ export function createBoo({ windows, bounds, onClick = () => {}, colour = 'norma
   }
 
   const brain = new Brain()
+
+  brain.tuckCorner = 'left' // in the page, Boo tucks into the bottom-left corner, where it naps
   let world = bounds()
   let body = { x: at?.x ?? world.x + world.w * 0.62, y: at?.y ?? world.y, vx: 0, vy: 0, ground: null }
   let ledges = []
@@ -329,7 +331,7 @@ export function createBoo({ windows, bounds, onClick = () => {}, colour = 'norma
     const bob = body.ground && !reduceMotion && out.pose !== 'sleep' ? Math.sin(now / 380) * 2 * (1 - tuck) : 0
     const shake = out.shake && !reduceMotion ? (Math.random() - 0.5) * out.shake * 2 : 0
     const small = (1 - tuck * 0.45) * grow
-    booEl.style.transformOrigin = out.tucked ? '100% 100%' : '50% 100%'
+    booEl.style.transformOrigin = out.tucked ? '0% 100%' : '50% 100%'
     booEl.style.transform = `translate(${Math.round(body.x + shake)}px, ${Math.round(body.y + bob)}px) scale(${((1 + squash * 0.6) * small).toFixed(3)}, ${((1 - squash) * small).toFixed(3)})`
     const gaze = canGaze(out.pose) ? gazeToward({ x: body.x + GHOST.w / 2, y: body.y + GHOST.h * 0.4 }, shared.cursor, out.flip) : [0, 0]
     drawPose(out.pose, out.flip, gaze)

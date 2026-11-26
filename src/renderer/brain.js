@@ -249,10 +249,11 @@ export class Brain {
       }
 
       case 'tucked': {
-        // Curled up small in the bottom corner, peeking now and then.
-        intent = { move: 0, jump: false, fly: { x: bounds.x + bounds.w - GHOST.w - 6, y: bounds.y + bounds.h - GHOST.h } }
+        // Curled up small in a bottom corner (right by default, by the tray), peeking now and then.
+        const left = this.tuckCorner === 'left'
+        intent = { move: 0, jump: false, fly: { x: left ? bounds.x + 6 : bounds.x + bounds.w - GHOST.w - 6, y: bounds.y + bounds.h - GHOST.h } }
         poseName = Math.floor(now / 4000) % 3 === 0 ? 'look' : 'sleep'
-        flip = true
+        flip = !left
         break
       }
 

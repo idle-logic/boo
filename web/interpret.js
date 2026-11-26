@@ -149,6 +149,11 @@ export async function readOldApp(old) {
   return mergeReading(old, rules, ai)
 }
 
+/** Start Gemini reading now; the answer comes back later and is checked then. */
+export function askGeminiToRead(old) {
+  return callAi('/api/read', aiRequest(old), { timeoutMs: 30000 })
+}
+
 const money = n => `$${Math.round(n).toLocaleString('en')}`
 
 /**
