@@ -59,7 +59,13 @@ export async function think({ goal, observation, history }, apiKey, models = MOD
       const end = text.lastIndexOf('}')
       if (start < 0 || end <= start) continue
       const parsed = JSON.parse(text.slice(start, end + 1))
-      if (parsed && typeof parsed === 'object' && parsed.action) return { thought: String(parsed.thought ?? ''), action: parsed.action }
+      if (parsed && typeof parsed === 'object' && (parsed.action || Array.isArray(parsed.actions))) {
+        return {
+          thought: String(parsed.thought ?? ''),
+          ...(parsed.action ? { action: parsed.action } : {}),
+          ...(Array.isArray(parsed.actions) ? { actions: parsed.actions.slice(0, 8) } : {}),
+        }
+      }
     } catch {
       // Try the next model.
     }

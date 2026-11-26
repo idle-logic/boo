@@ -113,3 +113,27 @@ test('the screen text for the model never runs past its caps', () => {
     }),
   )
 })
+
+test('a planned list of actions stops at the first click and looks again', async () => {
+  const turns = [
+    { thought: 'Fill and book', actions: [
+      { type: 'select', id: 'e3', option: 'Hana' },
+      { type: 'type', id: 'e1', text: 'Hi' },
+      { type: 'click', id: 'e5' },
+      { type: 'type', id: 'e1', text: 'never typed this turn' },
+    ] },
+    { thought: 'Done', action: { type: 'done', text: 'ok' } },
+  ]
+  let i = 0
+  const acted = []
+  let looks = 0
+  const result = await runAgent({
+    goal: 'x',
+    adapter: { observe: async () => (looks++, screen()), act: async a => (acted.push(a), 'ok') },
+    think: async () => turns[i++],
+    approve: async () => true,
+  })
+  assert.equal(result.ok, true)
+  assert.deepEqual(acted.map(a => a.type), ['select', 'type', 'click'])
+  assert.equal(looks, 2)
+})

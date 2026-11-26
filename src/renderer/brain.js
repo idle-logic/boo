@@ -9,7 +9,7 @@ export const ALERT_FOLLOW_PX = 320
 const SAY_MS_PER_CHAR = 60
 
 /** Events from Kiro (through hooks, the CLI or MCP) and from you. */
-export const EVENT_TYPES = ['start', 'tool', 'done', 'fail', 'needs-you', 'say', 'click', 'grab', 'drop', 'wake', 'tuck', 'untuck', 'guide', 'guide-say', 'wait', 'release', 'letgo']
+export const EVENT_TYPES = ['start', 'tool', 'done', 'fail', 'needs-you', 'say', 'click', 'grab', 'drop', 'wake', 'tuck', 'untuck', 'guide', 'guide-say', 'wait', 'release', 'letgo', 'goto']
 
 export class Brain {
   constructor(rand = Math.random) {
@@ -144,9 +144,14 @@ export class Brain {
         this.bubble = null
         this.say(text, now, { sticky: true, tone: 'alert', ms: Infinity })
         break
+      case 'goto':
+        // Fly to an exact spot, like back into the mother ghost.
+        this.mode = 'goto'
+        this.target = { x: Number(event.x) || 0, y: Number(event.y) || 0 }
+        break
       case 'release':
         this.guide = null
-        if (this.mode === 'guide' || this.mode === 'alert' || this.mode === 'work') this.mode = 'wander'
+        if (this.mode === 'guide' || this.mode === 'alert' || this.mode === 'work' || this.mode === 'goto') this.mode = 'wander'
         if (this.bubble?.sticky) this.bubble = null
         break
     }
@@ -233,6 +238,13 @@ export class Brain {
         const arrived = Math.hypot(tx - body.x, ty - body.y) < 6
         flip = false
         poseName = arrived ? (Math.floor(now / 200) % 2 ? 'knockA' : 'knockB') : `happy${tail}`
+        break
+      }
+
+      case 'goto': {
+        const t = this.target ?? { x: body.x, y: body.y }
+        intent = { move: 0, jump: false, fly: { x: t.x, y: t.y } }
+        poseName = `happy${tail}`
         break
       }
 

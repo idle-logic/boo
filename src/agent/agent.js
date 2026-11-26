@@ -10,6 +10,8 @@
 
 export const ACTION_TYPES = ['click', 'type', 'select', 'say', 'done']
 export const MAX_STEPS = 18
+/** Most actions the model may plan in one turn. */
+export const MAX_BATCH = 8
 
 // Buttons that change the world. Boo asks before pressing these.
 const CONSEQUENTIAL = /^(book|send|save|confirm|pay|charge|refund|delete|remove|cancel|submit|post|reply|reorder|order|run payroll)\b/i
@@ -118,40 +120,51 @@ export async function runAgent({ goal, adapter, think, approve, onStep = () => {
       return { ok: false, summary: err?.message || 'My brain is busy. Try again in a minute.', history }
     }
     const thought = String(decision?.thought ?? '').slice(0, 200)
-    const checked = validateAction(decision, elements)
-    if (!checked.ok) {
-      history.push({ thought, error: checked.error })
-      if (++errors >= 3) return { ok: false, summary: 'I got stuck on this one. Can you take it from here?', history }
-      continue
-    }
-    errors = 0
-    const action = checked.action
-    const element = elements.find(e => e.id === action.id) ?? null
-    const description = describeAction(action, elements)
+    // The model may plan several actions for the screen it sees, like filling a
+    // whole form. They run in order until one does not fit or a click changes the screen.
+    const planned = Array.isArray(decision?.actions) && decision.actions.length
+      ? decision.actions.slice(0, MAX_BATCH).map(action => ({ action }))
+      : [decision]
+    let progressed = false
+    for (const item of planned) {
+      const checked = validateAction(item, elements)
+      if (!checked.ok) {
+        history.push({ thought, error: checked.error })
+        break
+      }
+      progressed = true
+      const action = checked.action
+      const element = elements.find(e => e.id === action.id) ?? null
+      const description = describeAction(action, elements)
 
-    if (action.type === 'done') {
-      onStep({ kind: 'done', thought, action, description })
-      history.push({ thought, action, result: 'Finished.' })
-      return { ok: true, summary: action.text, history }
-    }
-    if (action.type === 'say') {
-      onStep({ kind: 'say', thought, action, description })
-      history.push({ thought, action, result: 'Said to the person.' })
-      continue
-    }
-    if (needsApproval(action, elements)) {
-      onStep({ kind: 'ask', thought, action, element, description })
-      const yes = await approve(description, action)
-      if (!yes) {
-        history.push({ thought, action, result: 'The person said no. Do not do this. Ask what they want instead, or finish.' })
-        onStep({ kind: 'declined', thought, action, element, description })
+      if (action.type === 'done') {
+        onStep({ kind: 'done', thought, action, description })
+        history.push({ thought, action, result: 'Finished.' })
+        return { ok: true, summary: action.text, history }
+      }
+      if (action.type === 'say') {
+        onStep({ kind: 'say', thought, action, description })
+        history.push({ thought, action, result: 'Said to the person.' })
         continue
       }
+      if (needsApproval(action, elements)) {
+        onStep({ kind: 'ask', thought, action, element, description })
+        const yes = await approve(description, action)
+        if (!yes) {
+          history.push({ thought, action, result: 'The person said no. Do not do this. Ask what they want instead, or finish.' })
+          onStep({ kind: 'declined', thought, action, element, description })
+          break
+        }
+      }
+      onStep({ kind: 'act', thought, action, element, description })
+      const result = String((await adapter.act(action)) ?? 'Done.')
+      history.push({ thought, action, result })
+      onStep({ kind: 'acted', thought, action, element, description, result })
+      // A click can change what is on screen, so look again before doing more.
+      if (action.type === 'click') break
     }
-    onStep({ kind: 'act', thought, action, element, description })
-    const result = String((await adapter.act(action)) ?? 'Done.')
-    history.push({ thought, action, result })
-    onStep({ kind: 'acted', thought, action, element, description, result })
+    if (progressed) errors = 0
+    else if (++errors >= 3) return { ok: false, summary: 'I got stuck on this one. Can you take it from here?', history }
   }
   return { ok: false, summary: 'That took more steps than I expected. Can you check it?', history }
 }

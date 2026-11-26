@@ -10,21 +10,21 @@ import {
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 const money = n => `$${n.toLocaleString('en-US')}`
 
-export function createApps({ onChange = () => {} } = {}) {
+export function createApps({ onChange = () => {}, inbox = INBOX, reviews = REVIEWS } = {}) {
   const days = openDays()
   const dayNames = days.map(dayLabel)
   const state = {
     clients: CLIENTS.map(c => ({ ...c })),
     bookings: seedBookings(days),
-    chats: new Map(INBOX.map(m => [m.from, { messages: [{ from: 'them', text: m.text }], unread: true }])),
-    openChat: INBOX[0].from,
+    chats: new Map(inbox.map(m => [m.from, { messages: [{ from: 'them', text: m.text }], unread: true }])),
+    openChat: inbox[0]?.from ?? null,
     bookingTab: 'Calendar',
     calendarDay: dayNames[0],
     bookingStatus: '',
     officeTab: 'Sales',
     stock: STOCK.map(s => ({ ...s, ordered: false })),
     payrollRun: false,
-    reviews: REVIEWS.map(r => ({ ...r, reply: '' })),
+    reviews: reviews.map(r => ({ ...r, reply: '' })),
     clientStatus: '',
   }
   const changed = () => onChange(state)
@@ -34,7 +34,8 @@ export function createApps({ onChange = () => {} } = {}) {
   const messages = document.querySelector('[data-app="Messages"] .app-body')
   function renderMessages() {
     const names = [...state.chats.keys()]
-    const chat = state.chats.get(state.openChat)
+    if (!state.openChat && names.length) state.openChat = names[0]
+    const chat = state.chats.get(state.openChat) ?? { messages: [] }
     messages.innerHTML = `
       <nav class="chat-list" aria-label="Chats">
         ${names
@@ -48,7 +49,7 @@ export function createApps({ onChange = () => {} } = {}) {
           .join('')}
       </nav>
       <section class="thread" aria-label="Chat with ${esc(state.openChat)}">
-        <h3 data-boo-text>Chat with ${esc(state.openChat)}</h3>
+        <h3 data-boo-text>${state.openChat ? `Chat with ${esc(state.openChat)}` : 'No messages yet'}</h3>
         <ol class="bubbles">
           ${chat.messages.map(m => `<li class="${m.from}" data-boo-text>${m.from === 'them' ? esc(state.openChat) : 'You'}: ${esc(m.text)}</li>`).join('')}
         </ol>
@@ -86,6 +87,7 @@ export function createApps({ onChange = () => {} } = {}) {
     if (form.dataset.form === 'reply') {
       const text = form.reply.value.trim()
       if (!text) return
+      if (!state.openChat) return
       state.chats.get(state.openChat).messages.push({ from: 'us', text })
       renderMessages()
       changed()
@@ -100,7 +102,8 @@ export function createApps({ onChange = () => {} } = {}) {
     if (!state.chats.has(from)) state.chats.set(from, { messages: [], unread: true })
     const chat = state.chats.get(from)
     chat.messages.push({ from: 'them', text })
-    chat.unread = from !== state.openChat
+    chat.unread = true
+    if (!state.openChat) state.openChat = from
     // Newest conversation to the top.
     state.chats = new Map([[from, chat], ...[...state.chats].filter(([n]) => n !== from)])
     renderMessages()
@@ -113,31 +116,37 @@ export function createApps({ onChange = () => {} } = {}) {
   const taken = (day, hour, staff) => state.bookings.find(b => b.day === day && b.staff === staff && b.hour <= hour && hour < b.hour + (SERVICES.find(s => s.name === b.service)?.hours ?? 1))
 
   function renderBooking() {
-    const tabs = ['Calendar', 'Clients', 'New booking']
+    const nav = [['Calendar', '🗓'], ['Clients', '👥'], ['New booking', '＋']]
     booking.innerHTML = `
-      <div role="tablist" class="tabs" aria-label="Bloom Booking sections">
-        ${tabs.map(t => `<button type="button" role="tab" aria-selected="${t === state.bookingTab}" data-btab="${t}">${t}</button>`).join('')}
-      </div>
-      <div class="tab-panel">${state.bookingTab === 'Calendar' ? calendarHtml() : state.bookingTab === 'Clients' ? clientsHtml() : bookingFormHtml()}</div>
-      ${state.bookingStatus ? `<p class="status" role="status" data-boo-text>${esc(state.bookingStatus)}</p>` : ''}`
+      <div class="app-shell">
+        <nav class="sidebar" role="tablist" aria-label="Bloom Booking sections" aria-orientation="vertical">
+          ${nav.map(([t, g]) => `<button type="button" role="tab" aria-selected="${t === state.bookingTab}" data-btab="${t}"><span aria-hidden="true">${g}</span>${t}</button>`).join('')}
+        </nav>
+        <div class="app-main">
+          ${state.bookingStatus ? `<p class="status" role="status" data-boo-text>${esc(state.bookingStatus)}</p>` : ''}
+          ${state.bookingTab === 'Calendar' ? calendarHtml() : state.bookingTab === 'Clients' ? clientsHtml() : bookingFormHtml()}
+        </div>
+      </div>`
   }
 
   function calendarHtml() {
+    const day = state.calendarDay
     return `
-      <div role="tablist" class="days" aria-label="Days">
-        ${dayNames.map(d => `<button type="button" role="tab" aria-selected="${d === state.calendarDay}" data-day="${esc(d)}">${esc(d)}</button>`).join('')}
+      <div role="tablist" class="day-strip" aria-label="Days">
+        ${dayNames.map(d => `<button type="button" role="tab" aria-selected="${d === day}" data-day="${esc(d)}">${esc(d)}</button>`).join('')}
       </div>
-      <ul class="slots">
-        ${HOURS.map(h =>
-          STAFF.map(s => {
-            const b = taken(state.calendarDay, h, s)
-            if (!b) return `<li class="free" data-boo-text>${state.calendarDay} ${timeLabel(h)} · ${s} · free</li>`
+      <table class="cal">
+        <thead><tr><th scope="col"><span class="sr-only">Time</span></th>${STAFF.map(s => `<th scope="col">${s}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${HOURS.map(h => `<tr><th scope="row">${timeLabel(h)}</th>${STAFF.map(s => {
+            const b = taken(day, h, s)
+            const where = `<span class="sr-only">${esc(day)} ${timeLabel(h)} · ${s} · </span>`
+            if (!b) return `<td class="free" data-boo-text>${where}<span class="faint">free</span></td>`
             const starts = b.hour === h
-            return `<li class="busy" data-boo-text>${state.calendarDay} ${timeLabel(h)} · ${s} · ${esc(b.client)}, ${esc(b.service)}${starts ? '' : ' (continued)'}
-              ${starts ? `<button type="button" class="mini" data-cancel="${esc(`${b.day}|${b.hour}|${b.staff}`)}" aria-label="Cancel booking: ${esc(b.client)}, ${esc(b.day)} ${timeLabel(b.hour)}">Cancel</button>` : ''}</li>`
-          }).join(''),
-        ).join('')}
-      </ul>`
+            return `<td class="busy${starts ? ' starts' : ''}" data-boo-text>${where}${starts ? `<b>${esc(b.client)}</b> ${esc(b.service)}` : `<span class="faint">${esc(b.client)} (continued)</span>`}${starts ? ` <button type="button" class="mini" data-cancel="${esc(`${b.day}|${b.hour}|${b.staff}`)}" aria-label="Cancel booking: ${esc(b.client)}, ${esc(b.day)} ${timeLabel(b.hour)}">×</button>` : ''}</td>`
+          }).join('')}</tr>`).join('')}
+        </tbody>
+      </table>`
   }
 
   function clientsHtml() {
@@ -231,12 +240,14 @@ export function createApps({ onChange = () => {} } = {}) {
 
   const office = document.querySelector('[data-app="Back office"] .app-body')
   function renderOffice() {
-    const tabs = ['Sales', 'Stock', 'Staff and payroll', 'Reviews']
+    const nav = [['Sales', '💷'], ['Stock', '📦'], ['Staff and payroll', '🧑‍🤝‍🧑'], ['Reviews', '⭐']]
     office.innerHTML = `
-      <div role="tablist" class="tabs" aria-label="Back office sections">
-        ${tabs.map(t => `<button type="button" role="tab" aria-selected="${t === state.officeTab}" data-otab="${t}">${t}</button>`).join('')}
-      </div>
-      <div class="tab-panel">${officePanel()}</div>`
+      <div class="app-shell">
+        <nav class="sidebar" role="tablist" aria-label="Back office sections" aria-orientation="vertical">
+          ${nav.map(([t, g]) => `<button type="button" role="tab" aria-selected="${t === state.officeTab}" data-otab="${t}"><span aria-hidden="true">${g}</span>${t}</button>`).join('')}
+        </nav>
+        <div class="app-main">${officePanel()}</div>
+      </div>`
   }
 
   function officePanel() {
@@ -295,9 +306,28 @@ export function createApps({ onChange = () => {} } = {}) {
   }
   renderAll()
 
+  /** A customer buys something over the counter. */
+  function sell(item, n = 1, client = 'Walk-in', amount = 18) {
+    const s = state.stock.find(x => x.item === item)
+    if (s) s.count = Math.max(0, s.count - n)
+    SALES_TODAY.push({ time: new Date().toTimeString().slice(0, 5), client, what: `${item} (retail)`, amount })
+    renderOffice()
+    changed()
+    return s
+  }
+
+  /** A new review comes in. */
+  function addReview(review) {
+    state.reviews.push({ ...review, reply: '' })
+    renderOffice()
+    changed()
+  }
+
   return {
     state,
     customerSays,
+    sell,
+    addReview,
     renderAll,
     /** Open Bloom Booking's client form, for the migration. */
     showClientForm() {

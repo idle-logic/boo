@@ -3,87 +3,115 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Haunt · Boo runs your front desk</title>
-    <meta name="description" content="Boo is an autonomous front desk and back office that lives on your screen and works the apps you already use. Talk to it, let it handle your messages, bookings, stock, payroll and reviews." />
+    <title>Haunt · your business, quietly handled</title>
+    <meta name="description" content="Boo is an autonomous operations crew that lives on your desktop. It catches the noise from every app you use, handles the routine work, and tells you only what needs you." />
     <link rel="icon" href="./icon.png" />
     <link rel="stylesheet" href="./site.css" />
   </head>
   <body>
-    <div class="desktop" id="desktop">
-      <p class="wallpaper-title" aria-hidden="true">Haunt</p>
+    <main class="desktop" id="desktop" aria-label="Desktop">
+      <!-- Desktop icons. Double-click to open, like a real computer. -->
+      <nav class="icons" aria-label="Desktop apps">
+        <button type="button" class="icon" data-open="Boo"><span class="glyph ghost" aria-hidden="true"></span>Boo</button>
+        <button type="button" class="icon" data-open="Messages"><span class="glyph" aria-hidden="true">💬</span>Messages</button>
+        <button type="button" class="icon" data-open="Bloom Booking"><span class="glyph" aria-hidden="true">📅</span>Bloom Booking</button>
+        <button type="button" class="icon" data-open="Back office"><span class="glyph" aria-hidden="true">🧾</span>Back office</button>
+        <button type="button" class="icon" data-open="ClinicMaster 98"><span class="glyph" aria-hidden="true">💾</span>ClinicMaster 98</button>
+        <button type="button" class="icon" data-open="Graveyard"><span class="glyph" aria-hidden="true">🪦</span>Graveyard</button>
+      </nav>
 
-      <!-- Boo's own window: talk to Boo, see what it noticed. -->
-      <article class="window boo-window" data-app="Boo" data-boo-ignore style="left: 16px; top: 16px">
-        <header class="titlebar" data-drag><span class="title">Boo</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
-        <div class="boo-panel">
-          <p class="lede">Your front desk and back office, in the apps you already use. Ask me anything about the shop, or let me handle what needs doing.</p>
-          <section aria-labelledby="noticed-title">
-            <h2 id="noticed-title">I noticed</h2>
-            <ul id="jobs"></ul>
-            <div class="job-actions">
-              <button type="button" id="handle-all" class="btn primary">Handle everything</button>
-              <label class="switch"><input type="checkbox" id="autopilot" /> Act without asking</label>
-            </div>
+      <!-- Boo: the one calm place to look. -->
+      <article class="window boo-window" data-app="Boo" data-boo-ignore aria-label="Boo">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="tiny-ghost" aria-hidden="true"></span>Boo</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Boo">–</button><button type="button" data-max aria-label="Maximise Boo">□</button><button type="button" data-close aria-label="Close Boo">×</button></span>
+        </header>
+        <div class="window-body boo-panel">
+          <p class="headline" id="headline" aria-live="polite">Good morning. Nothing needs you yet.</p>
+          <p class="subline" id="subline">Press Start the day and I will look after the shop.</p>
+
+          <div class="day-controls">
+            <button type="button" id="run-day" class="btn primary">Start the day</button>
+            <button type="button" id="focus" class="btn">Focus</button>
+          </div>
+
+          <section class="needs" aria-labelledby="needs-title">
+            <h2 id="needs-title">Needs you</h2>
+            <ul id="needs"></ul>
           </section>
-          <section aria-labelledby="talk-title" class="talk">
-            <h2 id="talk-title">Talk to Boo</h2>
-            <ol id="chat" aria-live="polite"></ol>
-            <form id="ask-form" autocomplete="off">
-              <label class="sr-only" for="ask">Ask Boo</label>
-              <input id="ask" placeholder="How is today looking?" />
-              <button type="button" id="mic" class="btn icon" aria-label="Talk out loud" hidden>🎙</button>
-              <button type="submit" class="btn">Ask</button>
-            </form>
-            <div class="chips">
-              <button type="button" data-ask="How is today looking?">How is today looking?</button>
-              <button type="button" data-ask="How much have we made today?">How much today?</button>
-              <button type="button" data-ask="What is running low?">What is low?</button>
-              <button type="button" data-ask="Is Hana free on Saturday afternoon?">Is Hana free Saturday?</button>
-            </div>
-            <label class="switch"><input type="checkbox" id="speak" checked /> Boo talks out loud</label>
-          </section>
+
+          <details class="more">
+            <summary>What I have been doing</summary>
+            <dl class="numbers" id="numbers"></dl>
+            <ol id="activity"></ol>
+          </details>
+
+          <form id="ask-form" autocomplete="off" class="ask">
+            <label class="sr-only" for="ask">Ask Boo about your business</label>
+            <input id="ask" placeholder="Ask me about the shop" />
+            <button type="button" id="mic" class="btn icon" aria-label="Talk out loud" hidden>🎙</button>
+            <button type="submit" class="btn">Ask</button>
+          </form>
+          <p class="answer" id="answer" aria-live="polite"></p>
+          <label class="switch"><input type="checkbox" id="speak" /> Talk out loud</label>
         </div>
       </article>
 
-      <article class="window app" data-app="Messages" style="left: 372px; top: 92px">
-        <header class="titlebar" data-drag><span class="title">Messages</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
-        <div class="app-body messages"></div>
-      </article>
-
-      <article class="window app" data-app="Bloom Booking" style="left: 712px; top: 40px">
-        <header class="titlebar" data-drag><span class="title">Bloom Booking</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
-        <div class="app-body booking"></div>
-      </article>
-
-      <article class="window app" data-app="Back office" style="left: 940px; top: 300px">
-        <header class="titlebar" data-drag><span class="title">Back office</span><span class="win-buttons" aria-hidden="true"><i></i><i></i><i></i></span></header>
-        <div class="app-body office"></div>
-      </article>
-
-      <!-- The old software, for migration. Opened from the taskbar. -->
-      <article class="window legacy" data-app="ClinicMaster 98" data-boo-ignore hidden style="left: 140px; top: 220px">
+      <article class="window app" data-app="Messages" aria-label="Messages">
         <header class="titlebar" data-drag>
-          <span class="title"><span class="app-icon" aria-hidden="true"></span>ClinicMaster 98 · Clients</span>
-          <span class="win-buttons"><i aria-hidden="true">_</i><i aria-hidden="true">□</i><button type="button" class="close" id="legacy-close" aria-label="Close ClinicMaster 98">×</button></span>
+          <span class="title"><span class="app-glyph" aria-hidden="true">💬</span>Messages</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Messages">–</button><button type="button" data-max aria-label="Maximise Messages">□</button><button type="button" data-close aria-label="Close Messages">×</button></span>
+        </header>
+        <div class="window-body app-body messages"></div>
+      </article>
+
+      <article class="window app" data-app="Bloom Booking" aria-label="Bloom Booking">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="app-glyph" aria-hidden="true">📅</span>Bloom Booking</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Bloom Booking">–</button><button type="button" data-max aria-label="Maximise Bloom Booking">□</button><button type="button" data-close aria-label="Close Bloom Booking">×</button></span>
+        </header>
+        <div class="window-body app-body booking"></div>
+      </article>
+
+      <article class="window app" data-app="Back office" aria-label="Back office">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="app-glyph" aria-hidden="true">🧾</span>Back office</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Back office">–</button><button type="button" data-max aria-label="Maximise Back office">□</button><button type="button" data-close aria-label="Close Back office">×</button></span>
+        </header>
+        <div class="window-body app-body office"></div>
+      </article>
+
+      <!-- The old software. -->
+      <article class="window legacy" data-app="ClinicMaster 98" data-boo-ignore hidden aria-label="ClinicMaster 98">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="legacy-icon" aria-hidden="true"></span>ClinicMaster 98 · Clients</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise ClinicMaster 98">_</button><button type="button" data-max aria-label="Maximise ClinicMaster 98">□</button><button type="button" data-close aria-label="Close ClinicMaster 98">×</button></span>
         </header>
         <div class="menubar" aria-hidden="true"><u>F</u>ile <u>E</u>dit <u>V</u>iew <u>R</u>ecords <u>H</u>elp</div>
         <div class="grid-wrap"><table class="grid"><thead><tr id="legacy-head"></tr></thead><tbody id="legacy-rows"></tbody></table></div>
         <div class="statusbar"><span id="legacy-status"></span><button type="button" id="migrate" class="w98">Move these clients to Bloom Booking</button></div>
       </article>
 
-      <footer class="taskbar">
-        <span class="start"><img src="./icon.png" alt="" width="20" height="20" />Haunt</span>
-        <nav class="task-apps" aria-label="Apps">
-          <button type="button" data-open="Boo">Boo</button>
-          <button type="button" data-open="Messages">Messages</button>
-          <button type="button" data-open="Bloom Booking">Bloom Booking</button>
-          <button type="button" data-open="Back office">Back office</button>
-          <button type="button" data-open="ClinicMaster 98">ClinicMaster 98</button>
-        </nav>
-        <span class="note">A browser demo with made-up apps. The desktop app works the same way with any software on your computer.</span>
-        <span class="clock" id="clock"></span>
-      </footer>
-    </div>
+      <article class="window graveyard" data-app="Graveyard" data-boo-ignore hidden aria-label="Graveyard">
+        <header class="titlebar" data-drag>
+          <span class="title"><span class="app-glyph" aria-hidden="true">🪦</span>Graveyard</span>
+          <span class="controls"><button type="button" data-min aria-label="Minimise Graveyard">–</button><button type="button" data-max aria-label="Maximise Graveyard">□</button><button type="button" data-close aria-label="Close Graveyard">×</button></span>
+        </header>
+        <div class="window-body"><p>Notifications Boo caught today rest here, so they never bothered you.</p><ol id="caught"></ol></div>
+      </article>
+
+      <div class="toasts" id="toasts" aria-live="polite"></div>
+    </main>
+
+    <footer class="taskbar">
+      <button type="button" class="start" id="start" aria-label="Haunt"><img src="./icon.png" alt="" width="22" height="22" /></button>
+      <nav class="running" aria-label="Open apps" id="running"></nav>
+      <div class="tray">
+        <span class="tray-note">Demo apps. Haunt works the same way with real software.</span>
+        <span aria-hidden="true">📶</span><span aria-hidden="true">🔋</span>
+        <span class="clock"><span id="clock"></span><small id="date"></small></span>
+      </div>
+    </footer>
     <script type="module" src="./site.js"></script>
   </body>
 </html>

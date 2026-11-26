@@ -14,7 +14,7 @@ const windowArb = fc.record({
   h: fc.integer({ min: 150, max: 900 }),
 })
 const eventArb = fc.record({
-  type: fc.constantFrom(...EVENT_TYPES.filter(t => !['grab', 'drop', 'guide', 'guide-say', 'wait', 'release', 'letgo'].includes(t))),
+  type: fc.constantFrom(...EVENT_TYPES.filter(t => !['grab', 'drop', 'guide', 'guide-say', 'wait', 'release', 'letgo', 'goto'].includes(t))),
   text: fc.string({ maxLength: 60 }),
 })
 
