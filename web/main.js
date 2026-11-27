@@ -92,6 +92,20 @@ function free() {
     // Left alone for a while, Boo naps in the bottom-left corner.
     nap: { after: 25000, spot: world => ({ x: world.x + 10, y: world.y + world.h - 64 }) },
   })
+  holdStill()
+}
+
+/** Boo flies to the side of the popup that is waiting for you and offers to talk. */
+function perch(text) {
+  if (!pet || $('pop').hidden) return
+  const r = rect($('pop'))
+  if (!r.width) return
+  // Far enough out that Boo's speech bubble clears the popup too.
+  const out = 110
+  const roomLeft = r.left - out - 64 - 16 > 0
+  const x = roomLeft ? r.left - out : Math.min(innerWidth - 8, r.right + 64 + 8 + out)
+  pet.handle({ type: 'guide', x, y: r.bottom - 70, h: 0, text })
+  pet.handle({ type: 'wait', text })
 }
 
 /** Back to work: the working ghost appears exactly where the roaming one was. */
@@ -304,6 +318,7 @@ async function nextButton(sectionId, label) {
   b.textContent = label
   $(sectionId).appendChild(b)
   free()
+  perch('Questions? Tap me.')
   await new Promise(r => b.addEventListener('click', r, { once: true }))
   b.remove()
   busy()
@@ -452,6 +467,7 @@ async function tour() {
     const unring = mark(el, 'Workaround', $('tour'))
     ui.now(f.title, `${f.count} found`, { wait: true })
     free()
+    perch('Did I read that right? Tap me.')
     await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
     busy()
     unring()
@@ -486,6 +502,7 @@ async function onlyAiCouldRead(unclear) {
   const unring = mark(el, 'No rule can read this', $('tour'))
   ui.now(thought ? 'Gemini read what no rule could' : 'Boo needs your help with these', `${unclear.length} notes`, { wait: true })
   free()
+  perch(thought ? 'Got one wrong? Tap me.' : 'Tap me and tell me what these mean.')
   await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
   busy()
   unring()
@@ -507,6 +524,7 @@ async function showPlan() {
   $('pop').dataset.pos = 'center'
   ui.now("Boo's plan", 'Next: clean it', { wait: true })
   free()
+  perch('Want a change? Tap me.')
   await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
   busy()
 }
@@ -515,6 +533,7 @@ async function showPlan() {
 
 let needs = ''
 let wantNeeds = null
+let startNeeds = null
 let thinking = null // Gemini reading the notes no rule can read, and writing Boo's plan
 let seen = null
 let read = null
@@ -527,13 +546,28 @@ async function lookAround() {
   stage = 'asking'
   free()
   needs = await new Promise(resolve => {
-    wantNeeds = resolve
+    const said = []
+    // Boo answers each thing you say, then waits until you press Start.
+    wantNeeds = async message => {
+      said.push(message)
+      $('chat-chips').hidden = true
+      const reply = $('chat-reply')
+      reply.hidden = false
+      reply.innerHTML = `<b>You:</b> ${esc(message)}<br><i>Boo is thinking...</i>`
+      const out = await chatBoo({ message, stage: STAGES.asking, decisions: [], records: '' })
+      const text = out.model ? out.reply : 'Got it. I will keep that in mind the whole way.'
+      reply.innerHTML = `<b>You:</b> ${esc(message)}<br><b>Boo${out.model ? ` ${gem(true, out.model)}` : ''}:</b> ${esc(text)}`
+      $('chat-q').placeholder = 'Anything else? Tell Boo'
+      $('chat-start').hidden = false
+      placeChat()
+    }
+    startNeeds = () => resolve(said.join('; '))
     openChat({ question: 'Before I start: what matters most to you in this switch?', chips: ["Don't lose any money", 'Keep health info safe', "Don't mess up the schedule"] })
   })
   wantNeeds = null
-  speak('Got it. I will keep that in mind.')
-  await pause(700)
-  $('chat-pop').hidden = true
+  startNeeds = null
+  $('chat-start').hidden = true
+  closeChat()
   stage = 'reading'
   busy()
   await actBanner(1, 'Collect the data', 'Act I · Rise of the Dead', 'read')
@@ -588,11 +622,12 @@ function standardise() {
         ${['packages', 'merge', 'unclear'].includes(f.key) ? `<div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div>` : ''}</li>`,
       )
       .join('')}</ol>
-    <p class="h-hint">Anything else wrong? Click Boo and tell it.</p>
+    <p class="h-hint">Anything else wrong? Tap Boo and tell it.</p>
     <button type="button" class="h-btn primary" id="go">Looks right, clean it</button>`
   show('confirm')
-  ui.now('Is this right?', 'Speak now, or tell Boo in the chat', { wait: true })
+  ui.now('Is this right?', 'Anything wrong? Tap Boo and say it', { wait: true })
   free()
+  perch('Anything wrong? Tap me and tell me.')
   $('go').addEventListener('click', clean, { once: true })
 }
 
@@ -747,15 +782,43 @@ function refreshFindings() {
 let stage = 'start'
 const STAGES = {
   start: 'Not started. Boo has not looked at Slotly yet.',
-  asking: 'Boo is asking the owner what matters most before it starts.',
+  asking: 'Boo asked what matters most in this switch. Reply to that answer: say how Boo will protect it.',
   reading: 'Boo is reading Slotly.',
   touring: 'Boo has read Slotly and is showing the owner the workarounds it found. The owner can correct anything Boo read.',
   found: 'Boo has read Slotly and found the workarounds. The clean-up plan can still change.',
   deciding: 'The owner is choosing how each workaround is cleaned. The plan can change.',
   cleaning: 'The data is being cleaned. The plan is locked.',
   moving: 'The clean data is moving into Idle. The plan is locked.',
-  done: 'Everything is in Idle.',
+  done: 'Everything is in Idle. The owner can still fix any client, service or team member, and it changes in Idle.',
 }
+/** After the move, a fix you ask for goes straight into the new app. read already holds the checked value. */
+function fixInIdle(edit) {
+  const same = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase()
+  if (edit.target === 'client') {
+    const c = read.clients.find(x => same(x.name, edit.name))
+    const row = store.clients.find(x => same(x.name, edit.name))
+    if (!c || !row) return
+    if (edit.field === 'alert') row.alert = c.alert
+    if (edit.field === 'credit') row.credit = c.credit
+    if (edit.field === 'vip') row.vip = c.vip ? 'Yes' : ''
+    if (edit.field === 'packageLeft') {
+      const pk = store.packages.find(x => same(x.client, edit.name))
+      if (pk) pk.left = c.packages[0].left
+    }
+  }
+  if (edit.target === 'service') {
+    const sv = read.services.find(x => same(x.name, edit.name))
+    const row = store.services.find(x => same(x.name, edit.name))
+    if (sv && row && ['category', 'buffer', 'deposit'].includes(edit.field)) row[edit.field] = sv[edit.field]
+  }
+  if (edit.target === 'staff') {
+    const st = read.staff.find(x => same(x.name, edit.name))
+    const row = store.staff.find(x => same(x.name, edit.name))
+    if (st && row && edit.field === 'does') row.does = st.does
+  }
+  store.changed()
+}
+
 function recordsNow() {
   if (store.clients.length) return recordsFor(store)
   if (!read) return JSON.stringify({ note: 'Boo has not read Slotly yet.' })
@@ -777,7 +840,7 @@ $('chat-form').addEventListener('submit', async e => {
   reply.hidden = false
   reply.innerHTML = `<b>You:</b> ${esc(message)}<br><i>Boo is thinking...</i>`
   const open = findings && ['found', 'deciding'].includes(stage)
-  const editable = read && ['touring', 'found', 'deciding', 'cleaning'].includes(stage)
+  const editable = read && ['touring', 'found', 'deciding', 'cleaning', 'done'].includes(stage)
   const out = await chatBoo({ message, stage: STAGES[stage], decisions: open ? findings : [], records: recordsNow() })
   let note = ''
   if (out.change && open) {
@@ -792,9 +855,10 @@ $('chat-form').addEventListener('submit', async e => {
     const said = applyEdit(read, out.edit)
     if (said) {
       note = note ? `${note}. ${said}` : `Fixed: ${said}`
-      refreshFindings()
+      if (stage === 'done') fixInIdle(out.edit)
+      else refreshFindings()
     } else note = note || "I couldn't match that to anything in the data, so nothing changed."
-  } else if (out.edit) note = note || (['moving', 'done'].includes(stage) ? 'Everything is already in Idle, so I did not change anything.' : "I haven't finished reading that part yet. Tell me again in a moment.")
+  } else if (out.edit) note = note || (stage === 'moving' ? 'I am still moving everything. Tell me again when I finish.' : "I haven't finished reading that part yet. Tell me again in a moment.")
   reply.innerHTML = `<b>You:</b> ${esc(message)}<br><b>Boo ${gem(true, out.model)}:</b> ${esc(out.reply)}${note ? `<br><em>${esc(note)}</em>` : ''}`
   speak(out.reply, 5000)
 })
@@ -808,20 +872,60 @@ function openChat({ question = '', chips = [] } = {}) {
   $('chat-chips').innerHTML = chips.map(c => `<button type="button">${esc(c)}</button>`).join('')
   $('chat-chips').hidden = !chips.length
   $('chat-reply').hidden = true
+  $('chat-q').placeholder = question ? 'Or type your own…' : 'Ask Boo, or tell it what to fix'
+  box.style.right = 'auto'
+  holdStill()
+  cancelAnimationFrame(chatFollow)
+  const follow = () => {
+    placeChat()
+    if (!box.hidden) chatFollow = requestAnimationFrame(follow)
+  }
+  follow()
+  $('chat-q').focus({ preventScroll: true })
+}
+
+/** While Boo is talking to you, it stays put under its bubble. */
+function holdStill() {
+  if (!pet || $('chat-pop').hidden) return
+  const b = pet.box
+  pet.handle({ type: 'goto', x: b.x, y: b.y })
+}
+let chatFollow = 0
+/** The bubble sits just above Boo (or below, near the top) and follows if you drag Boo. */
+function placeChat() {
+  const box = $('chat-pop')
   const b = pet ? pet.box : boo.box
   const frame = rect(document.querySelector('.browser'))
   const w = box.offsetWidth || 360
   const h = box.offsetHeight || 200
-  const left = Math.max(10, Math.min(frame.width - w - 10, b.x - frame.left - w / 2 + 32))
-  const above = b.y - frame.top - h - 14
+  const bx = b.x - frame.left
+  const by = b.y - frame.top
+  const fit = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
+  let left = fit(bx - w / 2 + 32, 10, frame.width - w - 10)
+  let top
+  let side = 'above'
+  if (by - h - 14 >= 50) top = by - h - 14
+  else if (by + 80 + h <= frame.height - 10) (top = by + 80), (side = 'below')
+  else {
+    // No room above or below: sit beside Boo, fully inside the window.
+    side = bx + 64 + 16 + w <= frame.width - 10 ? 'right' : 'left'
+    left = side === 'right' ? bx + 64 + 16 : fit(bx - w - 16, 10, frame.width - w - 10)
+    top = fit(by + 32 - h / 2, 50, frame.height - h - 10)
+  }
   box.style.left = `${left}px`
-  box.style.top = `${above > 50 ? above : b.y - frame.top + 80}px`
-  box.classList.toggle('below', above <= 50)
-  $('chat-q').placeholder = question ? 'Or type your own…' : 'Ask Boo, or tell it what to fix'
-  box.style.right = 'auto'
-  $('chat-q').focus({ preventScroll: true })
+  box.style.top = `${fit(top, 10, frame.height - h - 10)}px`
+  box.dataset.side = side
+  box.classList.toggle('below', side === 'below')
+  // The tail points at Boo even when the bubble is pushed in from an edge.
+  box.style.setProperty('--tail', `${fit(bx + 32 - left, 24, w - 24)}px`)
 }
-$('chat-close').addEventListener('click', () => ($('chat-pop').hidden = true))
+function closeChat() {
+  $('chat-pop').hidden = true
+  cancelAnimationFrame(chatFollow)
+  pet?.handle({ type: 'release' })
+}
+$('chat-close').addEventListener('click', closeChat)
+$('chat-start').addEventListener('click', () => startNeeds?.())
 $('chat-chips').addEventListener('click', e => {
   const c = e.target.closest('button')
   if (!c) return

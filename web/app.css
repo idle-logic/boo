@@ -763,3 +763,11 @@ fieldset.idl-field legend { margin-bottom: 4px; }
 /* While the chat is open it is Boo's bubble, so the little one hides */
 body:has(#chat-pop:not([hidden])) .boo-bubble, body:has(#chat-pop:not([hidden])) .ghost-bubble { display: none !important; }
 .chat-pop.below::after { bottom: auto; top: -12px; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.chat-pop::after { left: var(--tail, 50%); }
+.chat-chips [data-start] { width: 100%; padding: 9px 12px; border-radius: 10px; font-size: 13px; }
+.chat-start { width: 100%; margin-top: 8px; padding: 10px 12px; }
+/* Beside Boo, the tail points sideways */
+.chat-pop[data-side='right']::after, .chat-pop[data-side='left']::after { left: auto; bottom: auto; top: 50%; width: 10px; height: 16px; transform: translateY(-50%); }
+.chat-pop[data-side='right']::after { left: -12px; clip-path: polygon(100% 0, 100% 100%, 0 50%); }
+.chat-pop[data-side='left']::after { right: -12px; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.chat-pop { max-height: calc(100% - 20px); }
