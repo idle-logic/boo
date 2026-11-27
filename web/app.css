@@ -771,3 +771,10 @@ body:has(#chat-pop:not([hidden])) .boo-bubble, body:has(#chat-pop:not([hidden]))
 .chat-pop[data-side='right']::after { left: -12px; clip-path: polygon(100% 0, 100% 100%, 0 50%); }
 .chat-pop[data-side='left']::after { right: -12px; clip-path: polygon(0 0, 100% 50%, 0 100%); }
 .chat-pop { max-height: calc(100% - 20px); }
+.sl-dying { margin: 0; padding: 5px 12px; background: #fff3cd; border-bottom: 1px solid #e0c36a; color: #7a5200; font: 700 12px Verdana, Tahoma, sans-serif; }
+.h-moved { margin-top: 6px; font-size: 13px; color: #3d4152; }
+.h-moved summary { cursor: pointer; font-weight: 600; color: #6d4dff; }
+.h-moved ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }
+#receipt .h-check { font-size: 15px; margin: 4px 0 0; }
+#receipt .h-check b { font-size: 22px; color: #0b5c3f; }
+.h-chapters[hidden], .watching[hidden], .watch-pick[hidden] { display: none !important; }

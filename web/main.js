@@ -9,9 +9,10 @@ import { createHands } from './hands.js'
 import { createGhost, burst, SPARKLE, CONFETTI } from './ghost.js'
 import { playIntro } from './intro.js'
 import { survey } from './survey.js'
-import { readWithRules, findingsFor, mergeReading, askGeminiToRead } from './interpret.js'
+import { readWithRules, findingsFor, mergeReading, askGeminiToRead, cleanName } from './interpret.js'
 import { idleRecords, crewsFor, move, prove } from './switch.js'
-import { chatBoo, recordsFor, applyEdit, thinkAboutNotes } from './ai.js'
+import { chatBoo, recordsFor, thinkAboutNotes } from './ai.js'
+import { applyEdits, cleanEdits, storeFrom } from './edits.js'
 import { createBoo as createPet } from './pet.js'
 
 const $ = id => document.getElementById(id)
@@ -110,6 +111,7 @@ function perch(text) {
 
 /** Back to work: the working ghost appears exactly where the roaming one was. */
 function busy() {
+  if (!$('chat-pop').hidden && !wantNeeds) closeChat()
   if (!pet) return
   const b = pet.box
   pet.destroy()
@@ -533,6 +535,11 @@ async function showPlan() {
 
 let needs = ''
 let wantNeeds = null
+let pendingEdits = [] // changes asked for before Boo has read the data
+const editLog = [] // every change made, so a fresh reading can keep them
+let movedWith = null // the decisions used for the move
+let changedWhileMoving = false
+const isQuestion = m => /\?\s*$/.test(m) || /^\s*(what|how|who|whom|which|when|where|why|do|does|did|is|are|can|could|tell|show|list|give|any)\b/i.test(m)
 let startNeeds = null
 let thinking = null // Gemini reading the notes no rule can read, and writing Boo's plan
 let seen = null
@@ -549,14 +556,17 @@ async function lookAround() {
     const said = []
     // Boo answers each thing you say, then waits until you press Start.
     wantNeeds = async message => {
-      said.push(message)
+      // A question gets answered from the data; anything else is what matters to you.
+
       $('chat-chips').hidden = true
       const reply = $('chat-reply')
       reply.hidden = false
       reply.innerHTML = `<b>You:</b> ${esc(message)}<br><i>Boo is thinking...</i>`
-      const out = await chatBoo({ message, stage: STAGES.asking, decisions: [], records: '' })
+      const out = await chatBoo({ message, stage: STAGES.asking, decisions: [], records: recordsNow() })
       const text = out.model ? out.reply : 'Got it. I will keep that in mind the whole way.'
-      reply.innerHTML = `<b>You:</b> ${esc(message)}<br><b>Boo${out.model ? ` ${gem(true, out.model)}` : ''}:</b> ${esc(text)}`
+      const notes = honest(text, act(out))
+      if (!isQuestion(message) && !notes.applied) said.push(message)
+      reply.innerHTML = `<b>You:</b> ${esc(message)}<br><b>Boo${out.model ? ` ${gem(true, out.model)}` : ''}:</b> ${esc(text)}${notes.map(n => `<br><em>${esc(n)}</em>`).join('')}`
       $('chat-q').placeholder = 'Anything else? Tell Boo'
       $('chat-start').hidden = false
       placeChat()
@@ -578,6 +588,12 @@ async function lookAround() {
   stage = 'touring'
   // Boo starts with its own reading; Gemini reads everything in the background and is merged in when it answers.
   read = readWithRules(seen)
+  if (pendingEdits.length) {
+    const r = applyEdits(read, pendingEdits)
+    editLog.push(...pendingEdits)
+    pendingEdits = []
+    if (r.done.length) speak(`Done: ${r.done[0]}${r.done.length > 1 ? ` and ${r.done.length - 1} more` : ''}`, 4000)
+  }
   findings = findingsFor(seen, read)
   const records = seen.customers.length + seen.services.length + seen.staff.length
   $('gem-chip').hidden = false
@@ -607,6 +623,7 @@ function standardise() {
   stage = 'deciding'
   seen.appointments = old.appointments.map(a => ({ ...a }))
   Object.assign(read, (({ bookings, cleanups, breaks }) => ({ bookings, cleanups, breaks }))(readWithRules(seen)))
+  applyEdits(read, editLog.filter(e => e.target === 'booking'))
   findings = findingsFor(seen, read)
   if (thought?.notes?.length) {
     const n = thought.notes.find(x => x.kind !== 'note') ?? thought.notes[0]
@@ -630,6 +647,14 @@ function standardise() {
   perch('Anything wrong? Tap me and tell me.')
   $('go').addEventListener('click', clean, { once: true })
 }
+$('confirm').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]')
+  const li = b?.closest('[data-i]')
+  if (!b || !li) return
+  const f = findings[Number(li.dataset.i)]
+  f.value = f.choices[Number(b.dataset.c)][0]
+  li.querySelectorAll('[data-c]').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+})
 
 /** The cleaning, quickly, one kind at a time. */
 async function clean() {
@@ -663,7 +688,7 @@ async function clean() {
   boo.react('happy', 'All clean!', 1400)
   ui.now('Data cleaned', 'Next: migrate it', { wait: true })
   await nextButton('live', 'Next: migrate it')
-  await actBanner(4, 'Migrate it', 'Act IV · Crossing Over', 'move')
+  await actBanner(4, 'Migrate it', 'Act IV · Back from the Dead', 'move')
   switchToIdle()
 }
 
@@ -671,6 +696,7 @@ async function switchToIdle() {
   stage = 'moving'
   busy()
   const d = Object.fromEntries(findings.map(f => [f.key, f.value]))
+  movedWith = d
   const records = idleRecords(read, d)
   $('tab-idle').hidden = false
   $('tab-idle').classList.add('on')
@@ -724,31 +750,30 @@ async function layToRest() {
   stone.className = 'tombstone'
   stone.setAttribute('role', 'img')
   stone.setAttribute('aria-label', 'Here lies Slotly, 2011 to 2026. Its data lives on in Idle.')
-  stone.innerHTML = '<span class="rip">RIP</span><strong>Slotly</strong><span class="years">2011 – 2026</span><em>Its data lives on</em>'
+  stone.innerHTML = '<span class="rip">RIP</span><strong>Slotly</strong><span class="years">2011 – 2026</span><em>Its data lives on in Idle</em>'
   $('viewport').appendChild(stone)
   burst(r.left + 120, r.bottom - 120, 30, SPARKLE, 0.5, 200)
-  ui.now('The old app is laid to rest', 'Its data lives on in the new one', { wait: true })
+  $('caption').hidden = true
 }
 
 function done(result, d) {
   stage = 'done'
+  // Anything you changed while it was moving goes in now.
+  if (changedWhileMoving) storeFrom(idleRecords(read, movedWith), store)
   for (const li of document.querySelectorAll('#chapters [data-ch]')) li.dataset.state = 'done'
-  ui.now('Moved. Nothing lost.', `${result.matched}/${result.checks} checks match`, { wait: true })
-  const salesFile = d.stays !== false
+  // The end is quiet: the new app with its clients, one card, the headstone. Nothing else.
+  $('caption').hidden = true
+  $('gem-chip').hidden = true
+  $('watch-pick').hidden = true
+  $('watching').hidden = true
+  $('chapters').hidden = true
+  watch('people')
   $('receipt').innerHTML = `
-    <p class="h-eyebrow">The end · the old app may now rest in peace</p>
-    <h2>Moved. Nothing lost.</h2>
-    <ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
+    <p class="h-eyebrow">Back from the dead</p>
+    <h2>Slotly died. Its data lives on.</h2>
     <p class="h-check"><b>${result.matched}/${result.checks}</b> checks match</p>
-    ${salesFile ? '<button type="button" class="h-btn" id="sales-file">Old sales history (CSV)</button>' : ''}`
+    <details class="h-moved"><summary>What moved</summary><ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>`
   show('receipt')
-  $('sales-file')?.addEventListener('click', () => {
-    const csv = `Month,Revenue\n${seen.sales.map(([m, v]) => `${m} 2026,${v}`).join('\n')}\n`
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    a.download = 'slotly-sales-history.csv'
-    a.click()
-  })
   setTimeout(() => layToRest(), 1800 * speed)
   const r = rect($('receipt'))
   boo.mode('happy')
@@ -782,7 +807,7 @@ function refreshFindings() {
 let stage = 'start'
 const STAGES = {
   start: 'Not started. Boo has not looked at Slotly yet.',
-  asking: 'Boo asked what matters most in this switch. Reply to that answer: say how Boo will protect it.',
+  asking: 'Boo asked what matters most. Answer questions from the data; otherwise say how Boo will protect what they said.',
   reading: 'Boo is reading Slotly.',
   touring: 'Boo has read Slotly and is showing the owner the workarounds it found. The owner can correct anything Boo read.',
   found: 'Boo has read Slotly and found the workarounds. The clean-up plan can still change.',
@@ -791,44 +816,77 @@ const STAGES = {
   moving: 'The clean data is moving into Idle. The plan is locked.',
   done: 'Everything is in Idle. The owner can still fix any client, service or team member, and it changes in Idle.',
 }
-/** After the move, a fix you ask for goes straight into the new app. read already holds the checked value. */
-function fixInIdle(edit) {
-  const same = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase()
-  if (edit.target === 'client') {
-    const c = read.clients.find(x => same(x.name, edit.name))
-    const row = store.clients.find(x => same(x.name, edit.name))
-    if (!c || !row) return
-    if (edit.field === 'alert') row.alert = c.alert
-    if (edit.field === 'credit') row.credit = c.credit
-    if (edit.field === 'vip') row.vip = c.vip ? 'Yes' : ''
-    if (edit.field === 'packageLeft') {
-      const pk = store.packages.find(x => same(x.client, edit.name))
-      if (pk) pk.left = c.packages[0].left
-    }
+/** Do what Boo was asked: a clean-up decision, and any changes to the data. Returns what happened, in plain words. */
+function act(out) {
+  const notes = []
+  notes.applied = false
+  if (out.change) {
+    const said = changeDecision(out.change)
+    notes.push(said)
+    notes.applied = said.startsWith('Changed')
   }
-  if (edit.target === 'service') {
-    const sv = read.services.find(x => same(x.name, edit.name))
-    const row = store.services.find(x => same(x.name, edit.name))
-    if (sv && row && ['category', 'buffer', 'deposit'].includes(edit.field)) row[edit.field] = sv[edit.field]
+  const edits = cleanEdits(out.edits).map(e => (['client', 'booking'].includes(e.target) ? { ...e, name: cleanName(e.name) } : e))
+  if (!edits.length) return notes
+  if (!read) {
+    pendingEdits.push(...edits)
+    notes.applied = true
+    notes.push('Noted. I will make that change as soon as I have read the data.')
+    return notes
   }
-  if (edit.target === 'staff') {
-    const st = read.staff.find(x => same(x.name, edit.name))
-    const row = store.staff.find(x => same(x.name, edit.name))
-    if (st && row && edit.field === 'does') row.does = st.does
+  const r = applyEdits(read, edits)
+  editLog.push(...edits)
+  if (r.done.length) {
+    if (stage === 'done') storeFrom(idleRecords(read, movedWith), store)
+    else if (stage === 'moving') changedWhileMoving = true
+    else refreshFindings()
   }
-  store.changed()
+  notes.push(...r.done.map(x => `Done: ${x}`), ...r.failed.map(x => `Not changed: ${x}`))
+  notes.applied ||= r.done.length > 0
+  return notes
+}
+/** Boo never gets to claim a change that did not happen. */
+function honest(reply, notes) {
+  if (notes.applied || notes.length || !/\b(updated|changed|added|removed|set|cancell?ed|deleted|moved|made|marked|raised)\b/i.test(reply)) return notes
+  return ['Nothing was changed. Tell me exactly what to change, like "Balayage costs $260".']
+}
+
+/** A clean-up decision, changed from the chat. Package expiry can be any number of months. */
+function changeDecision(change) {
+  const f = findings?.find(x => x.key === change.key)
+  if (!f || !['touring', 'found', 'deciding', 'cleaning'].includes(stage)) return 'Everything has moved, so the clean-up choices are locked.'
+  let k = change.option
+  if (change.months) {
+    const at = new Date(Date.UTC(2026, 10, 26))
+    at.setUTCMonth(at.getUTCMonth() + change.months)
+    const day = at.toISOString().slice(0, 10)
+    k = f.choices.findIndex(c => c[0] === day)
+    if (k < 0) k = f.choices.push([day, `Yes, expire in ${change.months} months`]) - 1
+  }
+  f.value = f.choices[k][0]
+  const li = document.querySelector(`#confirm [data-i="${findings.indexOf(f)}"]`)
+  const box = li?.querySelector('.choices')
+  if (box) box.innerHTML = f.choices.map(([, label], i) => `<button type="button" data-c="${i}" aria-pressed="${i === k}">${esc(label)}</button>`).join('')
+  li?.classList.add('changed')
+  return `Changed: ${f.title} → ${f.choices[k][1]}`
 }
 
 function recordsNow() {
-  if (store.clients.length) return recordsFor(store)
-  if (!read) return JSON.stringify({ note: 'Boo has not read Slotly yet.' })
-  return JSON.stringify({
+  const counts = { customers: old.customers.length, services: old.services.length, staff: old.staff.length, appointments: old.appointments.length }
+  if (read) Object.assign(counts, { cleanClients: read.clients.length, realServices: read.services.length, products: read.products.length, realBookings: read.bookings.length, packages: read.clients.reduce((a, c) => a + c.packages.length, 0) })
+  if (stage === 'done') Object.assign(counts, { inIdle: { clients: store.clients.length, services: store.services.length, products: store.products.length, team: store.staff.length, packages: store.packages.length, bookings: store.bookings.length } })
+  const out = { counts, oldApp: { customers: old.customers, services: old.services, staff: old.staff, appointments: old.appointments, terms: old.terms, sales: old.sales } }
+  if (read) out.cleaned = cleanedNow()
+  if (stage === 'done') out.newApp = JSON.parse(recordsFor(store))
+  return JSON.stringify(out)
+}
+function cleanedNow() {
+  return {
     clients: read.clients.map(c => ({ name: c.name, vip: c.vip || undefined, alert: c.alert || undefined, credit: c.credit || undefined, packages: c.packages.length ? c.packages.map(p => `${p.name}, ${p.left} of ${p.of} left, paid $${p.paid}`) : undefined, visits: c.visits })),
     bookings: read.bookings.map(b => ({ date: b.date, time: b.time, client: b.client, service: b.service, with: b.staff })),
     services: read.services.map(s => ({ name: s.name, category: s.category, minutes: s.minutes, price: s.price, deposit: s.deposit || undefined, buffer: s.buffer || undefined })),
     products: read.products,
     staff: read.staff.map(s => ({ name: s.name, does: s.does })),
-  })
+  }
 }
 $('chat-form').addEventListener('submit', async e => {
   e.preventDefault()
@@ -839,26 +897,9 @@ $('chat-form').addEventListener('submit', async e => {
   const reply = $('chat-reply')
   reply.hidden = false
   reply.innerHTML = `<b>You:</b> ${esc(message)}<br><i>Boo is thinking...</i>`
-  const open = findings && ['found', 'deciding'].includes(stage)
-  const editable = read && ['touring', 'found', 'deciding', 'cleaning', 'done'].includes(stage)
+  const open = findings && ['touring', 'found', 'deciding', 'cleaning'].includes(stage)
   const out = await chatBoo({ message, stage: STAGES[stage], decisions: open ? findings : [], records: recordsNow() })
-  let note = ''
-  if (out.change && open) {
-    const f = findings.find(x => x.key === out.change.key)
-    f.value = f.choices[out.change.option][0]
-    note = `Changed: ${f.title} → ${f.choices[out.change.option][1]}`
-    const li = document.querySelector(`#confirm [data-i="${findings.indexOf(f)}"]`)
-    li?.querySelectorAll('[data-c]').forEach((b, k) => b.setAttribute('aria-pressed', String(k === out.change.option)))
-    li?.classList.add('changed')
-  } else if (out.change) note = 'The plan is locked now, so I did not change anything.'
-  if (out.edit && editable) {
-    const said = applyEdit(read, out.edit)
-    if (said) {
-      note = note ? `${note}. ${said}` : `Fixed: ${said}`
-      if (stage === 'done') fixInIdle(out.edit)
-      else refreshFindings()
-    } else note = note || "I couldn't match that to anything in the data, so nothing changed."
-  } else if (out.edit) note = note || (stage === 'moving' ? 'I am still moving everything. Tell me again when I finish.' : "I haven't finished reading that part yet. Tell me again in a moment.")
+  const note = honest(out.reply, act(out)).join(' · ')
   reply.innerHTML = `<b>You:</b> ${esc(message)}<br><b>Boo ${gem(true, out.model)}:</b> ${esc(out.reply)}${note ? `<br><em>${esc(note)}</em>` : ''}`
   speak(out.reply, 5000)
 })

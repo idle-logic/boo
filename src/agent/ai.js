@@ -104,15 +104,26 @@ export async function thinkAbout(req, apiKey) {
 
 const CHAT_SYSTEM = `You are Boo, a friendly ghost helping a hair salon move from its old booking software (Slotly) into Idle.
 The owner types to you in a chat box. Today is Thursday 26 November 2026.
-You get: what stage the move is at, the clean-up decisions with their options and the current choice, and the salon's records.
-If the owner asks a question, answer it from the records only, with real names and numbers.
-If the owner asks to change a decision, pick the matching decision and option. Only change something when they clearly ask.
-If the owner says Boo read something wrong about one client, service or staff member, return an edit with the right value.
-Edit fields: for a client "alert" (text, or "" for none), "credit" (dollars), "vip" (true or false), "packageLeft" (sessions left);
-for a service "category" (Cuts, Styling, Colour, Treatments or Brows), "buffer" (minutes), "deposit" (percent); for staff "does" (a list of categories).
+You get: what stage the move is at, the clean-up decisions with their options and the current choice, and the salon's records:
+"oldApp" is everything in Slotly exactly as staff typed it (always there), "cleaned" is Boo's cleaned reading (once Boo has read it), "newApp" is what is now in Idle (once moved).
+You always have the data. Answer any question about clients, bookings, services, staff, prices, notes or rules at any stage, with real names and numbers from these records.
+Never say you have not read the data yet. If something is not in the records, say so plainly.
+In edits, use the clean name without tags like **VIP**, ★ or (PPD ALLERGY).
+If the owner asks to change a clean-up decision, pick the matching decision and option.
+For package expiry ("packages"), any number of months is allowed: return {"key": "packages", "months": <number>} instead of an option.
+If the owner asks to change, add or remove anything in the data, make every change they ask for, several at once if needed.
+Targets and fields:
+- client: name, phone, email, alert (text, "" for none), credit (dollars), vip (true/false), notes, visits, packageLeft (sessions left)
+- service: name, price, minutes, category (Cuts, Styling, Colour, Treatments or Brows), buffer (minutes after), deposit (percent)
+- staff: name, role, phone, does (a list of categories)
+- product: name, price
+- booking: date (YYYY-MM-DD), time (HH:MM), service, staff, client. "name" is the client's name; add "date" to say which booking.
+- policy: cancelHours, cancelFee (percent), noShowFee (percent), lateMinutes. "name" can be empty.
+Actions: "set" changes one field; "add" adds a record (put its fields in "record"); "remove" deletes it.
+If you cannot tell which record they mean, ask in the reply and return no edits. Never say you changed something you did not put in edits.
 Answer with JSON only: {"reply": "<one or two short, friendly sentences>",
- "change": {"key": "<decision key>", "option": <option number>} or null,
- "edit": {"target": "client|service|staff", "name": "<exact name>", "field": "<field>", "value": <new value>} or null}`
+ "change": {"key": "<decision key>", "option": <option number>} or {"key": "packages", "months": <number>} or null,
+ "edits": [{"action": "set|add|remove", "target": "client|service|staff|product|booking|policy", "name": "<clean name>", "date": "<booking date or empty>", "field": "<field>", "value": <new value>, "record": {<fields, for add>}}]}`
 
 export function cleanChatRequest(body) {
   if (!body || typeof body !== 'object') return null
@@ -124,7 +135,7 @@ export function cleanChatRequest(body) {
     options: (Array.isArray(d?.options) ? d.options : []).slice(0, 4).map(o => str(o, 80)),
     chosen: Number(d?.chosen) || 0,
   }))
-  return { message, stage: str(body.stage, 120), decisions, records: str(typeof body.records === 'string' ? body.records : JSON.stringify(body.records ?? ''), 20000) }
+  return { message, stage: str(body.stage, 120), decisions, records: str(typeof body.records === 'string' ? body.records : JSON.stringify(body.records ?? ''), 60000) }
 }
 
 export async function chatWithBoo(req, apiKey) {
@@ -134,11 +145,26 @@ export async function chatWithBoo(req, apiKey) {
     `Records:\n${req.records}`,
     `Owner: ${req.message}`,
   ].join('\n\n')
-  const { json, model } = await askGemini({ system: CHAT_SYSTEM, user, apiKey, maxTokens: 512 })
-  const change = json.change && typeof json.change === 'object' ? { key: str(json.change.key, 30), option: Number(json.change.option) } : null
-  const e = json.edit && typeof json.edit === 'object' ? json.edit : null
-  const edit = e ? { target: str(e.target, 10), name: str(e.name, 80), field: str(e.field, 20), value: Array.isArray(e.value) ? e.value.slice(0, 5).map(v => str(v, 20)) : typeof e.value === 'boolean' || typeof e.value === 'number' ? e.value : str(e.value, 80) } : null
-  return { reply: str(json.reply, 500), change, edit, model }
+  const { json, model } = await askGemini({ system: CHAT_SYSTEM, user, apiKey, maxTokens: 1200 })
+  const c = json.change && typeof json.change === 'object' ? json.change : null
+  const change = c ? { key: str(c.key, 30), option: Number(c.option), months: Number(c.months) || undefined } : null
+  // Values are kept small and plain; the browser checks every edit against the data before using it.
+  const val = v => (Array.isArray(v) ? v.slice(0, 5).map(x => str(x, 30)) : typeof v === 'boolean' || typeof v === 'number' ? v : str(v, 300))
+  const raw = Array.isArray(json.edits) ? json.edits : json.edit ? [json.edit] : []
+  const edits = raw
+    .filter(e => e && typeof e === 'object')
+    .slice(0, 12)
+    .map(e => ({
+      action: str(e.action, 10),
+      target: str(e.target, 10),
+      name: str(e.name, 80),
+      date: str(e.date, 10),
+      time: str(e.time, 5),
+      field: str(e.field, 20),
+      value: val(e.value),
+      record: e.record && typeof e.record === 'object' ? Object.fromEntries(Object.entries(e.record).slice(0, 12).map(([k, v]) => [str(k, 20), val(v)])) : null,
+    }))
+  return { reply: str(json.reply, 500), change, edits, model }
 }
 
 // ------------------------------------------------------------- ask: questions about the salon, from its records

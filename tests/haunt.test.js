@@ -108,3 +108,23 @@ test('rules set aside the notes they cannot read, and Gemini may only use number
     globalThis.fetch = real
   }
 })
+
+test('changes from the chat are checked against the data before they apply', async () => {
+  const { applyEdits, cleanEdits } = await import('../web/edits.js')
+  const r = structuredClone(read)
+  const client = r.bookings[0].client
+  const out = applyEdits(r, cleanEdits([
+    { action: 'set', target: 'client', name: client, field: 'name', value: 'Renamed Person' },
+    { action: 'set', target: 'service', name: r.services[0].name, field: 'price', value: 260 },
+    { action: 'set', target: 'service', name: r.services[0].name, field: 'price', value: 'free' },
+    { action: 'set', target: 'client', name: 'Nobody Here', field: 'vip', value: true },
+    { action: 'add', target: 'booking', name: 'Renamed Person', record: { date: '2026-12-09', time: '10:00', service: 'Made Up Service', staff: r.staff[0].name } },
+    { action: 'add', target: 'client', record: { name: 'Test Person', phone: '9000 0000' } },
+  ]))
+  assert.equal(out.done.length, 3)
+  assert.equal(out.failed.length, 3, 'a bad price, an unknown client and a booking for an unknown service are refused')
+  assert.ok(r.bookings.some(b => b.client === 'Renamed Person'), 'a rename carries through to bookings')
+  assert.ok(!r.bookings.some(b => b.client === client))
+  assert.equal(r.services[0].price, 260)
+  assert.ok(r.clients.some(c => c.name === 'Test Person'))
+})

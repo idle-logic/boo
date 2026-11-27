@@ -72,8 +72,15 @@ export async function chatBoo({ message, stage, decisions, records }) {
   const out = await callAi('/api/chat', { message, stage, records, decisions: decisions.map(d => ({ key: d.key, title: d.title, options: d.choices.map(c => c[1]), chosen: d.choices.findIndex(c => c[0] === d.value) })) })
   if (!out?.reply) return { reply: 'Gemini is busy right now. Try me again in a minute.', change: null }
   const d = decisions.find(x => x.key === out.change?.key)
-  const change = d && Number.isInteger(out.change.option) && d.choices[out.change.option] ? { key: d.key, option: out.change.option } : null
-  return { reply: out.reply, change, edit: out.edit ?? null, model: out.model }
+  const months = Number(out.change?.months)
+  const change = !d
+    ? null
+    : d.key === 'packages' && Number.isInteger(months) && months >= 1 && months <= 60
+      ? { key: d.key, months }
+      : Number.isInteger(out.change.option) && d.choices[out.change.option]
+        ? { key: d.key, option: out.change.option }
+        : null
+  return { reply: out.reply, change, edits: out.edits ?? out.edit ?? null, model: out.model }
 }
 
 const CATS = ['Cuts', 'Styling', 'Colour', 'Treatments', 'Brows']

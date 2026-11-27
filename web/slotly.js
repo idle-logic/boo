@@ -28,6 +28,7 @@ export function createSlotly(root, data, on = {}) {
     root.innerHTML = `
       <div class="sl">
         <header class="sl-banner"><span class="sl-logo">Slotly<sup>v4.2</sup></span><span class="sl-links"><b>${esc(data.business.name)}</b> | <u>My Account</u> | <u>Help</u> | <u>Log Out</u></span></header>
+        <p class="sl-dying" role="alert">⚠ Slotly is shutting down on 31 Dec 2026. Data export is not available.</p>
         <nav class="sl-tabs" aria-label="Slotly">${NAV.map(([id, label]) => `<button type="button" data-nav="${id}" aria-current="${state.page === id ? 'page' : 'false'}">${label}</button>`).join('')}</nav>
         <div class="sl-toolbar"><h1>${title}</h1><span class="sl-find"><input aria-label="Search" placeholder="Search customers..." /><button type="button" class="sl-btn">Go</button></span><button type="button" class="sl-btn sl-go" data-new>New Appointment</button></div>
         <section class="sl-page">${page()}</section>
