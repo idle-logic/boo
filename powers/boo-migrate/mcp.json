@@ -2,7 +2,7 @@
   "mcpServers": {
     "boo": {
       "command": "npx",
-      "args": ["-y", "--package=github:idle-logic/familiar#haunt", "boo-mcp"]
+      "args": ["-y", "--package=github:idle-logic/boo", "boo-mcp"]
     }
   }
 }

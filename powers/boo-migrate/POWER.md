@@ -28,7 +28,7 @@ Do not use it to invent data: every value comes from the source, and money owed 
 Node 20 or later. The MCP server runs straight from the repository:
 
 ```
-npx -y --package=github:idle-logic/familiar#haunt boo-mcp
+npx -y --package=github:idle-logic/boo boo-mcp
 ```
 
 See `mcp.json`. Photos and screenshots are read in the web app (Gemini) or with `boo raise photo.jpg` and a `GEMINI_API_KEY`; the MCP tools work offline on CSV text.
