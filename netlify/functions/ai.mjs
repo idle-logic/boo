@@ -3,7 +3,7 @@
 //   POST /api/ask       questions about the salon, from its moved records
 //   POST /api/chat      the chat bar: questions, and changes to the clean-up plan
 // Set GEMINI_API_KEY in the Netlify site's environment variables.
-import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest, thinkAbout, cleanThinkAboutRequest, holdSeance, cleanSeanceRequest, readImage, cleanReadImageRequest, mapColumns, cleanMapRequest } from '../../src/agent/ai.js'
+import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest, thinkAbout, cleanThinkAboutRequest, holdSeance, cleanSeanceRequest, readImage, cleanReadImageRequest, mapColumns, cleanMapRequest, mapTemplate, cleanTemplateRequest } from '../../src/agent/ai.js'
 import { makeRateLimiter, BrainBusyError } from '../../src/agent/gemini.js'
 
 const allow = makeRateLimiter({ perMinute: 20, perDay: 600 })
@@ -15,6 +15,7 @@ const TASKS = {
   '/api/seance': [cleanSeanceRequest, holdSeance],
   '/api/read-image': [cleanReadImageRequest, readImage],
   '/api/map-columns': [cleanMapRequest, mapColumns],
+  '/api/map-template': [cleanTemplateRequest, mapTemplate],
 }
 
 export default async (req, context) => {
@@ -32,4 +33,4 @@ export default async (req, context) => {
   }
 }
 
-export const config = { path: ['/api/read', '/api/ask', '/api/chat', '/api/think-about', '/api/seance', '/api/read-image', '/api/map-columns'] }
+export const config = { path: ['/api/read', '/api/ask', '/api/chat', '/api/think-about', '/api/seance', '/api/read-image', '/api/map-columns', '/api/map-template'] }

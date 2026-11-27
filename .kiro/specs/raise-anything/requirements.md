@@ -8,7 +8,7 @@ Raise anything. The demo raises one made-up app; this feature lets anyone bring 
 
 ### Requirement 1
 
-**User Story:** As a business owner, I want to drop in whatever my old system left me, so that Haunt works on my data and not just a demo.
+**User Story:** As a business owner, I want to drop in whatever my old system left me, so that Boo works on my data and not just a demo.
 
 #### Acceptance Criteria
 
@@ -27,6 +27,7 @@ Raise anything. The demo raises one made-up app; this feature lets anyone bring 
 1. WHEN rows are read THEN the system SHALL guess each column from its heading and values, and Gemini SHALL refine the guess and name what each row is (client, member, patient).
 2. WHEN the mapping is shown THEN each column SHALL show real example values beside its meaning.
 3. IF Gemini names a kind that is not known THEN the system SHALL keep its own guess.
+4. WHEN an export has many columns THEN the popup SHALL show the ones that matter first and keep its button in reach, without the owner scrolling.
 
 ### Requirement 3
 
@@ -49,3 +50,13 @@ Raise anything. The demo raises one made-up app; this feature lets anyone bring 
 2. WHEN the raise is done THEN the system SHALL check rows in against records out, packages and money, credit and alerts.
 3. WHEN the raise is done THEN the system SHALL offer the clean data as `clients.csv` and `packages.csv`.
 4. WHEN the raise is done THEN the server SHALL have kept nothing.
+
+### Requirement 5
+
+**User Story:** As a business owner, I want my data to land as what it really is, so that a menu becomes menu items and a staff list becomes the team, not clients.
+
+#### Acceptance Criteria
+
+1. WHEN rows are read THEN the system SHALL decide where they belong in the new app (clients, products, services or team) from the headings and values, and Gemini SHALL confirm it for photos and exports, with a short title for the document.
+2. WHEN the destination is chosen THEN the records SHALL be cleaned with that kind's rules (marks in item names, prices with words, sold out, allergens for products and services) and land in that page of the new app.
+3. WHEN the owner taps another destination THEN the system SHALL use it instead.

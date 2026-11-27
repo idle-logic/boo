@@ -1,0 +1,7 @@
+#!/bin/sh
+# Boo's gates, the same ones Kiro's hooks and CI run. Enabled by `npm install` (core.hooksPath).
+set -e
+node tools/public-repo-check.mjs
+npm test --silent
+node bin/boo.mjs gate
+node bin/boo.mjs coverage

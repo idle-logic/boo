@@ -1,4 +1,4 @@
-// Haunt's AI steps, on Gemini's free tier. Server side only (Netlify function
+// Boo's AI steps, on Gemini's free tier. Server side only (Netlify function
 // and the local demo server); the key never reaches a browser. The browser
 // checks every answer against the original text before using it.
 import { BrainBusyError } from './gemini.js'
@@ -103,13 +103,20 @@ export async function holdSeance(req, apiKey) {
 
 // ------------------------------------------------------------- raise anything: any old data, even a photo of paper
 
-const KINDS = ['name', 'phone', 'email', 'date', 'money', 'number', 'note', 'category', 'unknown']
+const KINDS = ['name', 'phone', 'email', 'date', 'money', 'number', 'note', 'category', 'duration', 'role', 'stock', 'sku', 'unknown']
+const TARGETS = ['clients', 'products', 'services', 'team']
 
 const READ_IMAGE_SYSTEM = `You read photos and screenshots of old business records: paper client books, printed lists, spreadsheets, screens of old software.
 Copy the table or list exactly as written. Keep every mark people added (stars, VIP, words in brackets, notes squeezed in). Do not fix, guess or tidy anything.
 If something is crossed out, keep it but wrap it in ~~ like ~~2210~~.
 If a cell can't be read, write "?". Then say what each column holds.
-Answer with JSON only: {"recordKind": "<what each row is, like client or member or patient>",
+Also say where the rows belong in the new software, as "target":
+ "clients" (people: customers, members, patients, guests),
+ "products" (things sold: retail items, food and drink on a menu, stock),
+ "services" (work done for someone, usually with a duration: treatments, classes, repairs),
+ "team" (staff, employees).
+And a short "title" for the document, like "Sakura Sushi menu" or "Polished by Pearl client book".
+Answer with JSON only: {"recordKind": "<what each row is, like client or menu item or member>", "target": "<clients|products|services|team>", "title": "<short title>",
  "headers": ["<column heading as written, or a short name if none>"],
  "rows": [["<cell>", "..."]],
  "kinds": ["<for each column: ${KINDS.join(', ')}>"]}`
@@ -128,8 +135,14 @@ export async function readImage(req, apiKey) {
 }
 
 const MAP_SYSTEM = `You look at a table exported from someone's old business software and say what each column holds.
-Kinds: ${KINDS.join(', ')}. "note" is free text where staff wrote things down. "name" is the person or thing the row is about.
-Answer with JSON only: {"recordKind": "<what each row is, like client or member or patient>", "kinds": ["<one kind per column, in order>"]}`
+Kinds: ${KINDS.join(', ')}. "note" is free text where staff wrote things down. "name" is the person or thing the row is about. "money" includes prices.
+Also say where the rows belong in the new software, as "target":
+ "clients" (people: customers, members, patients, guests),
+ "products" (things sold: retail items, food and drink on a menu, stock),
+ "services" (work done for someone, usually with a duration: treatments, classes, repairs),
+ "team" (staff, employees).
+And a short "title" for the document, like "Sakura Sushi menu" or "Polished by Pearl client book".
+Answer with JSON only: {"recordKind": "<what each row is, like client or menu item or member>", "target": "<clients|products|services|team>", "title": "<short title>", "kinds": ["<one kind per column, in order>"]}`
 
 export function cleanMapRequest(body) {
   if (!body || typeof body !== 'object' || !Array.isArray(body.headers)) return null
@@ -141,6 +154,26 @@ export function cleanMapRequest(body) {
 export async function mapColumns(req, apiKey) {
   const user = `Columns: ${JSON.stringify(req.headers)}\nFirst rows:\n${req.samples.map(r => JSON.stringify(r)).join('\n')}`
   const { json, model } = await askGemini({ system: MAP_SYSTEM, user, apiKey, maxTokens: 400 })
+  return { ...json, model }
+}
+
+// ------------------------------------------------------------- into any software: match clean fields to another app's columns
+
+const TEMPLATE_SYSTEM = `You help move clean records into another app. You get that app's import column headings and the fields Boo has for each record.
+For each heading, say which field fills it: one of the fields given, "yes" (a column that should say TRUE, like Published or Active), or "blank" (leave empty).
+Use "first name" and "last name" when the app splits names. Put "notes" in any free-text column so nothing is lost.
+Answer with JSON only: {"map": ["<field for heading 1>", "..."]}`
+
+export function cleanTemplateRequest(body) {
+  if (!body || typeof body !== 'object' || !Array.isArray(body.headers) || !Array.isArray(body.fields)) return null
+  const headers = body.headers.slice(0, 60).map(h => str(h, 60))
+  const fields = body.fields.slice(0, 20).map(f => str(f, 20))
+  return headers.length && fields.length ? { headers, fields, example: str(typeof body.example === 'string' ? body.example : JSON.stringify(body.example ?? {}), 2000) } : null
+}
+
+export async function mapTemplate(req, apiKey) {
+  const user = `The app's columns: ${JSON.stringify(req.headers)}\nBoo's fields: ${JSON.stringify(req.fields)}\nOne record, as an example: ${req.example}`
+  const { json, model } = await askGemini({ system: TEMPLATE_SYSTEM, user, apiKey, maxTokens: 800 })
   return { ...json, model }
 }
 

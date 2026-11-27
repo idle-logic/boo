@@ -1,0 +1,90 @@
+{
+  "type": "boo/certificate",
+  "version": 1,
+  "subject": "Slotly → Idle, rules engine against the hidden truth",
+  "source": {
+    "name": "web/data.js slotlyRecords()",
+    "sha256": "5bd175eaab1a0dbf5895d0b2db7834d83122585aa7a6983d7083a9d21ce322bd"
+  },
+  "verdict": "AT REST",
+  "passed": 8,
+  "checks": 8,
+  "sets": {
+    "clients": {
+      "count": 42,
+      "arrived": 42,
+      "sha256": "f1641fcc93fa0ddba5f8079007f35379fb3b8513f24b261da0c84484dec0fc71",
+      "missing": [],
+      "extra": []
+    },
+    "packages": {
+      "count": 9,
+      "arrived": 9,
+      "sha256": "d7af10e0f6e9a1b287424425d1cc97bd5021f8bb401a827be4e674af4feefeff",
+      "missing": [],
+      "extra": []
+    },
+    "bookings": {
+      "count": 18,
+      "arrived": 18,
+      "sha256": "d99bad5d20c8f081ad7cb303fb1719b22e9f83c79b5d943ba6c6c882f91f1f91",
+      "missing": [],
+      "extra": []
+    }
+  },
+  "money": {
+    "prepaid": {
+      "expected": 2070,
+      "arrived": 2070
+    },
+    "credit": {
+      "expected": 265,
+      "arrived": 265
+    }
+  },
+  "detail": [
+    {
+      "check": "clients: count",
+      "pass": true,
+      "detail": "42 expected, 42 arrived"
+    },
+    {
+      "check": "clients: every record",
+      "pass": true,
+      "detail": "all match"
+    },
+    {
+      "check": "packages: count",
+      "pass": true,
+      "detail": "9 expected, 9 arrived"
+    },
+    {
+      "check": "packages: every record",
+      "pass": true,
+      "detail": "all match"
+    },
+    {
+      "check": "bookings: count",
+      "pass": true,
+      "detail": "18 expected, 18 arrived"
+    },
+    {
+      "check": "bookings: every record",
+      "pass": true,
+      "detail": "all match"
+    },
+    {
+      "check": "prepaid dollars",
+      "pass": true,
+      "detail": "$2070 = $2070"
+    },
+    {
+      "check": "store credit dollars",
+      "pass": true,
+      "detail": "$265 = $265"
+    }
+  ],
+  "applied": [],
+  "seal": "431d8ab5ec13cb37dce7409d98f624f8719df5977263d3bd4e64a1698e8cddd4",
+  "issued": "2026-11-27T05:03:48.092Z"
+}

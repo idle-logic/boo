@@ -27,7 +27,7 @@ export function readName(raw) {
   let alert = ''
   const flags = []
   if (/★|☆|\*\*?\s*VIP\s*\*?\*|\bVIP\b/i.test(name)) vip = true
-  name = name.replace(/\s*[★☆]+/g, '').replace(/\s*\*{1,2}\s*VIP\s*\*{1,2}/gi, '').replace(/\s*[-–]?\s*\bVIP\b/gi, '')
+  name = name.replace(/\s*[★☆]+/g, '').replace(/\s*\*{1,2}\s*VIP\s*\*{1,2}/gi, '').replace(/\s*[-\u2013]?\s*\bVIP\b/gi, '')
   for (const m of name.matchAll(/\(([^)]+)\)|\[([^\]]+)\]/g)) {
     const tag = (m[1] ?? m[2]).trim()
     if (HEALTH.test(tag)) alert = alert || sentence(tag)
@@ -71,6 +71,7 @@ export function readNotes(raw) {
 }
 
 const sentence = s => {
+  if (/^[A-Za-z]{1,3}$/.test(String(s).trim())) return String(s).trim().toUpperCase()
   const t = String(s).trim().toLowerCase()
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
@@ -104,9 +105,103 @@ export function fixClient(values) {
   return { values: clean, packages: notes.packages.map(x => ({ client: n.name, name: x.name, left: String(x.left), of: String(x.of), paid: String(x.paid) })), fixes }
 }
 
-/** A "service" that is really a product: "RETAIL - Argan oil". */
+// ------------------------------------------------------------- things sold: menu items, products, services
+
+const ALLERGEN = /\b(gf|gluten|nuts?|peanuts?|dairy|lactose|shellfish|egg|soy|sesame|halal|kosher)\b|contains/i
+const TAG = /^(v|vg|vegan|vegetarian|spicy|hot|new|seasonal|limited|signature|house special|chef'?s (pick|special)|popular|best ?seller|kids)$/i
+
+/**
+ * An item name with marks typed into it: "Dragon Roll ★ (GF) (SPICY) SOLD OUT", "86 Miso soup".
+ * Returns the clean name and what each mark really is.
+ */
+export function readItemName(raw) {
+  let name = String(raw ?? '')
+  const tags = []
+  const allergens = []
+  let featured = /★|☆|chef'?s (pick|special)|best ?seller|popular/i.test(name)
+  const soldOut = /sold ?out|\bunavailable\b|^\s*86\b|\(86\)/i.test(name)
+  name = name.replace(/\s*[★☆]+/g, '').replace(/\s*[-\u2013]?\s*\b(chef'?s (pick|special)|best ?seller)\b/gi, '').replace(/\s*[-\u2013]?\s*sold ?out\b/gi, '').replace(/\s*\bunavailable\b/gi, '').replace(/^\s*86\s+/, '').replace(/\(86\)/, '')
+  for (const m of name.matchAll(/\(([^)]+)\)|\[([^\]]+)\]/g)) {
+    for (const part of (m[1] ?? m[2]).split(/\s*[,/]\s*/)) {
+      const t = part.trim()
+      if (!t) continue
+      if (ALLERGEN.test(t) || HEALTH.test(t)) allergens.push(sentence(t))
+      else if (/chef'?s (pick|special)|popular|best ?seller/i.test(t)) featured = true
+      else tags.push(TAG.test(t) ? sentence(t) : sentence(t))
+    }
+  }
+  name = name.replace(/\s*\([^)]*\)|\s*\[[^\]]*\]/g, '').replace(/\s{2,}/g, ' ').replace(/[\s,-]+$/, '').trim()
+  return { name, featured, soldOut, tags, allergens }
+}
+
+/** A price typed with extra words: "$18 / $24 large", "from $40", "S$12.50", "12.5". */
+export function readPrice(raw) {
+  const text = String(raw ?? '').trim()
+  const nums = [...text.matchAll(/(\d+(?:[.,]\d{1,2})?)/g)].map(m => Number(m[1].replace(',', '.')))
+  if (!nums.length) return { price: '', extra: text }
+  const plain = /^\s*[A-Z]{0,3}\$?\s*\d+(?:[.,]\d{1,2})?\s*$/i.test(text)
+  return { price: nums[0], extra: plain ? '' : text }
+}
+
+/** A minutes field typed with words: "1h30", "90 min", "1.5 hours". */
+export function readMinutes(raw) {
+  const t = String(raw ?? '').toLowerCase()
+  const h = /(\d+(?:\.\d+)?)\s*h/.exec(t)
+  const m = /(\d+)\s*m/.exec(t) ?? (/h\s*(\d+)/.exec(t) || null)
+  if (h) return Math.round(Number(h[1]) * 60 + (m ? Number(m[1]) : 0))
+  const n = /(\d+)/.exec(t)
+  return n ? Number(n[1]) : ''
+}
+
+/** What one item's marks become, in plain words, for the list of fixes. */
+function itemFixes(raw, it, price) {
+  const fixes = []
+  if (it.featured) fixes.push('★ in the name → Featured')
+  if (it.soldOut) fixes.push('"Sold out" in the name → stock 0')
+  if (it.allergens.length) fixes.push(`${it.allergens.join(', ')} in the name → allergens`)
+  if (it.tags.length) fixes.push(`${it.tags.join(', ')} in the name → tags`)
+  if (price?.extra) fixes.push(`"${price.extra}" → price ${price.price}, the rest in notes`)
+  return fixes
+}
+
+/** A product or menu item typed the old way. Returns null when there is nothing to fix. */
+export function fixProduct(values) {
+  const it = readItemName(values.name)
+  const price = readPrice(values.price)
+  const fixes = itemFixes(values.name, it, price)
+  if (!fixes.length) return null
+  return {
+    values: {
+      ...values,
+      name: it.name,
+      price: String(price.price),
+      stock: it.soldOut ? '0' : values.stock ?? '',
+      notes: [values.notes, it.featured && 'Featured', it.tags.length && `Tags: ${it.tags.join(', ')}`, it.allergens.length && `Allergens: ${it.allergens.join(', ')}`, price.extra && `Price as written: ${price.extra}`].filter(Boolean).join(' | '),
+    },
+    fixes,
+  }
+}
+
+/** A "service" that is really a product ("RETAIL - Argan oil"), or a service with marks in its name or price. */
 export function fixService(values) {
   const m = /^\s*(?:RETAIL|PRODUCT|STOCK)\s*[-:]\s*(.+)$/i.exec(values.name ?? '')
-  if (!m) return null
-  return { product: { name: m[1].trim(), sku: '', price: values.price ?? '', stock: '' }, fixes: [`"${values.name}" is a product, not a service → Products`] }
+  if (m) return { product: { name: m[1].trim(), sku: '', price: values.price ?? '', stock: '' }, fixes: [`"${values.name}" is a product, not a service → Products`] }
+  const it = readItemName(values.name)
+  const price = readPrice(values.price)
+  const minutes = readMinutes(values.minutes)
+  const fixes = itemFixes(values.name, it, price)
+  if (values.minutes && String(minutes) !== String(values.minutes).trim()) fixes.push(`"${values.minutes}" → ${minutes} min`)
+  if (!fixes.length) return null
+  return { values: { ...values, name: it.name, price: String(price.price), minutes: String(minutes) }, fixes }
+}
+
+/** A team member typed the old way: "Jas K. (PART TIME)" with two numbers. */
+export function fixStaff(values) {
+  const n = readName(values.name)
+  const p = readPhone(values.phone)
+  const fixes = []
+  if (n.flags.length) fixes.push(`${n.flags.join(', ')} in the name → role`)
+  if (p.others.length) fixes.push('second number → dropped from the phone field')
+  if (!fixes.length) return null
+  return { values: { ...values, name: n.name, phone: p.phone, role: [values.role, ...n.flags].filter(Boolean).join(', ') }, fixes }
 }

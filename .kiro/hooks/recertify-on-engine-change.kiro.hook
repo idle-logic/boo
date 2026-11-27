@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "name": "Re-certify when the engine changes",
+  "description": "When reading, cleaning, raising or proving code changes, replay the sealed certificates so a change that loses a record or a dollar is caught at once.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "web/interpret.js",
+      "web/habits.js",
+      "web/raise.js",
+      "web/switch.js",
+      "web/edits.js",
+      "web/certificate.js",
+      "web/data.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run `node bin/boo.mjs gate`. If a certificate is STILL HAUNTED, find what the change lost and fix the engine, never the certificate. If the result only changed because the change was meant to (a new workaround found, say), explain why in one line, run `node bin/boo.mjs certify --write`, and say which certificates were reissued."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Public repo check before commit",
+      "description": "Before a shell command runs: if it is git commit, check what is staged and block when an added line has an em or en dash (Boo's voice), a file is an env or key file, a line looks like an API key, or a line holds a home folder path. Any other command passes at once. Runs node tools/public-repo-check.mjs --hook; the same check runs in .githooks/pre-commit.",
+      "trigger": "PreToolUse",
+      "matcher": "shell",
+      "action": {
+        "type": "command",
+        "command": "node tools/public-repo-check.mjs --hook"
+      },
+      "timeout": 30,
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+name: proof
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Tests
+        run: npm test
+      - name: Proof gate (every certificate AT REST and unchanged)
+        run: node bin/boo.mjs gate
+      - name: Acceptance criteria traced to tests
+        run: node bin/boo.mjs coverage
+      - name: Raise the gym sample and verify its certificate by replay
+        run: |
+          node bin/boo.mjs raise web/samples/fittrack-members.csv --out build/gym
+          node bin/boo.mjs verify build/gym/certificate.json web/samples/fittrack-members.csv

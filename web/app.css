@@ -51,7 +51,7 @@ button { font: inherit; }
 .agent-cursor.click::after { content: ''; position: absolute; left: -9px; top: -9px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--c); animation: ripple 0.45s ease-out forwards; }
 @keyframes ripple { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
 
-/* ------------------------------------------------------------- Haunt, the side panel */
+/* ------------------------------------------------------------- Boo, the side panel */
 
 .haunt { width: 372px; flex: none; display: flex; flex-direction: column; background: #fbfaff; border-left: 1px solid #e3e0f0; }
 .h-head { display: flex; align-items: center; gap: 8px; height: 50px; padding: 0 16px; color: #5b3fe0; border-bottom: 1px solid #ebe7f7; flex: none; }
@@ -832,3 +832,33 @@ body:has(#chat-pop:not([hidden])) .boo-bubble, body:has(#chat-pop:not([hidden]))
 .haunted-row td { animation: haunted 2.4s ease-out; }
 @keyframes haunted { 0%, 30% { background: #e6ecff; box-shadow: inset 0 0 0 1px #9db2dc; } 100% { background: transparent; } }
 .tombstone strong { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* However much data comes in, a popup fits the window and its button stays in reach */
+.pop > section { max-height: calc(100vh - 150px); overflow-y: auto; overscroll-behavior: contain; }
+.pop > section .h-next, .pop > section #go, .pop > section #tour-next { position: sticky; bottom: 0; box-shadow: 0 -10px 16px #fff; }
+.h-chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.h-chips li { padding: 4px 10px; border-radius: 99px; background: #effaf4; border: 1px solid #bfe8d4; color: #0b5c3f; font-size: 12px; font-weight: 600; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-chips li.more { background: #f3f1fa; border-color: #e4e1ef; color: #6d4dff; }
+
+/* The sealed certificate on the last card */
+.h-seal { margin: 8px 0 0; font-size: 12px; color: #5b6275; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.h-seal b { font-size: 11px; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 99px; }
+.h-seal b.ok { background: #effaf4; color: #0b5c3f; border: 1px solid #bfe8d4; }
+.h-seal b.bad { background: #fff1f1; color: #b3122a; border: 1px solid #f3c2c2; }
+.h-seal code { font: 11px ui-monospace, Consolas, monospace; color: #1d2230; }
+.h-link { border: none; background: none; color: #6d4dff; font: 600 12px 'DM Sans', system-ui, sans-serif; text-decoration: underline; cursor: pointer; padding: 0; }
+
+/* Where the rows go, and into any other app */
+.h-goes { margin: 0; font-size: 13px; color: #5b6275; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.h-targets, .h-presets { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.h-targets button, .h-presets button { border: 1px solid #e4e1ef; background: #fff; border-radius: 99px; padding: 5px 11px; font: 600 12px 'DM Sans', system-ui, sans-serif; color: #1d2230; cursor: pointer; }
+.h-targets button[aria-pressed='true'] { background: #1d1840; border-color: #1d1840; color: #fff; }
+.h-presets button:hover, .h-targets button:hover { border-color: #6d4dff; }
+.pop > .h-export { width: min(560px, calc(100vw - 48px)); display: grid; gap: 10px; }
+.h-drop.small { padding: 10px; }
+.h-proof-lines { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 13px; }
+.h-proof-lines .ok { color: #0b5c3f; }
+.h-proof-lines .bad { color: #b3122a; }
+.h-wide { width: 100%; margin-top: 8px; }
+.h-samples { flex-wrap: wrap; }
+.h-samples button { flex: 1 1 30%; }

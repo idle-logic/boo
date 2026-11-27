@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Boo stop check",
+      "description": "When the agent stops, re-run every certificate and the criteria trace. If any certificate is STILL HAUNTED or changed, or a test names an acceptance criterion that no longer exists in .kiro/specs, ask the agent to continue with the reason. Runs node bin/boo.mjs hook stop.",
+      "trigger": "Stop",
+      "action": {
+        "type": "command",
+        "command": "node bin/boo.mjs hook stop"
+      },
+      "timeout": 60,
+      "enabled": true
+    }
+  ]
+}

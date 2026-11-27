@@ -20,7 +20,7 @@ const intentArb = fc.record({
   fly: fc.option(fc.record({ x: fc.integer({ min: -500, max: 2500 }), y: fc.integer({ min: -500, max: 1500 }) }), { nil: null }),
 })
 
-test('Boo never leaves the screen, whatever happens', () => {
+test('Boo never leaves the screen, whatever happens [boo-guide 1.2]', () => {
   fc.assert(
     fc.property(
       fc.array(windowArb, { maxLength: 8 }),
@@ -59,7 +59,7 @@ test('standing on a ledge means feet exactly on its top and centre over it', () 
   )
 })
 
-test('a ledge never runs under a window that sits in front of it', () => {
+test('a ledge never runs under a window that sits in front of it [boo-guide 3.1]', () => {
   fc.assert(
     fc.property(fc.array(windowArb, { minLength: 1, maxLength: 8 }), windows => {
       const ledges = ledgesFromWindows(windows, bounds)

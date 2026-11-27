@@ -38,3 +38,4 @@ The resurrection, finished. Before the old app is buried, the owner can hold a s
 4. WHEN a habit is caught THEN the old app's ghost SHALL rise from its grave, fly to the fixed record, say "Old habits die hard. Trust me, I died.", list what it fixed, and go back to rest.
 5. WHEN nothing needs fixing THEN the record SHALL be saved as typed, with no ghost.
 6. WHEN the afterlife starts THEN the system SHALL offer to type an old habit so the owner can watch it being caught.
+7. WHEN the data was raised from a file THEN the habits to try SHALL be built from the marks that file really used (its kind of VIP mark, alert, allergen, price with words), and the ghost SHALL catch them for that kind of record (clients, products, services or team).

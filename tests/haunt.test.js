@@ -11,7 +11,7 @@ const old = slotlyRecords()
 const read = readWithRules(old)
 const truth = old.truth.clients
 
-test('every workaround in the notes and names reads back to the real record', () => {
+test('every workaround in the notes and names reads back to the real record [find-workarounds 1.1] [find-workarounds 1.2] [find-workarounds 1.3] [collect-old-app 1.3]', () => {
   assert.equal(read.clients.length, truth.length)
   read.clients.forEach((c, i) => {
     const t = truth[i]
@@ -22,7 +22,7 @@ test('every workaround in the notes and names reads back to the real record', ()
   })
 })
 
-test('fake services, clean-up blocks, breaks and written rules all find their real meaning', () => {
+test('fake services, clean-up blocks, breaks and written rules all find their real meaning [find-workarounds 1.4] [find-workarounds 1.5] [find-workarounds 1.6]', () => {
   assert.equal(read.products.length, 8)
   assert.equal(read.services.length, SERVICES.length)
   for (const s of read.services) {
@@ -37,7 +37,7 @@ test('fake services, clean-up blocks, breaks and written rules all find their re
   assert.deepEqual(read.sameStaff, [[2, 3]])
 })
 
-test('whatever Gemini says, nothing ungrounded in the original text gets through', () => {
+test('whatever Gemini says, nothing ungrounded in the original text gets through [find-workarounds 4.1]', () => {
   const answer = fc.record({
     customers: fc.array(fc.record({ i: fc.integer({ min: -2, max: 50 }), alert: fc.string(), credit: fc.integer({ min: -5, max: 500 }), packages: fc.array(fc.record({ left: fc.integer(), of: fc.integer(), paid: fc.integer() }), { maxLength: 2 }) }), { maxLength: 10 }),
     services: fc.array(fc.record({ i: fc.integer({ min: 0, max: 25 }), category: fc.string() }), { maxLength: 5 }),
@@ -56,7 +56,7 @@ test('whatever Gemini says, nothing ungrounded in the original text gets through
   )
 })
 
-test('the owner decides: merging, expiry, and what stays as a note', () => {
+test('the owner decides: merging, expiry, and what stays as a note [clean-and-confirm 1.3]', () => {
   const choices = Object.fromEntries(findingsFor(old, read).map(f => [f.key, f.value]))
   const r = idleRecords(read, choices)
   assert.equal(r.staff.length, 4)
@@ -70,7 +70,7 @@ test('the owner decides: merging, expiry, and what stays as a note', () => {
   assert.ok(kept.packages.every(p => p.Expires === '2027-05-26'))
 })
 
-test('names lose the marks, never the person', () => {
+test('names lose the marks, never the person [find-workarounds 1.2]', () => {
   fc.assert(fc.property(fc.stringMatching(/^[A-Z][a-z]{1,8} [A-Z][a-z]{1,8}$/), n => cleanName(`${n} ★`) === n && cleanName(`${n} **VIP** (PPD ALLERGY)`) === n))
 })
 
@@ -82,7 +82,7 @@ test('requests to the AI are cut down to size', () => {
   assert.equal(cleanAskRequest({ question: '   ' , records: 'x' }), null)
 })
 
-test('rules set aside the notes they cannot read, and Gemini may only use numbers the note contains', async () => {
+test('rules set aside the notes they cannot read, and Gemini may only use numbers the note contains [find-workarounds 2.1] [find-workarounds 2.2] [find-workarounds 2.3] [raise-anything 3.2]', async () => {
   const { thinkAboutNotes } = await import('../web/ai.js')
   const unclear = read.clients.flatMap(c => (c.unclear ?? []).map(text => ({ src: c.src, text })))
   assert.ok(unclear.length >= 5, 'the odd notes are set aside for AI')
@@ -109,7 +109,7 @@ test('rules set aside the notes they cannot read, and Gemini may only use number
   }
 })
 
-test('changes from the chat are checked against the data before they apply', async () => {
+test('changes from the chat are checked against the data before they apply [clean-and-confirm 3.1] [clean-and-confirm 3.2] [clean-and-confirm 3.3]', async () => {
   const { applyEdits, cleanEdits } = await import('../web/edits.js')
   const r = structuredClone(read)
   const client = r.bookings[0].client
@@ -129,7 +129,7 @@ test('changes from the chat are checked against the data before they apply', asy
   assert.ok(r.clients.some(c => c.name === 'Test Person'))
 })
 
-test('old habits in any data are read back to proper fields', async () => {
+test('old habits in any data are read back to proper fields [seance-and-afterlife 3.2] [seance-and-afterlife 3.3] [seance-and-afterlife 3.5] [raise-anything 3.4]', async () => {
   const { fixClient, fixService, readName, readNotes } = await import('../web/habits.js')
   const fx = fixClient({ name: 'Mei Tan ★ (LATEX ALLERGY)', phone: '9123 4567 / 9876 5432', notes: 'credit $50 | 10x blowdry pkg, 2 used. pd $300', credit: '', alert: '' })
   assert.equal(fx.values.name, 'Mei Tan')
@@ -146,7 +146,7 @@ test('old habits in any data are read back to proper fields', async () => {
   assert.deepEqual(n.unclear, ['owes $40 locker fee'])
 })
 
-test('raise anything: a CSV round-trips and every row with a name comes out', async () => {
+test('raise anything: a CSV round-trips and every row with a name comes out [raise-anything 1.1] [raise-anything 3.1] [raise-anything 3.3]', async () => {
   const { parseCsv, toCsv, guessKinds, raise } = await import('../web/raise.js')
   fc.assert(
     fc.property(fc.array(fc.array(fc.string({ minLength: 1, maxLength: 12 }).filter(s => s.trim() !== ''), { minLength: 3, maxLength: 3 }), { minLength: 1, maxLength: 20 }), rows => {

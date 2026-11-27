@@ -2,9 +2,9 @@
 inclusion: always
 ---
 
-# Haunt
+# Boo
 
-Haunt brings a business's data back from dying software, into any new software, with nothing lost.
+Boo brings a business's data back from dying software, into any new software, with nothing lost.
 
 ## The problem
 
@@ -20,7 +20,9 @@ Old software can't hold everything a business needs, so teams hide data where it
 
 Then the resurrection is finished: a **séance** with the old app before it goes, the **burial**, and the **afterlife**, where the old app's ghost keeps watch in the new app for 30 days and fixes old habits as they are typed.
 
-**Raise anything.** Instead of the demo, anyone can drop their own dead data: a CSV export from any software, a screenshot, or a photo of a paper book.
+**Raise anything.** Instead of the demo, anyone can drop their own dead data: a CSV export from any software, a screenshot, or a photo of a paper book. Boo works out what the rows are (clients, products, services or team) and they land as that.
+
+**Into any software.** The clean records go out in any app's import format, matched to its own columns and proved by reading the file back. Every switch ends with a sealed certificate.
 
 The demo is a salon moving from "Slotly" (made up, shutting down) to Idle. The same patterns appear in any software people outgrow: CRMs, booking, inventory, accounting, HR.
 

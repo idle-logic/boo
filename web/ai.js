@@ -1,4 +1,4 @@
-// The browser side of Haunt's AI (Gemini, through /api/*). Every answer is
+// The browser side of Boo's AI (Gemini, through /api/*). Every answer is
 // checked before it is used, and each step has a plain-rule fallback, so a
 // busy AI never stops a switch. Results carry `by: 'ai'` or `by: 'rules'` so
 // the page can say honestly which one decided.
@@ -152,7 +152,10 @@ export async function seance({ message, history, records, found }) {
   return out?.reply ? { reply: String(out.reply).slice(0, 400), model: out.model } : null
 }
 
-const KINDS = ['name', 'phone', 'email', 'date', 'money', 'number', 'note', 'category', 'unknown']
+const KINDS = ['name', 'phone', 'email', 'date', 'money', 'number', 'note', 'category', 'duration', 'role', 'stock', 'sku', 'unknown']
+const TARGET_IDS = ['clients', 'products', 'services', 'team']
+const targetOf = t => (TARGET_IDS.includes(t) ? t : null)
+const titleText = t => String(t ?? '').replace(/[^\p{L}\p{N} '&.,-]/gu, '').trim().slice(0, 50)
 const kindsFor = (kinds, n) => Array.from({ length: n }, (_, i) => (KINDS.includes(kinds?.[i]) ? kinds[i] : 'unknown'))
 
 /** A photo or screenshot of old records, read by Gemini. Returns { headers, rows, kinds, recordKind, model } or null. */
@@ -164,14 +167,22 @@ export async function readPhoto({ mime, data }) {
     .filter(Array.isArray)
     .slice(0, 500)
     .map(r => headers.map((_, i) => String(r[i] ?? '').slice(0, 300)))
-  return { headers, rows, kinds: kindsFor(out.kinds, headers.length), recordKind: String(out.recordKind ?? 'record').slice(0, 30), model: out.model }
+  return { headers, rows, kinds: kindsFor(out.kinds, headers.length), recordKind: String(out.recordKind ?? 'record').slice(0, 30), target: targetOf(out.target), title: titleText(out.title), model: out.model }
 }
 
 /** What each column of an export holds. Returns { kinds, recordKind, model } or null. */
 export async function mapColumnsAi(headers, samples) {
   const out = await callAi('/api/map-columns', { headers, samples })
   if (!out || !Array.isArray(out.kinds)) return null
-  return { kinds: kindsFor(out.kinds, headers.length), recordKind: String(out.recordKind ?? 'record').slice(0, 30), model: out.model }
+  return { kinds: kindsFor(out.kinds, headers.length), recordKind: String(out.recordKind ?? 'record').slice(0, 30), target: targetOf(out.target), title: titleText(out.title), model: out.model }
+}
+
+/** Which of Boo's fields fills each of another app's columns. Anything Gemini names that is not a real field is left blank. */
+export async function mapTemplateAi(headers, fields, example) {
+  const out = await callAi('/api/map-template', { headers, fields, example })
+  if (!out || !Array.isArray(out.map)) return null
+  const ok = [...fields, 'yes', 'blank']
+  return { map: headers.map((_, i) => (ok.includes(out.map[i]) && out.map[i] !== 'blank' ? out.map[i] : '')), model: out.model }
 }
 
 export async function askBoo(question, store) {

@@ -71,7 +71,7 @@ export function playIntro() {
   scene.setAttribute('aria-label', 'Night in a graveyard. The ground cracks and Boo the ghost rises from a grave.')
   scene.innerHTML = `
     <div class="intro-sky"><i class="moon"></i><i class="fog f1"></i><i class="fog f2"></i></div>
-    <div class="intro-title"><h1>Haunt</h1><p>Switch software. Lose nothing.</p></div>
+    <div class="intro-title"><h1>Boo</h1><p>Switch software. Lose nothing.</p></div>
     <div class="intro-ground"></div>
     <div class="intro-grave"></div>
     <p class="intro-skip">Click to skip</p>`

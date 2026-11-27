@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "haunt": {
+    "boo": {
       "command": "node",
       "args": ["mcp/server.js"],
       "disabled": false

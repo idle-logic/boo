@@ -1,20 +1,25 @@
 {
-  "name": "haunt",
+  "name": "boo",
   "version": "0.1.0",
-  "description": "Boo, a pixel ghost that lives on your screen and keeps an eye on Kiro for you.",
+  "description": "Boo: when old software dies, a ghost brings its data back to life in new software, with nothing lost.",
   "license": "MIT",
   "private": true,
   "type": "module",
   "main": "src/main/main.js",
   "bin": {
-    "haunt": "bin/haunt.js",
-    "haunt-mcp": "mcp/server.js"
+    "boo": "bin/haunt.js",
+    "boo-mcp": "mcp/server.js"
   },
   "scripts": {
     "start": "electron .",
     "test": "node --test \"tests/*.test.js\"",
     "icons": "node tools/make-icons.mjs",
-    "sprites": "node tools/preview-sprites.mjs sprites.png 8"
+    "sprites": "node tools/preview-sprites.mjs sprites.png 8",
+    "e2e": "node tests/e2e/run.mjs",
+    "gate": "node bin/boo.mjs gate",
+    "coverage": "node bin/boo.mjs coverage",
+    "serve": "node tools/build-site.mjs && node tools/serve-site.mjs 4317",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",
@@ -24,6 +29,7 @@
   },
   "devDependencies": {
     "electron": "^45.5.0",
-    "fast-check": "^4.11.0"
+    "fast-check": "^4.11.0",
+    "playwright-core": "^1.60.0"
   }
 }

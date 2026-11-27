@@ -83,7 +83,7 @@ test('when Kiro needs you, Boo flies to the cursor', () => {
   assert.match(last.out.pose, /^knock/)
 })
 
-test('Boo wanders, and climbs onto window ledges', () => {
+test('Boo wanders, and climbs onto window ledges [boo-guide 1.1]', () => {
   const windows = [
     { x: 300, y: 780, w: 700, h: 300 },
     { x: 900, y: 600, w: 700, h: 500 },
@@ -99,7 +99,7 @@ test('Boo wanders, and climbs onto window ledges', () => {
   assert.ok(climbed, 'never stood on a window')
 })
 
-test('Boo falls asleep when nothing happens, and wakes when clicked', () => {
+test('Boo falls asleep when nothing happens, and wakes when clicked [boo-guide 1.4]', () => {
   const brain = new Brain(() => 0.99)
   const body = { x: 500, y: 976, vx: 0, vy: 0, ground: { x1: 0, x2: 1920, y: 1040, floor: true } }
   const out = brain.update({ body, ledges: [], bounds, cursor: null, now: 200_000 })
@@ -159,7 +159,7 @@ test('tucked away, Boo ignores small talk but comes out for big news', () => {
   }
 })
 
-test('a click brings Boo out of the corner', () => {
+test('a click brings Boo out of the corner [boo-guide 1.3]', () => {
   const brain = new Brain(() => 0.5)
   const body = { x: 500, y: 976, vx: 0, vy: 0, ground: null }
   brain.handle({ type: 'tuck' }, 0)
@@ -167,7 +167,7 @@ test('a click brings Boo out of the corner', () => {
   assert.equal(brain.update({ body, ledges: [], bounds, cursor: null, now: 20 }).tucked, false)
 })
 
-test('guiding a form, Boo hovers beside the field it is typing into', () => {
+test('guiding a form, Boo hovers beside the field it is typing into [boo-guide 2.1]', () => {
   const brain = new Brain(() => 0.5)
   let body = { x: 100, y: 900, vx: 0, vy: 0, ground: null }
   brain.handle({ type: 'guide', x: 600, y: 400, h: 40, text: 'First name: Mei' }, 0)

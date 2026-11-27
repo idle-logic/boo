@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Trace new acceptance criteria to tests",
+  "description": "When a spec's requirements change, list the acceptance criteria no test names yet, and write the missing tests.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".kiro/specs/**/requirements.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run `node bin/boo.mjs coverage --list`. For each untested criterion in the spec that just changed, add a test in tests/ (unit) or a step in tests/e2e/ (browser) that proves it, and name the criterion in the test title like [spec-name 2.3]. Never tag a test with a criterion it does not really check. Run `npm test` and `node bin/boo.mjs coverage` again and report the new percentage."
+  }
+}

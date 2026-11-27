@@ -1,0 +1,75 @@
+{
+  "type": "boo/certificate",
+  "version": 1,
+  "subject": "Raised fittrack-members.csv",
+  "source": {
+    "name": "fittrack-members.csv",
+    "sha256": "037ba26d7c26efbdd3d5aa71981dae2727585cc189d286fe1661a4ceb035e716",
+    "rows": 20,
+    "columns": 6
+  },
+  "verdict": "AT REST",
+  "passed": 6,
+  "checks": 6,
+  "sets": {
+    "clients": {
+      "count": 20,
+      "arrived": 20,
+      "sha256": "c74960bb20d0b9ed3898e53ea6d3327859438d9727b433cc50161d051bf4caef",
+      "missing": [],
+      "extra": []
+    },
+    "packages": {
+      "count": 5,
+      "arrived": 5,
+      "sha256": "c827c673f8c69b6ca26666616dc95bf282791a7e2cb88d2df3d4979119b8aaad",
+      "missing": [],
+      "extra": []
+    }
+  },
+  "money": {
+    "prepaid": {
+      "expected": 2350,
+      "arrived": 2350
+    },
+    "credit": {
+      "expected": 205,
+      "arrived": 205
+    }
+  },
+  "detail": [
+    {
+      "check": "clients: count",
+      "pass": true,
+      "detail": "20 expected, 20 arrived"
+    },
+    {
+      "check": "clients: every record",
+      "pass": true,
+      "detail": "all match"
+    },
+    {
+      "check": "packages: count",
+      "pass": true,
+      "detail": "5 expected, 5 arrived"
+    },
+    {
+      "check": "packages: every record",
+      "pass": true,
+      "detail": "all match"
+    },
+    {
+      "check": "prepaid dollars",
+      "pass": true,
+      "detail": "$2350 = $2350"
+    },
+    {
+      "check": "store credit dollars",
+      "pass": true,
+      "detail": "$205 = $205"
+    }
+  ],
+  "applied": [],
+  "seal": "4aa5ef6fc8c1b1d1ee1298f97aea331b0c811407b70060905767328097823791",
+  "issued": "2026-11-27T05:03:48.097Z"
+}

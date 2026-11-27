@@ -5,3 +5,5 @@ sprites.png
 .env.local
 evals/results/
 site/
+build/
+tests/e2e/last-run.json

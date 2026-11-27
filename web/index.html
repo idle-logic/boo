@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Haunt · switch any software, lose nothing</title>
-    <meta name="description" content="Haunt is an AI agent that brings data back from dying software: CRM, booking, inventory, accounting or HR. It reads the old app, cleans what staff hid in notes and fake records, moves it into new software and proves nothing was lost." />
+    <title>Boo · switch any software, lose nothing</title>
+    <meta name="description" content="Boo is an AI agent that brings data back from dying software: CRM, booking, inventory, accounting or HR. It reads the old app, cleans what staff hid in notes and fake records, moves it into new software and proves nothing was lost." />
     <link rel="icon" href="./icon.svg" />
     <link rel="stylesheet" href="./app.css" />
   </head>
@@ -59,7 +59,7 @@
         <div class="pop" id="pop" data-pos="center">
             <section class="h-start" id="start-card">
               <div class="boo-spot" id="boo-spot" aria-hidden="true"></div>
-              <p class="h-eyebrow">Haunt</p>
+              <p class="h-eyebrow">Boo</p>
               <h1>Switch software. Lose nothing.</h1>
               <p>When old software dies, your data dies with it. Boo raises it from the grave, cleans out the ghosts hiding in notes and fake records, and brings it back to life in new software.</p>
               <div class="h-example"><span>Works for</span><b>any software: CRM, booking, inventory, accounting, HR…</b></div>
@@ -74,6 +74,7 @@
                 <label class="h-drop" id="raise-drop"><input type="file" id="raise-file" accept=".csv,.tsv,.txt,image/png,image/jpeg,image/webp" hidden /><b>Drop a CSV export, a screenshot, or a photo of a paper book</b><span>Any software. Even paper.</span></label>
                 <div class="h-samples">
                   <button type="button" data-sample="samples/paper-client-book.jpg|image/jpeg">Try a paper client book</button>
+                  <button type="button" data-sample="samples/sushi-menu-board.jpg|image/jpeg">Try a sushi menu photo</button>
                   <button type="button" data-sample="samples/fittrack-members.csv|text/csv">Try a gym's 2008 export</button>
                 </div>
                 <p class="h-raise-msg" id="raise-msg" role="status"></p>
@@ -105,6 +106,7 @@
               <button type="button" class="h-btn primary" id="seance-rest">Let it rest</button>
             </section>
             <section class="h-card h-raise-card" id="raise" hidden></section>
+            <section class="h-card h-export" id="export" hidden></section>
 
         </div>
       </div>

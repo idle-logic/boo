@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Tell Boo something. Built for Kiro hooks, so it never fails a hook:
-// if Haunt is not running, it exits quietly.
+// if Boo is not running, it exits quietly.
 //
 //   haunt start "Writing tests for Spec 2"
 //   haunt tool "npm test"
@@ -28,5 +28,5 @@ try {
     signal: AbortSignal.timeout(1500),
   })
 } catch {
-  // Haunt is not running. That is fine.
+  // Boo is not running. That is fine.
 }

@@ -1,4 +1,4 @@
-// Haunt in the browser. Act one: Boo looks around Slotly, finds what the team
+// Boo in the browser. Act one: Boo looks around Slotly, finds what the team
 // does by hand, and runs those workarounds for them inside Slotly. Act two:
 // when they are ready, Boo switches them to Idle with nothing lost.
 
@@ -11,9 +11,11 @@ import { playIntro } from './intro.js'
 import { survey } from './survey.js'
 import { readWithRules, findingsFor, mergeReading, askGeminiToRead, cleanName } from './interpret.js'
 import { idleRecords, crewsFor, move, prove } from './switch.js'
-import { chatBoo, recordsFor, thinkAboutNotes, seance, readPhoto, mapColumnsAi } from './ai.js'
-import { fixClient, fixService } from './habits.js'
-import { parseCsv, guessKinds, raise, findingsFromRaise, cleanFiles, ROW_LIMIT, SIZE_LIMIT } from './raise.js'
+import { chatBoo, recordsFor, thinkAboutNotes, seance, readPhoto, mapColumnsAi, mapTemplateAi } from './ai.js'
+import { fixClient, fixService, fixProduct, fixStaff } from './habits.js'
+import { parseCsv, guessKinds, guessTarget, raise, findingsFromRaise, cleanFiles, newAppRecords, TARGETS, ROW_LIMIT, SIZE_LIMIT } from './raise.js'
+import { PRESETS, FIELDS, autoMap, exportTo, proveExport, valueOf, headersFrom } from './destinations.js'
+import { certify, sha256 } from './certificate.js'
 import { applyEdits, cleanEdits, storeFrom } from './edits.js'
 import { createBoo as createPet } from './pet.js'
 
@@ -39,7 +41,7 @@ const homeSpot = () => {
   const r = rect($('boo-home'))
   return { x: r.left - 4, y: r.top - 8 }
 }
-const boo = createGhost({ size: 88, at: startSpot(), title: 'Boo, the Haunt ghost' })
+const boo = createGhost({ size: 88, at: startSpot(), title: 'Boo' })
 boo.hide()
 playIntro().then(at => {
   boo.place(at.x, at.y)
@@ -217,9 +219,9 @@ watch('people')
 
 const feedLines = []
 // One popup at a time, floating over the apps. Where it sits depends on what you need to see.
-const POP_AT = { collected: 'right', tour: 'right', found: 'center', live: 'center', confirm: 'center', moving: 'left', proof: 'left', receipt: 'center', seance: 'right', raise: 'right' }
+const POP_AT = { collected: 'right', tour: 'right', found: 'center', live: 'center', confirm: 'center', moving: 'left', proof: 'left', receipt: 'center', seance: 'right', raise: 'right', export: 'center' }
 const show = id => {
-  for (const x of ['start-card', 'collected', 'tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt', 'seance', 'raise']) $(x).hidden = x !== id
+  for (const x of ['start-card', 'collected', 'tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt', 'seance', 'raise', 'export']) $(x).hidden = x !== id
   $('pop').dataset.pos = POP_AT[id] ?? 'center'
 }
 const gem = (on, model) => (on ? `<span class="gem" title="${esc(model || 'Gemini')}">✦ Gemini</span>` : '')
@@ -776,15 +778,17 @@ function done(result, d) {
     <h2>${raised ? `Your ${esc(raised.kind)}s live again.` : 'Slotly died. Its data lives on.'}</h2>
     <p class="h-check"><b>${result.matched}/${result.checks}</b> checks match</p>
     <details class="h-moved"><summary>What moved</summary><ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>
-    ${raised ? `<div class="h-files">${Object.keys(cleanFiles(read.clients)).map(f => `<button type="button" class="h-btn" data-file="${f}">${f}</button>`).join('')}</div>` : ''}
+    <p class="h-seal" id="seal"><span>Sealing the certificate…</span></p>
+    <button type="button" class="h-btn h-wide" id="export-open">Send to another app</button>
     <div class="h-end-actions">
       ${raised ? '' : '<button type="button" class="h-btn" id="seance-open">Hold a séance</button>'}
       <button type="button" class="h-btn primary" id="rest">Lay ${raised ? 'it' : 'Slotly'} to rest</button>
     </div>`
   show('receipt')
+  issueCertificate()
   $('seance-open')?.addEventListener('click', openSeance)
   $('rest').addEventListener('click', rest, { once: true })
-  $('receipt').querySelectorAll('[data-file]').forEach(b => b.addEventListener('click', () => saveFile(b.dataset.file, cleanFiles(read.clients)[b.dataset.file])))
+  $('export-open').addEventListener('click', () => openExport('receipt'))
   const r = rect($('receipt'))
   boo.mode('happy')
   boo.flyTo(r.right - 70, r.top - 40, 700, { size: 56 }).then(async () => {
@@ -797,6 +801,34 @@ function done(result, d) {
 }
 
 $('start').addEventListener('click', lookAround)
+
+// ------------------------------------------------------------- the certificate: proof anyone can check again
+
+let certificate = null
+/** What should be in the new app, from the cleaned reading, against what the crews actually entered. */
+async function issueCertificate() {
+  const shape = list => list.map(c => ({ name: c.name, phone: c.phone, vip: c.vip, credit: c.credit }))
+  let expected
+  if (raised && raised.target !== 'clients') {
+    expected = newAppRecords(raisedRecords(), raised.target)
+  } else if (raised) {
+    expected = { clients: shape(read.clients), packages: read.clients.flatMap(c => c.packages.map(p => ({ client: c.name, left: p.left, of: p.of, paid: p.paid }))) }
+  } else {
+    const should = { clients: [], services: [], products: [], staff: [], packages: [], bookings: [], policies: {}, changed() {} }
+    storeFrom(idleRecords(read, movedWith), should)
+    expected = { clients: shape(should.clients), packages: should.packages, bookings: should.bookings, services: should.services, products: should.products, staff: should.staff }
+  }
+  const actual = { clients: shape(store.clients), packages: store.packages, bookings: store.bookings, services: store.services, products: store.products, staff: store.staff }
+  const source = raised
+    ? { name: raised.name, sha256: await sha256(JSON.stringify(raised.table.rows)), rows: raised.table.rows.length, columns: raised.table.headers.length }
+    : { name: 'Slotly (every screen read by Boo)', sha256: await sha256(JSON.stringify(seen ?? oldData)) }
+  const applied = (thought?.notes ?? []).filter(n => n.kind !== 'note').map(n => ({ text: n.text, kind: n.kind, sessions: n.sessions, amount: n.amount, flag: n.flag }))
+  certificate = await certify({ subject: raised ? `Raised ${raised.name} into Idle` : 'Slotly → Idle', source, expected, actual, applied })
+  const el = $('seal')
+  if (!el) return
+  el.innerHTML = `<b class="${certificate.verdict === 'AT REST' ? 'ok' : 'bad'}">${certificate.verdict}</b> ${certificate.passed}/${certificate.checks} · sealed <code>${certificate.seal.slice(0, 10)}</code> <button type="button" class="h-link" id="cert-save">Certificate</button>`
+  $('cert-save').addEventListener('click', () => saveFile(`boo-certificate-${certificate.seal.slice(0, 8)}.json`, JSON.stringify(certificate, null, 2), 'application/json'))
+}
 
 // ------------------------------------------------------------- the séance: talk to the dead app before it is buried
 
@@ -897,21 +929,46 @@ async function rest() {
   perch('Go on. Try an old habit.')
 }
 
-const HABITS = [
-  { form: 'client', page: 'clients', label: 'add a client the old way', values: { name: 'Mei Tan ★ (LATEX ALLERGY)', phone: '9123 4567 / 9876 5432', email: 'mei.tan@gmail.com', notes: 'credit $50 | 10x blowdry pkg, 2 used. pd $300' } },
-  { form: 'service', page: 'services', label: 'sell a product as a service', values: { name: 'RETAIL - Argan oil serum', minutes: '5', price: '38' } },
-]
+/** Old habits to try, built from the hiding places this data really used. */
+function habitsFor() {
+  if (!raised) {
+    return [
+      { form: 'client', page: 'clients', label: 'add a client the old way', values: { name: 'Mei Tan ★ (LATEX ALLERGY)', phone: '9123 4567 / 9876 5432', email: 'mei.tan@gmail.com', notes: 'credit $50 | 10x blowdry pkg, 2 used. pd $300' } },
+      { form: 'service', page: 'services', label: 'sell a product as a service', values: { name: 'RETAIL - Argan oil serum', minutes: '5', price: '38' } },
+    ]
+  }
+  const f = raised.found
+  const first = raisedRecords()[0]?.name ?? 'House'
+  const bracket = text => /\(([^)]+)\)|\[([^\]]+)\]/.exec(text ?? '')?.[0]
+  if (raised.target === 'products' || raised.target === 'services') {
+    const marks = [f.featured.length && '★', bracket(f.allergens[0]?.from), bracket(f.tags[0]?.from), raised.target === 'products' && f.soldOut.length && 'SOLD OUT'].filter(Boolean)
+    if (!marks.length) marks.push('★', '(GF)')
+    const name = `${first} special ${marks.join(' ')}`
+    const price = f.prices[0]?.from ?? '$12 / $16 large'
+    return raised.target === 'products'
+      ? [{ form: 'product', page: 'products', label: `add ${an(raised.kind)} the old way`, values: { name, price } }]
+      : [{ form: 'service', page: 'services', label: `add ${an(raised.kind)} the old way`, values: { name, price, minutes: '1h 15' } }]
+  }
+  if (raised.target === 'team') return [{ form: 'staff', page: 'team', label: 'add a team member the old way', values: { name: `Sam Lee ${bracket(f.flags[0]?.from) ?? '(PART TIME)'}`, phone: f.phones[0]?.from ?? '9123 4567 / 6123 4567' } }]
+  const vip = /★|\*\*?\s*VIP\s*\*?\*|\bVIP\b/.exec(f.vip[0]?.from ?? '')?.[0] ?? '★'
+  const alert = bracket(f.alert[0]?.from) ?? '(LATEX ALLERGY)'
+  const notes = [f.credit[0]?.from ?? 'credit $50', f.packages[0]?.from ?? '10x blowdry pkg, 2 used. pd $300'].join(' | ')
+  return [{ form: 'client', page: 'clients', label: `add ${an(raised.kind)} the old way`, values: { name: `Sam Lee ${vip} ${alert}`, phone: f.phones[0]?.from ?? '9123 4567 / 9876 5432', email: 'sam.lee@gmail.com', notes } }]
+}
 let habitAt = 0
 
 function afterlifeCard(caught) {
   const name = raised ? raised.name : 'Slotly'
-  const next = HABITS[habitAt % HABITS.length]
+  const list = habitsFor()
+  const next = list[habitAt % list.length]
   $('receipt').innerHTML = `<p class="h-eyebrow">The afterlife</p>
     <h2>${caught ? 'Caught one.' : `${esc(name)}'s ghost haunts Idle for 30 days.`}</h2>
-    <p>${caught ? esc(caught.fixes.join(' · ')) : 'Old habits die hard. If anyone types one into Idle, like a ★ in a name or credit in a note, the ghost fixes it.'}</p>
-    <button type="button" class="h-btn primary" id="try-habit">Try it: ${next.label}</button>`
+    <p>${caught ? esc(caught.fixes.join(' · ')) : 'Old habits die hard. If anyone types one into Idle, like the marks this data was full of, the ghost fixes it.'}</p>
+    <button type="button" class="h-btn primary" id="try-habit">Try it: ${esc(next.label)}</button>
+    <button type="button" class="h-btn" id="export-open-2">Send to another app</button>`
   show('receipt')
   $('try-habit').addEventListener('click', () => tryOldHabit(next), { once: true })
+  $('export-open-2').addEventListener('click', () => openExport('receipt'))
 }
 
 /** Type an old habit into Idle, slowly, so you can see it. You press save. */
@@ -951,9 +1008,11 @@ store.guard = (form, values) => {
     return fx && { values: fx.values, packages: fx.packages.map(p => ({ ...p, expires })), fixes: fx.fixes }
   }
   if (form === 'service') return fixService(values)
+  if (form === 'product') return fixProduct(values)
+  if (form === 'staff') return fixStaff(values)
   return null
 }
-store.caught = (caught, form, values) => hauntTheNewApp(caught, form === 'service' ? caught.product.name : values.name)
+store.caught = (caught, form, values) => hauntTheNewApp(caught, caught.product?.name ?? caught.values?.name ?? values.name)
 
 /** The old app's ghost rises from its grave, fixes the habit, and goes back to rest. */
 async function hauntTheNewApp(caught, name) {
@@ -995,9 +1054,9 @@ const titleOf = file => {
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
-function saveFile(name, text) {
+function saveFile(name, text, type = 'text/csv') {
   const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }))
+  a.href = URL.createObjectURL(new Blob([text], { type }))
   a.download = name
   a.click()
 }
@@ -1043,17 +1102,55 @@ document.querySelectorAll('[data-sample]').forEach(b =>
   }),
 )
 
+/** At most eight columns on screen: the ones that matter first, so the button is always in reach. */
+function shownColumns(table) {
+  const order = ['name', 'phone', 'email', 'note', 'money', 'date', 'category', 'number', 'unknown']
+  return table.headers
+    .map((_, i) => i)
+    .sort((a, b) => order.indexOf(table.kinds[a]) - order.indexOf(table.kinds[b]) || a - b)
+    .slice(0, 8)
+    .sort((a, b) => a - b)
+}
+
 function raiseFailed(message) {
   $('raise').innerHTML = `<p class="h-eyebrow">Hmm</p><h2>${esc(message)}</h2><button type="button" class="h-btn primary" id="raise-again">Start again</button>`
   show('raise')
   $('raise-again').addEventListener('click', () => location.reload())
 }
 
+/** Where the raised records live: read.clients, read.products, read.services or read.staff. */
+const listFor = () => TARGETS[raised?.target ?? 'clients'].list
+const raisedRecords = () => read?.[listFor()] ?? []
+const an = word => (/^[aeiou]/i.test(word) ? `an ${word}` : `a ${word}`)
+
 function syncRaised() {
-  store.business = { ...store.business, short: 'Your business' }
-  store.clients = read.clients.map(c => ({ name: c.name, phone: c.phone, email: c.email, vip: c.vip ? 'Yes' : 'No', visits: '', lastVisit: '', credit: c.credit ? String(c.credit) : '', alert: c.alert, notes: c.notes }))
-  store.packages = read.clients.flatMap(c => c.packages.map(p => ({ client: c.name, name: p.name, left: String(p.left), of: String(p.of), paid: String(p.paid), expires: '' })))
+  store.business = { ...store.business, short: raised.name.slice(0, 24) || 'Your business' }
+  for (const [k, v] of Object.entries(newAppRecords(raisedRecords(), raised.target))) store[k] = v
   store.changed()
+}
+
+/** What each column holds, and where the rows go. The owner can change the destination with one tap. */
+function renderColumns(table) {
+  const shown = shownColumns(table)
+  $('raise').innerHTML = `<p class="h-eyebrow">What each column holds ${gem(Boolean(table.model), table.model)}</p>
+    <h2>Each row is ${an(esc(table.recordKind))}</h2>
+    <p class="h-goes">Goes into Idle as <span class="h-targets">${Object.entries(TARGETS)
+      .map(([id, t]) => `<button type="button" data-target="${id}" aria-pressed="${id === table.target}">${t.label}</button>`)
+      .join('')}</span></p>
+    <ul class="h-cols">${shown
+      .map(i => `<li><b>${esc(table.headers[i])}</b><span class="arrow" aria-hidden="true">→</span><em>${KIND_LABEL[table.kinds[i]]}</em><small>${esc(table.rows.slice(0, 2).map(r => r[i]).filter(Boolean).join(' · ').slice(0, 70))}</small></li>`)
+      .join('')}</ul>
+    ${table.headers.length > shown.length ? `<p class="h-hint">+${table.headers.length - shown.length} more columns, kept as notes on each ${esc(table.recordKind)}.</p>` : ''}`
+  $('raise')
+    .querySelectorAll('[data-target]')
+    .forEach(b =>
+      b.addEventListener('click', () => {
+        table.target = b.dataset.target
+        const next = $('raise').querySelector('.h-next')
+        renderColumns(table)
+        if (next) $('raise').appendChild(next)
+      }),
+    )
 }
 
 async function raiseFlow(src) {
@@ -1083,7 +1180,7 @@ async function raiseFlow(src) {
   $('raise').innerHTML = `<p class="h-eyebrow">Read from ${esc(src.name)} ${gem(Boolean(table.model), table.model)}</p>
     <h2>${table.rows.length} rows · ${table.headers.length} columns</h2>
     ${table.capped ? `<p class="h-hint">Only the first ${ROW_LIMIT} rows, to keep it quick.</p>` : ''}
-    <ul class="h-tally">${table.headers.map(h => `<li>${esc(h)}</li>`).join('')}</ul>`
+    <ul class="h-chips">${table.headers.slice(0, 24).map(h => `<li>${esc(h)}</li>`).join('')}${table.headers.length > 24 ? `<li class="more">+${table.headers.length - 24} more</li>` : ''}</ul>`
   show('raise')
   ui.now('Data collected', 'Next: analyse it', { wait: true })
   await nextButton('raise', 'Next: analyse it')
@@ -1091,23 +1188,21 @@ async function raiseFlow(src) {
   await actBanner(2, 'Analyse it', 'Act II · Ghosts in the Notes', 'find')
   stage = 'touring'
   if (src.kind !== 'image') {
-    ui.now('Gemini is working out each column', `${table.headers.length} columns`)
+    ui.now('Gemini is working out what this is', `${table.headers.length} columns`)
     const ai = await Promise.race([mapColumnsAi(table.headers, table.rows.slice(0, 8)), pause(9000).then(() => null)])
-    if (ai) Object.assign(table, { kinds: ai.kinds.map((k, i) => (k === 'unknown' ? table.kinds[i] : k)), recordKind: ai.recordKind, model: ai.model })
+    if (ai) Object.assign(table, { kinds: ai.kinds.map((k, i) => (k === 'unknown' ? table.kinds[i] : k)), recordKind: ai.recordKind, target: ai.target, title: ai.title, model: ai.model })
   }
+  table.target = table.target ?? guessTarget(table.headers, table.rows)
   if (!table.kinds.includes('name')) table.kinds[0] = 'name'
-  $('raise').innerHTML = `<p class="h-eyebrow">What each column holds ${gem(Boolean(table.model), table.model)}</p>
-    <h2>Each row is a ${esc(table.recordKind)}</h2>
-    <ul class="h-cols">${table.headers
-      .map((h, i) => `<li><b>${esc(h)}</b><span class="arrow" aria-hidden="true">→</span><em>${KIND_LABEL[table.kinds[i]]}</em><small>${esc(table.rows.slice(0, 2).map(r => r[i]).filter(Boolean).join(' · ').slice(0, 70))}</small></li>`)
-      .join('')}</ul>`
+  renderColumns(table)
   show('raise')
-  ui.now('Columns mapped', 'Next: find what is hidden', { wait: true })
+  ui.now(`These are ${table.recordKind}s`, `Going into Idle as ${TARGETS[table.target].label}`, { wait: true })
   await nextButton('raise', 'Next: find what is hidden')
 
   const r = raise(table)
-  raised = { name: titleOf(src.name), kind: table.recordKind, table, found: r.found }
-  read = { clients: r.records, services: [], products: [], staff: [], bookings: [], policies: {}, sameStaff: [] }
+  raised = { name: table.title || titleOf(src.name), kind: table.recordKind, target: table.target, table, found: r.found }
+  read = { clients: [], services: [], products: [], staff: [], bookings: [], policies: {}, sameStaff: [] }
+  read[TARGETS[table.target].list] = r.records
   const list = findingsFromRaise(r.found)
   const unclear = r.found.unclear.map(u => ({ src: u.row, text: u.text }))
   thinking = unclear.length ? thinkAboutNotes({ unclear, needs, found: list.map(f => `${f.title} (${f.count})`) }) : Promise.resolve(null)
@@ -1134,26 +1229,20 @@ async function raiseFlow(src) {
   stage = 'cleaning'
   let fromNotes = 0
   for (const n of thought?.notes ?? []) {
-    const c = read.clients.find(x => x.row === n.src)
+    const c = raisedRecords().find(x => x.row === n.src)
     if (!c) continue
-    if (n.kind === 'credit' && n.amount) (c.credit += n.amount), fromNotes++
-    if (n.kind === 'prepaid' && n.sessions) c.packages.push({ name: `${n.sessions} ${n.service || 'sessions'}`, left: n.sessions, of: n.sessions, paid: n.amount, from: n.text }), fromNotes++
-    if (n.kind === 'flag' && n.flag) (c.alert = c.alert ? `${c.alert} · ${n.flag}` : n.flag), fromNotes++
+    if (raised.target === 'clients') {
+      if (n.kind === 'credit' && n.amount) (c.credit += n.amount), fromNotes++
+      if (n.kind === 'prepaid' && n.sessions) c.packages.push({ name: `${n.sessions} ${n.service || 'sessions'}`, left: n.sessions, of: n.sessions, paid: n.amount, from: n.text }), fromNotes++
+      if (n.kind === 'flag' && n.flag) (c.alert = c.alert ? `${c.alert} · ${n.flag}` : n.flag), fromNotes++
+    } else if (n.meaning) (c.notes = [c.notes, `Gemini: ${n.meaning}`].filter(Boolean).join(' | ')), fromNotes++
   }
-  ui.now('Cleaning', `${read.clients.length} ${table.recordKind}s`)
+  ui.now('Cleaning', `${raisedRecords().length} ${table.recordKind}s`)
   await pause(900)
-  const cleanedNames = r.found.vip.length + r.found.alert.filter(a => a.from.includes('(')).length + r.found.flags.length
   $('raise').innerHTML = `<p class="h-eyebrow">Clean</p><h2>Every ${esc(table.recordKind)} has proper fields now</h2>
-    <ul class="h-tally">${[
-      cleanedNames && `${cleanedNames} names cleaned`,
-      r.found.alert.length && `${r.found.alert.length} health alerts`,
-      r.found.packages.length && `${r.found.packages.length} packages`,
-      r.found.credit.length && `${r.found.credit.length} store credits`,
-      r.found.phones.length && `${r.found.phones.length} second ${r.found.phones.length === 1 ? 'number' : 'numbers'} moved to notes`,
-      fromNotes && `${fromNotes} read by Gemini from notes`,
-    ]
+    <ul class="h-tally">${[...list.filter(f => !['unclear', 'crossed'].includes(f.key)).map(f => `${f.count} · ${f.title.replace(/ (typed into|hidden in|with) .*/, '')} fixed`), r.found.crossed.length && `${r.found.crossed.length} crossed out, left out`, fromNotes && `${fromNotes} read by Gemini from notes`]
       .filter(Boolean)
-      .map(t => `<li>${t}</li>`)
+      .map(t => `<li>${esc(t)}</li>`)
       .join('')}</ul>`
   show('raise')
   ui.now('Data cleaned', 'Next: migrate it', { wait: true })
@@ -1161,39 +1250,119 @@ async function raiseFlow(src) {
 
   await actBanner(4, 'Migrate it', 'Act IV · Back from the Dead', 'move')
   stage = 'moving'
+  const where = TARGETS[raised.target]
   $('pop').hidden = true
   $('tab-idle').hidden = false
   $('tab-idle').classList.add('on')
-  $('tab-idle').innerHTML = '<span class="fav idle-fav" aria-hidden="true"></span>Idle · your data'
+  $('tab-idle').innerHTML = `<span class="fav idle-fav" aria-hidden="true"></span>Idle · ${esc(raised.name)}`
   $('pane-idle').hidden = false
   $('viewport').classList.add('split')
   watch('people')
-  views.people.el.querySelector('[data-nav="clients"]')?.click()
-  ui.now('Raising them into Idle', `${read.clients.length} ${table.recordKind}s`)
-  const all = read.clients
+  views.people.el.querySelector(`[data-nav="${where.page}"]`)?.click()
+  ui.now(`Raising them into Idle ${where.label}`, `${raisedRecords().length} ${table.recordKind}s`)
+  const all = raisedRecords()
   for (let i = 4; i < all.length + 4; i += 4) {
-    read.clients = all.slice(0, i)
+    read[where.list] = all.slice(0, i)
     syncRaised()
     const b = rect(views.people.el)
     burst(b.left + 40 + Math.random() * (b.width - 80), b.top + 140 + Math.random() * 200, 10, SPARKLE, 0.4, 200)
     await pause(160)
   }
-  read.clients = all
+  read[where.list] = all
   syncRaised()
 
   await actBanner(5, 'Verify it', 'Act V · Rest in Peace', 'verify')
   $('pop').hidden = false
-  const sum = list => list.reduce((a, x) => a + Number(x || 0), 0)
-  const rowsIn = table.rows.filter(x => x[table.kinds.indexOf('name')]?.trim()).length
-  const pkIn = read.clients.flatMap(c => c.packages)
-  const checks = [
-    [`${rowsIn} ${table.recordKind}s in · ${store.clients.length} in Idle`, rowsIn === store.clients.length],
-    [`${pkIn.length} packages · $${sum(pkIn.map(p => p.paid)).toLocaleString('en')} = $${sum(store.packages.map(p => p.paid)).toLocaleString('en')}`, pkIn.length === store.packages.length && sum(pkIn.map(p => p.paid)) === sum(store.packages.map(p => p.paid))],
-    [`Store credit · $${sum(read.clients.map(c => c.credit)).toLocaleString('en')} = $${sum(store.clients.map(c => c.credit)).toLocaleString('en')}`, sum(read.clients.map(c => c.credit)) === sum(store.clients.map(c => c.credit))],
-    [`${read.clients.filter(c => c.alert).length} health alerts kept`, read.clients.filter(c => c.alert).length === store.clients.filter(c => c.alert).length],
-  ]
   busy()
-  done({ matched: checks.filter(c => c[1]).length, checks: checks.length, lines: checks.map(c => c[0]) }, {})
+  done(raiseChecks(table), {})
+}
+
+/** The checks for a raise, by what was raised. */
+function raiseChecks(table) {
+  const sum = list => Math.round(list.reduce((a, x) => a + (Number(x) || 0), 0) * 100) / 100
+  const recs = raisedRecords()
+  const rowsIn = table.rows.filter(x => String(x[table.kinds.indexOf('name')] ?? '').trim()).length
+  const inIdle = store[listFor()].length
+  const checks = [[`${rowsIn} ${table.recordKind}s in · ${inIdle} in Idle ${TARGETS[raised.target].label}`, rowsIn === inIdle]]
+  if (raised.target === 'clients') {
+    const pkIn = recs.flatMap(c => c.packages)
+    checks.push(
+      [`${pkIn.length} packages · $${sum(pkIn.map(p => p.paid)).toLocaleString('en')} = $${sum(store.packages.map(p => p.paid)).toLocaleString('en')}`, pkIn.length === store.packages.length && sum(pkIn.map(p => p.paid)) === sum(store.packages.map(p => p.paid))],
+      [`Store credit · $${sum(recs.map(c => c.credit)).toLocaleString('en')} = $${sum(store.clients.map(c => c.credit)).toLocaleString('en')}`, sum(recs.map(c => c.credit)) === sum(store.clients.map(c => c.credit))],
+      [`${recs.filter(c => c.alert).length} health alerts kept`, recs.filter(c => c.alert).length === store.clients.filter(c => c.alert).length],
+    )
+  }
+  if (raised.target === 'products' || raised.target === 'services') {
+    const list = store[listFor()]
+    checks.push(
+      [`Prices · $${sum(recs.map(r => r.price)).toLocaleString('en')} = $${sum(list.map(r => r.price)).toLocaleString('en')}`, sum(recs.map(r => r.price)) === sum(list.map(r => r.price))],
+      [`${recs.filter(r => r.allergens.length).length} with allergens kept`, recs.filter(r => r.allergens.length).length === list.filter(r => /Allergens:/.test(r.notes ?? '')).length || raised.target === 'services'],
+    )
+    if (raised.target === 'products') checks.push([`${recs.filter(r => r.stock === 0).length} sold out · stock 0`, recs.filter(r => r.stock === 0).length === list.filter(r => r.stock === '0').length])
+  }
+  return { matched: checks.filter(c => c[1]).length, checks: checks.length, lines: checks.map(c => c[0]) }
+}
+
+// ------------------------------------------------------------- into any software: the destination's own columns
+
+const exportRecords = () => (raised ? { records: raisedRecords(), target: raised.target } : { records: read?.clients ?? [], target: 'clients' })
+
+function openExport(back = 'receipt') {
+  const { target } = exportRecords()
+  const presets = PRESETS.filter(p => !p.target || p.target === target)
+  $('export').innerHTML = `<p class="h-eyebrow">Send to another app</p>
+    <h2>Where are they going?</h2>
+    <div class="h-presets">${presets.map(p => `<button type="button" data-preset="${p.id}">${esc(p.label)}</button>`).join('')}</div>
+    <label class="h-drop small" id="tpl-drop"><input type="file" id="tpl-file" accept=".csv,.tsv,.txt" hidden /><b>Any other app: drop its import template</b><span>or any export from it. Boo copies its columns exactly.</span></label>
+    <div id="export-result"></div>
+    <button type="button" class="h-btn" id="export-back">Back</button>`
+  show('export')
+  $('export-back').addEventListener('click', () => show(back))
+  $('export').querySelectorAll('[data-preset]').forEach(b =>
+    b.addEventListener('click', () => {
+      const p = PRESETS.find(x => x.id === b.dataset.preset)
+      if (!p.headers) return exportClean()
+      exportWith(p.label, p.headers)
+    }),
+  )
+  const drop = $('tpl-drop')
+  const take = async file => {
+    const headers = headersFrom(await file.text())
+    if (!headers.length) return ($('export-result').innerHTML = '<p class="h-hint">That file has no column headings.</p>')
+    exportWith(titleOf(file.name), headers)
+  }
+  $('tpl-file').addEventListener('change', e => e.target.files[0] && take(e.target.files[0]))
+  drop.addEventListener('dragover', e => (e.preventDefault(), drop.classList.add('over')))
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'))
+  drop.addEventListener('drop', e => {
+    e.preventDefault()
+    drop.classList.remove('over')
+    if (e.dataTransfer.files[0]) take(e.dataTransfer.files[0])
+  })
+}
+
+function exportClean() {
+  const { records, target } = exportRecords()
+  const files = cleanFiles(records, target)
+  $('export-result').innerHTML = `<div class="h-files">${Object.keys(files).map(f => `<button type="button" class="h-btn" data-file="${f}">${f}</button>`).join('')}</div>`
+  $('export-result').querySelectorAll('[data-file]').forEach(b => b.addEventListener('click', () => saveFile(b.dataset.file, files[b.dataset.file])))
+}
+
+async function exportWith(label, headers) {
+  const { records, target } = exportRecords()
+  let map = autoMap(headers, target)
+  $('export-result').innerHTML = '<p class="h-hint">Matching their columns…</p>'
+  const ai = await Promise.race([mapTemplateAi(headers, FIELDS[target], records[0] ?? {}), pause(8000).then(() => null)])
+  if (ai) map = ai.map.map((f, i) => f || map[i])
+  const csv = exportTo(records, target, headers, map)
+  const proof = proveExport(records, target, csv, map)
+  const shown = headers.map((h, i) => [h, map[i]]).filter(([, f]) => f).slice(0, 7)
+  $('export-result').innerHTML = `<p class="h-eyebrow">${esc(label)} ${gem(Boolean(ai), ai?.model)}</p>
+    <ul class="h-cols">${shown.map(([h, f]) => `<li><b>${esc(h)}</b><span class="arrow">←</span><em>${esc(f === 'yes' ? 'TRUE' : f)}</em><small>${esc(valueOf(records[0] ?? {}, f, target, map).slice(0, 60))}</small></li>`).join('')}</ul>
+    ${headers.length > shown.length ? `<p class="h-hint">${headers.length - shown.length} of their columns left blank.</p>` : ''}
+    <ul class="h-proof-lines">${proof.lines.map(l => `<li class="${l.startsWith('✔') ? 'ok' : 'bad'}">${esc(l)}</li>`).join('')}</ul>
+    <button type="button" class="h-btn primary" id="export-save">Download ${esc(label)} file</button>`
+  $('export-save').addEventListener('click', () => saveFile(`${titleOf(label).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-import.csv`, csv))
 }
 
 // ------------------------------------------------------------- the chat bar: ask Boo, or change the plan
@@ -1281,7 +1450,7 @@ function changeDecision(change) {
 
 function recordsNow() {
   if (raised) {
-    const out = { counts: { rowsIn: raised.table.rows.length, records: read.clients.length }, yourData: { headers: raised.table.headers, rows: raised.table.rows.slice(0, 200) }, cleaned: read.clients.map(c => ({ name: c.name, phone: c.phone, email: c.email, vip: c.vip || undefined, alert: c.alert || undefined, credit: c.credit || undefined, packages: c.packages.map(p => `${p.name}, ${p.left} of ${p.of} left, paid $${p.paid}`), notes: c.notes || undefined })) }
+    const out = { what: `${raised.kind}s, going into Idle as ${TARGETS[raised.target].label}`, counts: { rowsIn: raised.table.rows.length, records: raisedRecords().length }, yourData: { headers: raised.table.headers, rows: raised.table.rows.slice(0, 200) }, cleaned: raisedRecords().map(({ row, ...r }) => r) }
     if (stage === 'done') out.newApp = JSON.parse(recordsFor(store))
     return JSON.stringify(out)
   }

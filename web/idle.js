@@ -1,5 +1,5 @@
 // Idle, the software the salon is switching to. Recreated for the demo in
-// Idle's look (no Idle code or logo). One store, many views: each Haunt agent
+// Idle's look (no Idle code or logo). One store, many views: each Boo agent
 // works in its own view, the way each would have its own browser tab.
 
 import { icon } from './icons.js'

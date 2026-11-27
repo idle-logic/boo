@@ -1,4 +1,4 @@
-// Boo, the Haunt ghost. Hand-placed 16x16 pixel art, drawn facing right.
+// Boo. Hand-placed 16x16 pixel art, drawn facing right.
 // Each frame is a base body plus a face, so moods stay consistent.
 
 export const SIZE = 16
