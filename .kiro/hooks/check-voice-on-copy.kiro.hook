@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Keep Boo's words short",
+  "description": "When the page or its text changes, check every new line a person will read against the voice and calm rules.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "web/index.html",
+      "web/main.js",
+      "web/intro.js",
+      "src/agent/ai.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Look at the text a person will read that just changed (popups, captions, Boo's lines, chat replies in prompts). Check it against .kiro/steering/voice.md and .kiro/steering/calm.md: no em dashes, about 12 words per bubble, plain phase names, one thing at a time. Fix anything that breaks a rule and say what you changed in one line."
+  }
+}

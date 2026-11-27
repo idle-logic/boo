@@ -68,7 +68,16 @@
                 <div><small>Old app holds</small><p>Customers · Services · Staff · Appointments · Sales</p></div>
                 <div class="new"><small>New app also holds</small><p>Alerts · VIPs · Packages · Store credit · Products · Deposits · Buffer time · Cancellation rules</p></div>
               </div>
-              <button type="button" class="h-btn primary" id="start">▶ Play</button>
+              <button type="button" class="h-btn primary" id="start">▶ Play the demo</button>
+              <div class="h-raise">
+                <p class="h-or"><span>or raise your own</span></p>
+                <label class="h-drop" id="raise-drop"><input type="file" id="raise-file" accept=".csv,.tsv,.txt,image/png,image/jpeg,image/webp" hidden /><b>Drop a CSV export, a screenshot, or a photo of a paper book</b><span>Any software. Even paper.</span></label>
+                <div class="h-samples">
+                  <button type="button" data-sample="samples/paper-client-book.jpg|image/jpeg">Try a paper client book</button>
+                  <button type="button" data-sample="samples/fittrack-members.csv|text/csv">Try a gym's 2008 export</button>
+                </div>
+                <p class="h-raise-msg" id="raise-msg" role="status"></p>
+              </div>
             </section>
 
             <section class="h-now" id="now" hidden><b id="now-title"></b><span id="now-sub"></span></section>
@@ -88,6 +97,14 @@
             </section>
 
             <section class="h-receipt" id="receipt" hidden></section>
+            <section class="h-seance" id="seance" hidden>
+              <p class="h-eyebrow">A séance with Slotly</p>
+              <div class="seance-log" id="seance-log" aria-live="polite"></div>
+              <div class="chat-chips" id="seance-chips"><button type="button">Why hide allergies in your names?</button><button type="button">Who was your most loyal client?</button><button type="button">Any last words?</button></div>
+              <form class="seance-form" id="seance-form" autocomplete="off"><label class="sr-only" for="seance-q">Ask the dead app</label><input id="seance-q" placeholder="Ask the dead app anything" /><button class="h-btn">Ask</button></form>
+              <button type="button" class="h-btn primary" id="seance-rest">Let it rest</button>
+            </section>
+            <section class="h-card h-raise-card" id="raise" hidden></section>
 
         </div>
       </div>

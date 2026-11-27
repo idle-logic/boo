@@ -253,6 +253,16 @@ export function mountIdle(root, store, { page = 'home' } = {}) {
       return store.changed()
     }
     if (!v.name && !v.client) return
+    // After a switch, the old app's ghost may catch an old habit before it is saved.
+    const caught = store.guard?.(f, v) ?? null
+    if (caught?.values) Object.assign(v, caught.values)
+    for (const x of caught?.packages ?? []) store.packages.push({ expires: '', ...x })
+    if (caught?.product) {
+      store.products.push(caught.product)
+      close('Saved as a product.')
+      store.changed()
+      return store.caught?.(caught, f, v)
+    }
     if (f === 'client') store.clients.push(v)
     if (f === 'service') {
       if (state.editing !== null) store.services[state.editing] = v
@@ -268,6 +278,7 @@ export function mountIdle(root, store, { page = 'home' } = {}) {
     const said = { client: 'Client added.', service: state.editing !== null ? 'Service updated.' : 'Service added.', product: 'Product added.', staff: 'Added to the team.', package: 'Package saved.', booking: 'Booking saved.' }[f]
     close(said)
     store.changed()
+    if (caught) store.caught?.(caught, f, v)
   })
 
   render()

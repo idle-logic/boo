@@ -20,6 +20,8 @@ export const PALETTES = {
   // The worker ghosts Boo splits into, one colour each.
   mint: { o: '#1f3d33', w: '#effff7', s: '#b5ecd2', e: '#13261f', h: '#ffffff', p: '#ff9ec9', m: '#2c5546', t: '#ff6fae', l: '#ffb347', k: '#6b4a2b', z: '#9b8cff' },
   peach: { o: '#4a2a1c', w: '#fff5ee', s: '#ffd2bd', e: '#2a160d', h: '#ffffff', p: '#ff8fb0', m: '#6b3420', t: '#ff6fae', l: '#ffb347', k: '#6b4a2b', z: '#9b8cff' },
+  // The ghost of the old app: faded blue, like the software it was.
+  old: { o: '#1a2c55', w: '#dbe5f7', s: '#9db2dc', e: '#0c1733', h: '#ffffff', p: '#a9bdf0', m: '#22386b', t: '#a9bdf0', l: '#9fc3ff', k: '#3b4a6b', z: '#7f9cff' },
   sky: { o: '#1c2d4a', w: '#f1f7ff', s: '#bcd5f7', e: '#0f1a30', h: '#ffffff', p: '#ff9ec9', m: '#24365e', t: '#ff6fae', l: '#ffb347', k: '#6b4a2b', z: '#9b8cff' },
   scared: {
     o: '#1d2a4a',

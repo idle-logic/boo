@@ -189,7 +189,7 @@ export function findingsFor(old, read) {
   }
   const p = read.policies
   f.push({ key: 'terms', title: 'Rules written as plain text', count: 4, from: [old.terms], to: [`${p.cancelHours}h window · ${p.cancelFee}% late fee · ${p.noShowFee}% no-show · late arrivals (${p.lateMinutes} min) in your policy note`], choices: [[true, 'Yes, use these settings'], [false, 'I will set them myself']], ai: read.by === 'ai' })
-  f.push({ key: 'stays', title: 'What the new app can’t take', count: 2, sub: 'Idle messages clients on WhatsApp and starts its reports today.', from: [`${old.smsCredits.toLocaleString('en')} SMS credits`, `${old.sales.length} months of sales history`], to: ['SMS credits cannot move', 'Sales history can be saved as a file'], choices: [[true, 'Save the sales history as a file'], [false, 'No need']] })
+  if (old.smsCredits || old.sales?.length) f.push({ key: 'stays', title: 'What the new app can’t take', count: 2, sub: 'Idle messages clients on WhatsApp and starts its reports today.', from: [`${(old.smsCredits ?? 0).toLocaleString('en')} SMS credits`, `${old.sales?.length ?? 0} months of sales history`], to: ['SMS credits cannot move', 'Old sales totals are not moved'], choices: [[true, 'OK']] })
   const WHY = {
     vip: 'Slotly has no VIP field, so your team adds a ★ to VIP names.',
     alerts: 'Slotly has no allergy alerts, so your team types them into names and notes.',

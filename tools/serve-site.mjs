@@ -5,8 +5,8 @@ import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { readFileSync, existsSync } from 'node:fs'
 import { think, cleanThinkRequest, BrainBusyError } from '../src/agent/gemini.js'
-import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest, thinkAbout, cleanThinkAboutRequest } from '../src/agent/ai.js'
-const AI = { '/api/read': [cleanReadRequest, readOldRecords], '/api/ask': [cleanAskRequest, askAboutSalon], '/api/chat': [cleanChatRequest, chatWithBoo], '/api/think-about': [cleanThinkAboutRequest, thinkAbout] }
+import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest, thinkAbout, cleanThinkAboutRequest, holdSeance, cleanSeanceRequest, readImage, cleanReadImageRequest, mapColumns, cleanMapRequest } from '../src/agent/ai.js'
+const AI = { '/api/read': [cleanReadRequest, readOldRecords], '/api/ask': [cleanAskRequest, askAboutSalon], '/api/chat': [cleanChatRequest, chatWithBoo], '/api/think-about': [cleanThinkAboutRequest, thinkAbout], '/api/seance': [cleanSeanceRequest, holdSeance], '/api/read-image': [cleanReadImageRequest, readImage], '/api/map-columns': [cleanMapRequest, mapColumns] }
 
 const envFile = process.env.GEMINI_ENV_FILE
 if (!process.env.GEMINI_API_KEY && envFile && existsSync(envFile)) {
@@ -22,6 +22,8 @@ const types = {
   '.js': 'text/javascript',
   '.css': 'text/css',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.csv': 'text/csv',
   '.woff2': 'font/woff2',
   '.svg': 'image/svg+xml',
 }

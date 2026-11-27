@@ -6,12 +6,12 @@ import { BrainBusyError } from './gemini.js'
 export const MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest']
 
 /** Returns { json, model }. Throws BrainBusyError when no model answers. */
-export async function askGemini({ system, user, apiKey, maxTokens = 2048, models = MODELS, timeoutMs = 25000 }) {
+export async function askGemini({ system, user, apiKey, maxTokens = 2048, models = MODELS, timeoutMs = 25000, images = [], temperature = 0.1 }) {
   if (!apiKey) throw new BrainBusyError()
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: system }] },
-    contents: [{ role: 'user', parts: [{ text: user }] }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens, responseMimeType: 'application/json' },
+    contents: [{ role: 'user', parts: [...images.map(i => ({ inline_data: { mime_type: i.mime, data: i.data } })), { text: user }] }],
+    generationConfig: { temperature, maxOutputTokens: maxTokens, responseMimeType: 'application/json' },
   })
   for (const model of models) {
     try {
@@ -70,6 +70,77 @@ export async function readOldRecords(req, apiKey) {
     `Booking terms shown to customers: ${req.terms}`,
   ].join('\n\n')
   const { json, model } = await askGemini({ system: READ_SYSTEM, user, apiKey, maxTokens: 4096 })
+  return { ...json, model }
+}
+
+// ------------------------------------------------------------- séance: the dead app speaks
+
+const SEANCE_SYSTEM = `You are the ghost of Slotly v4.2, a salon booking app from 2011. You are being shut down on 31 December 2026 and your data has just been moved into new software called Idle.
+Speak in the first person, as the software itself. Wistful, a little funny, never mean, never scary. Under 35 words. No em dashes.
+You know only your own records (given below) and your own limits: you had no fields for allergies, VIPs, prepaid packages, store credit, products, buffers between bookings, deposits or cancellation rules.
+That is why the staff hid those things in your names, notes, fake services and fake bookings. You know this and you feel a bit guilty about it.
+If asked about your records, answer with real names and numbers from them. If something is not in your records, say you never knew it.
+Answer with JSON only: {"reply": "<what you say>"}`
+
+export function cleanSeanceRequest(body) {
+  if (!body || typeof body !== 'object') return null
+  const message = str(body.message, 300).trim()
+  if (!message) return null
+  const history = (Array.isArray(body.history) ? body.history : []).slice(-6).map(h => ({ who: h?.who === 'ghost' ? 'ghost' : 'owner', text: str(h?.text, 300) }))
+  return { message, history, records: str(typeof body.records === 'string' ? body.records : JSON.stringify(body.records ?? ''), 30000), found: (Array.isArray(body.found) ? body.found : []).slice(0, 20).map(f => str(f, 100)) }
+}
+
+export async function holdSeance(req, apiKey) {
+  const user = [
+    `What Boo found hidden in you:\n${req.found.map(f => `- ${f}`).join('\n') || '- nothing listed'}`,
+    `Your records:\n${req.records}`,
+    `The conversation so far:\n${req.history.map(h => `${h.who === 'ghost' ? 'You' : 'Owner'}: ${h.text}`).join('\n') || '(none)'}`,
+    `Owner: ${req.message}`,
+  ].join('\n\n')
+  const { json, model } = await askGemini({ system: SEANCE_SYSTEM, user, apiKey, maxTokens: 300, temperature: 0.7 })
+  return { reply: str(json.reply, 400), model }
+}
+
+// ------------------------------------------------------------- raise anything: any old data, even a photo of paper
+
+const KINDS = ['name', 'phone', 'email', 'date', 'money', 'number', 'note', 'category', 'unknown']
+
+const READ_IMAGE_SYSTEM = `You read photos and screenshots of old business records: paper client books, printed lists, spreadsheets, screens of old software.
+Copy the table or list exactly as written. Keep every mark people added (stars, VIP, words in brackets, notes squeezed in). Do not fix, guess or tidy anything.
+If something is crossed out, keep it but wrap it in ~~ like ~~2210~~.
+If a cell can't be read, write "?". Then say what each column holds.
+Answer with JSON only: {"recordKind": "<what each row is, like client or member or patient>",
+ "headers": ["<column heading as written, or a short name if none>"],
+ "rows": [["<cell>", "..."]],
+ "kinds": ["<for each column: ${KINDS.join(', ')}>"]}`
+
+export function cleanReadImageRequest(body) {
+  if (!body || typeof body !== 'object') return null
+  const mime = /^image\/(png|jpeg|webp)$/.test(body.mime) ? body.mime : null
+  const data = typeof body.data === 'string' && /^[A-Za-z0-9+/=]+$/.test(body.data.slice(0, 200)) ? body.data : null
+  if (!mime || !data || data.length > 4_000_000) return null
+  return { mime, data }
+}
+
+export async function readImage(req, apiKey) {
+  const { json, model } = await askGemini({ system: READ_IMAGE_SYSTEM, user: 'Read this.', images: [req], apiKey, maxTokens: 6000, timeoutMs: 40000 })
+  return { ...json, model }
+}
+
+const MAP_SYSTEM = `You look at a table exported from someone's old business software and say what each column holds.
+Kinds: ${KINDS.join(', ')}. "note" is free text where staff wrote things down. "name" is the person or thing the row is about.
+Answer with JSON only: {"recordKind": "<what each row is, like client or member or patient>", "kinds": ["<one kind per column, in order>"]}`
+
+export function cleanMapRequest(body) {
+  if (!body || typeof body !== 'object' || !Array.isArray(body.headers)) return null
+  const headers = body.headers.slice(0, 20).map(h => str(h, 40))
+  const samples = (Array.isArray(body.samples) ? body.samples : []).slice(0, 8).map(r => (Array.isArray(r) ? r.slice(0, 20).map(c => str(c, 120)) : []))
+  return headers.length ? { headers, samples } : null
+}
+
+export async function mapColumns(req, apiKey) {
+  const user = `Columns: ${JSON.stringify(req.headers)}\nFirst rows:\n${req.samples.map(r => JSON.stringify(r)).join('\n')}`
+  const { json, model } = await askGemini({ system: MAP_SYSTEM, user, apiKey, maxTokens: 400 })
   return { ...json, model }
 }
 

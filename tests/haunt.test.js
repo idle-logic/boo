@@ -128,3 +128,40 @@ test('changes from the chat are checked against the data before they apply', asy
   assert.equal(r.services[0].price, 260)
   assert.ok(r.clients.some(c => c.name === 'Test Person'))
 })
+
+test('old habits in any data are read back to proper fields', async () => {
+  const { fixClient, fixService, readName, readNotes } = await import('../web/habits.js')
+  const fx = fixClient({ name: 'Mei Tan ★ (LATEX ALLERGY)', phone: '9123 4567 / 9876 5432', notes: 'credit $50 | 10x blowdry pkg, 2 used. pd $300', credit: '', alert: '' })
+  assert.equal(fx.values.name, 'Mei Tan')
+  assert.equal(fx.values.vip, 'Yes')
+  assert.equal(fx.values.alert, 'Latex allergy')
+  assert.equal(fx.values.credit, '50')
+  assert.equal(fx.values.phone, '9123 4567')
+  assert.deepEqual(fx.packages.map(p => [p.left, p.of, p.paid]), [['8', '10', '300']])
+  assert.equal(fixClient({ name: 'Plain Person', phone: '1', notes: 'likes tea' }), null, 'nothing to fix means nothing changes')
+  assert.equal(fixService({ name: 'RETAIL - Argan oil', price: '32' }).product.name, 'Argan oil')
+  assert.deepEqual(readName('Sarah Lim *VIP* (DO NOT CALL)'), { name: 'Sarah Lim', vip: true, alert: '', flags: ['Do not call'] })
+  const n = readNotes('owes $40 locker fee | gift card balance $60')
+  assert.equal(n.credit, 60, 'money owed is not credit')
+  assert.deepEqual(n.unclear, ['owes $40 locker fee'])
+})
+
+test('raise anything: a CSV round-trips and every row with a name comes out', async () => {
+  const { parseCsv, toCsv, guessKinds, raise } = await import('../web/raise.js')
+  fc.assert(
+    fc.property(fc.array(fc.array(fc.string({ minLength: 1, maxLength: 12 }).filter(s => s.trim() !== ''), { minLength: 3, maxLength: 3 }), { minLength: 1, maxLength: 20 }), rows => {
+      assert.deepEqual(parseCsv(toCsv(rows)), rows)
+    }),
+  )
+  const { readFileSync } = await import('node:fs')
+  const [headers, ...rows] = parseCsv(readFileSync(new URL('../web/samples/fittrack-members.csv', import.meta.url), 'utf-8'))
+  const kinds = guessKinds(headers, rows)
+  assert.deepEqual(kinds.slice(0, 4), ['name', 'phone', 'email', 'note'])
+  const out = raise({ headers, rows, kinds })
+  assert.equal(out.records.length, rows.length)
+  assert.ok(out.records.every(r => !/★|VIP|\(/.test(r.name)), 'names come out clean')
+  const paid = out.records.flatMap(r => r.packages).reduce((a, p) => a + p.paid, 0)
+  assert.equal(paid, 250 + 960 + 90 + 250 + 800, 'every prepaid dollar is found')
+  const crossed = raise({ headers: ['Name', 'Phone'], rows: [['Wendy Tan', '9654 ~~2210~~ 2219']], kinds: ['name', 'phone'] })
+  assert.equal(crossed.records[0].phone, '9654 2219', 'crossed out on paper is left out')
+})

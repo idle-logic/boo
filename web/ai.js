@@ -146,6 +146,34 @@ export async function thinkAboutNotes({ unclear, needs, found }) {
   return { notes, plan, model: out.model }
 }
 
+/** The séance: Slotly's ghost answers. Returns { reply, model } or null when the spirits are busy. */
+export async function seance({ message, history, records, found }) {
+  const out = await callAi('/api/seance', { message, history, records, found }, { timeoutMs: 20000 })
+  return out?.reply ? { reply: String(out.reply).slice(0, 400), model: out.model } : null
+}
+
+const KINDS = ['name', 'phone', 'email', 'date', 'money', 'number', 'note', 'category', 'unknown']
+const kindsFor = (kinds, n) => Array.from({ length: n }, (_, i) => (KINDS.includes(kinds?.[i]) ? kinds[i] : 'unknown'))
+
+/** A photo or screenshot of old records, read by Gemini. Returns { headers, rows, kinds, recordKind, model } or null. */
+export async function readPhoto({ mime, data }) {
+  const out = await callAi('/api/read-image', { mime, data }, { timeoutMs: 45000 })
+  if (!out || !Array.isArray(out.headers) || !Array.isArray(out.rows) || !out.headers.length) return null
+  const headers = out.headers.slice(0, 20).map(h => String(h ?? '').slice(0, 40))
+  const rows = out.rows
+    .filter(Array.isArray)
+    .slice(0, 500)
+    .map(r => headers.map((_, i) => String(r[i] ?? '').slice(0, 300)))
+  return { headers, rows, kinds: kindsFor(out.kinds, headers.length), recordKind: String(out.recordKind ?? 'record').slice(0, 30), model: out.model }
+}
+
+/** What each column of an export holds. Returns { kinds, recordKind, model } or null. */
+export async function mapColumnsAi(headers, samples) {
+  const out = await callAi('/api/map-columns', { headers, samples })
+  if (!out || !Array.isArray(out.kinds)) return null
+  return { kinds: kindsFor(out.kinds, headers.length), recordKind: String(out.recordKind ?? 'record').slice(0, 30), model: out.model }
+}
+
 export async function askBoo(question, store) {
   const out = await callAi('/api/ask', { question, records: recordsFor(store) })
   return out?.answer ? { answer: out.answer, model: out.model, by: 'ai' } : { answer: 'Gemini is busy right now. Ask me again in a minute.', by: 'none' }

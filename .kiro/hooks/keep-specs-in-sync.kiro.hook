@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Keep the specs in sync",
+  "description": "When the engine changes, tick finished tasks and add any new behaviour to the matching spec.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "web/survey.js",
+      "web/interpret.js",
+      "web/edits.js",
+      "web/switch.js",
+      "web/pet.js",
+      "web/ai.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Find the spec in .kiro/specs that covers the file that just changed. If the change finishes a task in its tasks.md, tick it. If it adds behaviour the requirements do not describe, add an acceptance criterion in the same WHEN/THEN style and reference it from the task. Keep edits small."
+  }
+}

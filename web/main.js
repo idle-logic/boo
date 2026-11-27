@@ -11,7 +11,9 @@ import { playIntro } from './intro.js'
 import { survey } from './survey.js'
 import { readWithRules, findingsFor, mergeReading, askGeminiToRead, cleanName } from './interpret.js'
 import { idleRecords, crewsFor, move, prove } from './switch.js'
-import { chatBoo, recordsFor, thinkAboutNotes } from './ai.js'
+import { chatBoo, recordsFor, thinkAboutNotes, seance, readPhoto, mapColumnsAi } from './ai.js'
+import { fixClient, fixService } from './habits.js'
+import { parseCsv, guessKinds, raise, findingsFromRaise, cleanFiles, ROW_LIMIT, SIZE_LIMIT } from './raise.js'
 import { applyEdits, cleanEdits, storeFrom } from './edits.js'
 import { createBoo as createPet } from './pet.js'
 
@@ -22,6 +24,7 @@ const speed = Number(params.get('speed')) || 1
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
 const old = { business: BUSINESS, ...slotlyRecords() }
+const oldData = old
 const slotly = createSlotly($('slotly'), old)
 const store = createIdleStore(BUSINESS)
 
@@ -41,7 +44,7 @@ boo.hide()
 playIntro().then(at => {
   boo.place(at.x, at.y)
   free()
-  speak("Boo! Sorry. Press Play and I'll haunt your old software for you.")
+  speak('Boo! Play the demo, or drop your own dead data on me.')
 })
 
 // ------------------------------------------------------------- Boo off duty: roams, reacts to you, can be grabbed and thrown
@@ -214,9 +217,9 @@ watch('people')
 
 const feedLines = []
 // One popup at a time, floating over the apps. Where it sits depends on what you need to see.
-const POP_AT = { collected: 'right', tour: 'right', found: 'center', live: 'center', confirm: 'center', moving: 'left', proof: 'left', receipt: 'center' }
+const POP_AT = { collected: 'right', tour: 'right', found: 'center', live: 'center', confirm: 'center', moving: 'left', proof: 'left', receipt: 'center', seance: 'right', raise: 'right' }
 const show = id => {
-  for (const x of ['start-card', 'collected', 'tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt']) $(x).hidden = x !== id
+  for (const x of ['start-card', 'collected', 'tour', 'found', 'live', 'confirm', 'moving', 'proof', 'receipt', 'seance', 'raise']) $(x).hidden = x !== id
   $('pop').dataset.pos = POP_AT[id] ?? 'center'
 }
 const gem = (on, model) => (on ? `<span class="gem" title="${esc(model || 'Gemini')}">✦ Gemini</span>` : '')
@@ -730,7 +733,7 @@ async function switchToIdle() {
 const DIRT = ['#5b3a24', '#7a5236', '#946a48', '#3e2716']
 
 /** The old app sinks into a grave and leaves a headstone. The new app takes the whole window. */
-async function layToRest() {
+async function layToRest(name = 'Slotly', years = '2011 – 2026') {
   const pane = $('pane-slotly')
   if (pane.hidden) return
   const r = rect(pane)
@@ -749,8 +752,8 @@ async function layToRest() {
   const stone = document.createElement('div')
   stone.className = 'tombstone'
   stone.setAttribute('role', 'img')
-  stone.setAttribute('aria-label', 'Here lies Slotly, 2011 to 2026. Its data lives on in Idle.')
-  stone.innerHTML = '<span class="rip">RIP</span><strong>Slotly</strong><span class="years">2011 – 2026</span><em>Its data lives on in Idle</em>'
+  stone.setAttribute('aria-label', `Here lies ${name}. Its data lives on in Idle.`)
+  stone.innerHTML = `<span class="rip">RIP</span><strong>${esc(name)}</strong><span class="years">${esc(years)}</span><em>Its data lives on in Idle</em>`
   $('viewport').appendChild(stone)
   burst(r.left + 120, r.bottom - 120, 30, SPARKLE, 0.5, 200)
   $('caption').hidden = true
@@ -770,11 +773,18 @@ function done(result, d) {
   watch('people')
   $('receipt').innerHTML = `
     <p class="h-eyebrow">Back from the dead</p>
-    <h2>Slotly died. Its data lives on.</h2>
+    <h2>${raised ? `Your ${esc(raised.kind)}s live again.` : 'Slotly died. Its data lives on.'}</h2>
     <p class="h-check"><b>${result.matched}/${result.checks}</b> checks match</p>
-    <details class="h-moved"><summary>What moved</summary><ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>`
+    <details class="h-moved"><summary>What moved</summary><ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>
+    ${raised ? `<div class="h-files">${Object.keys(cleanFiles(read.clients)).map(f => `<button type="button" class="h-btn" data-file="${f}">${f}</button>`).join('')}</div>` : ''}
+    <div class="h-end-actions">
+      ${raised ? '' : '<button type="button" class="h-btn" id="seance-open">Hold a séance</button>'}
+      <button type="button" class="h-btn primary" id="rest">Lay ${raised ? 'it' : 'Slotly'} to rest</button>
+    </div>`
   show('receipt')
-  setTimeout(() => layToRest(), 1800 * speed)
+  $('seance-open')?.addEventListener('click', openSeance)
+  $('rest').addEventListener('click', rest, { once: true })
+  $('receipt').querySelectorAll('[data-file]').forEach(b => b.addEventListener('click', () => saveFile(b.dataset.file, cleanFiles(read.clients)[b.dataset.file])))
   const r = rect($('receipt'))
   boo.mode('happy')
   boo.flyTo(r.right - 70, r.top - 40, 700, { size: 56 }).then(async () => {
@@ -782,16 +792,415 @@ function done(result, d) {
     boo.say('All moved. Nothing lost!', 3000)
     await pause(3200)
     free()
+    perch(raised ? 'Ready to bury it?' : 'Say goodbye first? Hold a séance.')
   })
 }
 
 $('start').addEventListener('click', lookAround)
 
+// ------------------------------------------------------------- the séance: talk to the dead app before it is buried
+
+const ghosts = {}
+/** The old app's ghost, faded blue, named after what died. */
+function ghostOf(name) {
+  ghosts[name] ??= createGhost({ colour: 'old', size: 64, label: name, title: `${name}'s ghost` })
+  return ghosts[name]
+}
+let seanceLog = []
+let seanceBusy = false
+
+async function openSeance() {
+  closeChat()
+  const pane = rect($('pane-slotly'))
+  const g = ghostOf('Slotly')
+  const x = pane.left + pane.width / 2 - 32
+  g.appear(x, pane.bottom - 90)
+  burst(x + 32, pane.bottom - 40, 24, ['#9db2dc', '#dbe5f7', '#7f9cff'], 0.6, 300)
+  await g.flyTo(x, pane.top + pane.height * 0.32, 1400)
+  const opening = seanceOpening()
+  seanceLog = [{ who: 'ghost', text: opening }]
+  renderSeance()
+  show('seance')
+  g.say(opening.split('. ').slice(0, 2).join('. '), 6000)
+  busy()
+  free()
+  perch('It can hear you. Ask it something.')
+  $('seance-q').focus({ preventScroll: true })
+}
+
+function seanceOpening() {
+  const f = Object.fromEntries((findings ?? []).map(x => [x.key, x]))
+  const bits = []
+  if (f.alerts) bits.push(`${f.alerts.count} health alerts in my names`)
+  if (f.packages) bits.push(`${f.packages.sub.split(' ')[0]} of prepaid packages in my notes`)
+  if (f.cleanup) bits.push('fake bookings to block time')
+  return `So you found them. ${bits.join(', ')}. I never had anywhere to put them. Ask me anything before I go.`
+}
+
+function renderSeance() {
+  // Only the last few lines: the séance never scrolls.
+  $('seance-log').innerHTML = seanceLog
+    .slice(-5)
+    .map(m => `<p class="from-${m.who}"><b>${m.who === 'ghost' ? 'Slotly' : 'You'}</b>${m.text ? esc(m.text) : '<i>the candles flicker…</i>'}</p>`)
+    .join('')
+}
+
+async function askTheDead(message) {
+  if (seanceBusy || !message) return
+  seanceBusy = true
+  seanceLog.push({ who: 'owner', text: message }, { who: 'ghost', text: '' })
+  renderSeance()
+  const old = { customers: seen?.customers ?? oldData.customers, services: oldData.services, staff: oldData.staff, appointments: oldData.appointments, terms: oldData.terms }
+  const out = await seance({ message, history: seanceLog.slice(0, -2).slice(-6), records: JSON.stringify({ counts: { customers: old.customers.length, services: old.services.length, staff: old.staff.length, appointments: old.appointments.length }, ...old }), found: (findings ?? []).map(f => `${f.title} (${f.count})`) })
+  const reply = out?.reply ?? 'The line is crackly tonight. Ask me again.'
+  seanceLog[seanceLog.length - 1].text = reply
+  renderSeance()
+  ghostOf('Slotly').say(reply, 7000)
+  seanceBusy = false
+}
+$('seance-form').addEventListener('submit', e => {
+  e.preventDefault()
+  const q = $('seance-q').value.trim()
+  $('seance-q').value = ''
+  askTheDead(q)
+})
+$('seance-chips').addEventListener('click', e => {
+  const b = e.target.closest('button')
+  if (b) askTheDead(b.textContent)
+})
+$('seance-rest').addEventListener('click', () => rest())
+
+// ------------------------------------------------------------- the burial, then the afterlife
+
+let afterlife = false
+let resting = false
+async function rest() {
+  if (resting) return
+  resting = true
+  closeChat()
+  const name = raised ? raised.name : 'Slotly'
+  const g = ghosts.Slotly
+  if (g && !g.hidden) {
+    const b = g.box
+    g.say('Goodbye. Look after them.', 2400)
+    await pause(1600)
+    await g.flyTo(b.x, rect($('pane-slotly')).bottom - 40, 900)
+    g.hide()
+  }
+  $('pop').hidden = true
+  busy()
+  await layToRest(name, raised ? 'until today' : '2011 – 2026')
+  afterlife = true
+  $('pop').hidden = false
+  afterlifeCard()
+  free()
+  perch('Go on. Try an old habit.')
+}
+
+const HABITS = [
+  { form: 'client', page: 'clients', label: 'add a client the old way', values: { name: 'Mei Tan ★ (LATEX ALLERGY)', phone: '9123 4567 / 9876 5432', email: 'mei.tan@gmail.com', notes: 'credit $50 | 10x blowdry pkg, 2 used. pd $300' } },
+  { form: 'service', page: 'services', label: 'sell a product as a service', values: { name: 'RETAIL - Argan oil serum', minutes: '5', price: '38' } },
+]
+let habitAt = 0
+
+function afterlifeCard(caught) {
+  const name = raised ? raised.name : 'Slotly'
+  const next = HABITS[habitAt % HABITS.length]
+  $('receipt').innerHTML = `<p class="h-eyebrow">The afterlife</p>
+    <h2>${caught ? 'Caught one.' : `${esc(name)}'s ghost haunts Idle for 30 days.`}</h2>
+    <p>${caught ? esc(caught.fixes.join(' · ')) : 'Old habits die hard. If anyone types one into Idle, like a ★ in a name or credit in a note, the ghost fixes it.'}</p>
+    <button type="button" class="h-btn primary" id="try-habit">Try it: ${next.label}</button>`
+  show('receipt')
+  $('try-habit').addEventListener('click', () => tryOldHabit(next), { once: true })
+}
+
+/** Type an old habit into Idle, slowly, so you can see it. You press save. */
+async function tryOldHabit(habit) {
+  habitAt++
+  $('pop').hidden = true
+  const el = views.people.el
+  watch('people')
+  el.querySelector(`[data-nav="${habit.page}"]`)?.click()
+  await pause(250)
+  el.querySelector(`[data-open="${habit.form}"]`)?.click()
+  await pause(250)
+  const form = el.querySelector(`form[data-form="${habit.form}"]`)
+  if (!form) return afterlifeCard()
+  form.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  for (const [k, value] of Object.entries(habit.values)) {
+    const input = form.querySelector(`[name="${k}"]`)
+    if (!input) continue
+    input.focus()
+    input.value = ''
+    for (const ch of value) {
+      input.value += ch
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await pause(22)
+    }
+  }
+  const save = form.querySelector('[type="submit"]')
+  save.focus()
+  ui.now('Typed the old way', `Press ${save.textContent.trim()} and watch`, { wait: true })
+}
+
+store.guard = (form, values) => {
+  if (!afterlife) return null
+  if (form === 'client') {
+    const fx = fixClient(values)
+    const expires = typeof movedWith?.packages === 'string' ? movedWith.packages : ''
+    return fx && { values: fx.values, packages: fx.packages.map(p => ({ ...p, expires })), fixes: fx.fixes }
+  }
+  if (form === 'service') return fixService(values)
+  return null
+}
+store.caught = (caught, form, values) => hauntTheNewApp(caught, form === 'service' ? caught.product.name : values.name)
+
+/** The old app's ghost rises from its grave, fixes the habit, and goes back to rest. */
+async function hauntTheNewApp(caught, name) {
+  const g = ghostOf(raised ? raised.name : 'Slotly')
+  const stone = document.querySelector('.tombstone')
+  const s = stone ? rect(stone) : { left: 40, top: innerHeight - 220, width: 190 }
+  const home = { x: s.left + s.width / 2 - 32, y: s.top + 20 }
+  g.appear(home.x, home.y + 40)
+  burst(home.x + 32, s.top + 60, 30, DIRT, 0.6, 900)
+  await pause(400)
+  // Show where the fixed record now lives (a "service" that was a product is in Products).
+  if (caught.product) views.people.el.querySelector('[data-nav="products"]')?.click()
+  await pause(100)
+  const row = [...views.people.el.querySelectorAll('tbody tr')].find(tr => tr.textContent.includes(name))
+  row?.scrollIntoView({ block: 'center' })
+  await pause(150)
+  const r = row ? rect(row) : rect($('idle-views'))
+  await g.flyTo(Math.min(innerWidth - 120, r.left + r.width * 0.55), r.top - 74, 1000)
+  row?.classList.add('haunted-row')
+  g.say('Old habits die hard. Trust me, I died.', 3400)
+  ui.now(`${raised ? raised.name : 'Slotly'}'s ghost caught an old habit`, caught.fixes.join(' · '), { wait: true })
+  await pause(3600)
+  await g.flyTo(home.x, home.y, 1000)
+  burst(home.x + 32, s.top + 60, 16, DIRT, 0.4, 900)
+  g.hide()
+  $('caption').hidden = true
+  $('pop').hidden = false
+  afterlifeCard(caught)
+}
+
+// ------------------------------------------------------------- raise anything: your own data, from any software or paper
+
+let raised = null
+const KIND_LABEL = { name: 'Name', phone: 'Phone', email: 'Email', date: 'Date', money: 'Money', number: 'Number', note: 'Notes · Boo reads these', category: 'Category', unknown: 'Kept as a note' }
+
+/** "paper-client-book.jpg" → "Paper client book" */
+const titleOf = file => {
+  const t = file.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim()
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
+function saveFile(name, text) {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }))
+  a.download = name
+  a.click()
+}
+
+/** A dropped or chosen file, ready to raise. Photos are shrunk in the browser before they go anywhere. */
+async function sourceFrom(file) {
+  if (file.size > SIZE_LIMIT * 4) throw new Error('That file is too big. Try one under 16 MB.')
+  if (file.type.startsWith('image/')) {
+    const img = await createImageBitmap(file)
+    const k = Math.min(1, 1600 / Math.max(img.width, img.height))
+    const c = Object.assign(document.createElement('canvas'), { width: Math.round(img.width * k), height: Math.round(img.height * k) })
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+    const url = c.toDataURL('image/jpeg', 0.85)
+    return { kind: 'image', name: file.name, mime: 'image/jpeg', data: url.split(',')[1], url }
+  }
+  if (file.size > SIZE_LIMIT) throw new Error('That file is too big. Try one under 4 MB.')
+  return { kind: 'table', name: file.name, text: await file.text() }
+}
+
+async function startRaise(file) {
+  try {
+    const src = await sourceFrom(file)
+    raiseFlow(src)
+  } catch (err) {
+    $('raise-msg').textContent = err.message || 'That file could not be opened.'
+  }
+}
+$('raise-file').addEventListener('change', e => e.target.files[0] && startRaise(e.target.files[0]))
+const drop = $('raise-drop')
+drop.addEventListener('dragover', e => (e.preventDefault(), drop.classList.add('over')))
+drop.addEventListener('dragleave', () => drop.classList.remove('over'))
+drop.addEventListener('drop', e => {
+  e.preventDefault()
+  drop.classList.remove('over')
+  const f = e.dataTransfer.files[0]
+  if (f) startRaise(f)
+})
+document.querySelectorAll('[data-sample]').forEach(b =>
+  b.addEventListener('click', async () => {
+    const [path, type] = b.dataset.sample.split('|')
+    const blob = await (await fetch(path)).blob()
+    startRaise(new File([blob], path.split('/').pop(), { type }))
+  }),
+)
+
+function raiseFailed(message) {
+  $('raise').innerHTML = `<p class="h-eyebrow">Hmm</p><h2>${esc(message)}</h2><button type="button" class="h-btn primary" id="raise-again">Start again</button>`
+  show('raise')
+  $('raise-again').addEventListener('click', () => location.reload())
+}
+
+function syncRaised() {
+  store.business = { ...store.business, short: 'Your business' }
+  store.clients = read.clients.map(c => ({ name: c.name, phone: c.phone, email: c.email, vip: c.vip ? 'Yes' : 'No', visits: '', lastVisit: '', credit: c.credit ? String(c.credit) : '', alert: c.alert, notes: c.notes }))
+  store.packages = read.clients.flatMap(c => c.packages.map(p => ({ client: c.name, name: p.name, left: String(p.left), of: String(p.of), paid: String(p.paid), expires: '' })))
+  store.changed()
+}
+
+async function raiseFlow(src) {
+  $('start-card').hidden = true
+  stage = 'reading'
+  // The old app is your file now.
+  $('pane-slotly').querySelector('.pane-url').innerHTML = `<span class="lock" aria-hidden="true"></span>${esc(src.name)}`
+  $('tab-slotly').innerHTML = `<span class="fav slotly-fav" aria-hidden="true"></span>${esc(src.name)}`
+  $('slotly').innerHTML = src.kind === 'image' ? `<div class="raise-view"><img src="${src.url}" alt="Your old records" /></div>` : '<div class="raise-view" id="raise-table"></div>'
+  speak('Ooh, fresh bones. Let me raise them.', 2600)
+  await actBanner(1, 'Collect the data', 'Act I · Rise of the Dead', 'read')
+  let table
+  if (src.kind === 'image') {
+    ui.now('Gemini is reading your photo', 'Every star, bracket and scribble')
+    table = await readPhoto({ mime: src.mime, data: src.data })
+    if (!table) return raiseFailed("The spirits couldn't read this one. Try a sharper photo, or a CSV.")
+  } else {
+    const rows = parseCsv(src.text)
+    if (rows.length < 2) return raiseFailed('That file has no rows to raise.')
+    const [headers, ...body] = rows
+    table = { headers, rows: body.slice(0, ROW_LIMIT), kinds: guessKinds(headers, body), recordKind: 'record', capped: body.length > ROW_LIMIT }
+    $('raise-table').innerHTML = `<table class="sl-table"><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${body
+      .slice(0, 40)
+      .map(r => `<tr>${headers.map((_, i) => `<td>${esc(r[i] ?? '')}</td>`).join('')}</tr>`)
+      .join('')}</tbody></table>`
+  }
+  $('raise').innerHTML = `<p class="h-eyebrow">Read from ${esc(src.name)} ${gem(Boolean(table.model), table.model)}</p>
+    <h2>${table.rows.length} rows · ${table.headers.length} columns</h2>
+    ${table.capped ? `<p class="h-hint">Only the first ${ROW_LIMIT} rows, to keep it quick.</p>` : ''}
+    <ul class="h-tally">${table.headers.map(h => `<li>${esc(h)}</li>`).join('')}</ul>`
+  show('raise')
+  ui.now('Data collected', 'Next: analyse it', { wait: true })
+  await nextButton('raise', 'Next: analyse it')
+
+  await actBanner(2, 'Analyse it', 'Act II · Ghosts in the Notes', 'find')
+  stage = 'touring'
+  if (src.kind !== 'image') {
+    ui.now('Gemini is working out each column', `${table.headers.length} columns`)
+    const ai = await Promise.race([mapColumnsAi(table.headers, table.rows.slice(0, 8)), pause(9000).then(() => null)])
+    if (ai) Object.assign(table, { kinds: ai.kinds.map((k, i) => (k === 'unknown' ? table.kinds[i] : k)), recordKind: ai.recordKind, model: ai.model })
+  }
+  if (!table.kinds.includes('name')) table.kinds[0] = 'name'
+  $('raise').innerHTML = `<p class="h-eyebrow">What each column holds ${gem(Boolean(table.model), table.model)}</p>
+    <h2>Each row is a ${esc(table.recordKind)}</h2>
+    <ul class="h-cols">${table.headers
+      .map((h, i) => `<li><b>${esc(h)}</b><span class="arrow" aria-hidden="true">→</span><em>${KIND_LABEL[table.kinds[i]]}</em><small>${esc(table.rows.slice(0, 2).map(r => r[i]).filter(Boolean).join(' · ').slice(0, 70))}</small></li>`)
+      .join('')}</ul>`
+  show('raise')
+  ui.now('Columns mapped', 'Next: find what is hidden', { wait: true })
+  await nextButton('raise', 'Next: find what is hidden')
+
+  const r = raise(table)
+  raised = { name: titleOf(src.name), kind: table.recordKind, table, found: r.found }
+  read = { clients: r.records, services: [], products: [], staff: [], bookings: [], policies: {}, sameStaff: [] }
+  const list = findingsFromRaise(r.found)
+  const unclear = r.found.unclear.map(u => ({ src: u.row, text: u.text }))
+  thinking = unclear.length ? thinkAboutNotes({ unclear, needs, found: list.map(f => `${f.title} (${f.count})`) }) : Promise.resolve(null)
+  $('raise').innerHTML = list.length
+    ? `<p class="h-eyebrow">Ghosts in your data</p><h2>${list.reduce((a, f) => a + f.count, 0)} things hidden where they don't belong</h2>
+      <ol class="h-map">${list.map(f => `<li><b>${esc(f.title)}</b><span class="n">${f.count}</span><div class="map"><code>${esc(f.ex.from)}</code><span class="arrow" aria-hidden="true">→</span><code class="to">${esc(f.ex.to)}</code></div></li>`).join('')}</ol>`
+    : `<p class="h-eyebrow">Ghosts in your data</p><h2>Nothing hidden. This data is already clean.</h2>`
+  show('raise')
+  $('pop').dataset.pos = 'center'
+  ui.now('Found what was hidden', 'Anything wrong? Tap Boo', { wait: true })
+  await nextButton('raise', unclear.length ? 'Next: the notes only AI can read' : 'Next: clean it')
+
+  if (unclear.length) {
+    ui.now('Reading the notes no rule can read', 'Gemini is working on them')
+    thought = await Promise.race([thinking, pause(15000).then(() => null)])
+    const rows = thought?.notes?.length ? thought.notes.slice(0, 6).map(n => `<li><code>${esc(n.text)}</code><span class="arrow">→</span><b>${esc(n.meaning)}</b></li>`) : unclear.slice(0, 6).map(u => `<li><code>${esc(u.text)}</code><span class="arrow">→</span><b>?</b></li>`)
+    $('raise').innerHTML = `<p class="h-eyebrow">Only AI could read these ${gem(Boolean(thought?.notes?.length), thought?.model)}</p><h2>${unclear.length} notes in no fixed shape</h2><ul class="h-ai">${rows.join('')}</ul>${thought?.notes?.length ? '' : '<p class="h-hint">The spirits are busy. Tell Boo what these mean.</p>'}`
+    show('raise')
+    ui.now(thought ? 'Gemini read what no rule could' : 'Boo needs your help with these', `${unclear.length} notes`, { wait: true })
+    await nextButton('raise', 'Next: clean it')
+  }
+
+  await actBanner(3, 'Clean it', 'Act III · The Exorcism', 'clean')
+  stage = 'cleaning'
+  let fromNotes = 0
+  for (const n of thought?.notes ?? []) {
+    const c = read.clients.find(x => x.row === n.src)
+    if (!c) continue
+    if (n.kind === 'credit' && n.amount) (c.credit += n.amount), fromNotes++
+    if (n.kind === 'prepaid' && n.sessions) c.packages.push({ name: `${n.sessions} ${n.service || 'sessions'}`, left: n.sessions, of: n.sessions, paid: n.amount, from: n.text }), fromNotes++
+    if (n.kind === 'flag' && n.flag) (c.alert = c.alert ? `${c.alert} · ${n.flag}` : n.flag), fromNotes++
+  }
+  ui.now('Cleaning', `${read.clients.length} ${table.recordKind}s`)
+  await pause(900)
+  const cleanedNames = r.found.vip.length + r.found.alert.filter(a => a.from.includes('(')).length + r.found.flags.length
+  $('raise').innerHTML = `<p class="h-eyebrow">Clean</p><h2>Every ${esc(table.recordKind)} has proper fields now</h2>
+    <ul class="h-tally">${[
+      cleanedNames && `${cleanedNames} names cleaned`,
+      r.found.alert.length && `${r.found.alert.length} health alerts`,
+      r.found.packages.length && `${r.found.packages.length} packages`,
+      r.found.credit.length && `${r.found.credit.length} store credits`,
+      r.found.phones.length && `${r.found.phones.length} second ${r.found.phones.length === 1 ? 'number' : 'numbers'} moved to notes`,
+      fromNotes && `${fromNotes} read by Gemini from notes`,
+    ]
+      .filter(Boolean)
+      .map(t => `<li>${t}</li>`)
+      .join('')}</ul>`
+  show('raise')
+  ui.now('Data cleaned', 'Next: migrate it', { wait: true })
+  await nextButton('raise', 'Next: migrate it')
+
+  await actBanner(4, 'Migrate it', 'Act IV · Back from the Dead', 'move')
+  stage = 'moving'
+  $('pop').hidden = true
+  $('tab-idle').hidden = false
+  $('tab-idle').classList.add('on')
+  $('tab-idle').innerHTML = '<span class="fav idle-fav" aria-hidden="true"></span>Idle · your data'
+  $('pane-idle').hidden = false
+  $('viewport').classList.add('split')
+  watch('people')
+  views.people.el.querySelector('[data-nav="clients"]')?.click()
+  ui.now('Raising them into Idle', `${read.clients.length} ${table.recordKind}s`)
+  const all = read.clients
+  for (let i = 4; i < all.length + 4; i += 4) {
+    read.clients = all.slice(0, i)
+    syncRaised()
+    const b = rect(views.people.el)
+    burst(b.left + 40 + Math.random() * (b.width - 80), b.top + 140 + Math.random() * 200, 10, SPARKLE, 0.4, 200)
+    await pause(160)
+  }
+  read.clients = all
+  syncRaised()
+
+  await actBanner(5, 'Verify it', 'Act V · Rest in Peace', 'verify')
+  $('pop').hidden = false
+  const sum = list => list.reduce((a, x) => a + Number(x || 0), 0)
+  const rowsIn = table.rows.filter(x => x[table.kinds.indexOf('name')]?.trim()).length
+  const pkIn = read.clients.flatMap(c => c.packages)
+  const checks = [
+    [`${rowsIn} ${table.recordKind}s in · ${store.clients.length} in Idle`, rowsIn === store.clients.length],
+    [`${pkIn.length} packages · $${sum(pkIn.map(p => p.paid)).toLocaleString('en')} = $${sum(store.packages.map(p => p.paid)).toLocaleString('en')}`, pkIn.length === store.packages.length && sum(pkIn.map(p => p.paid)) === sum(store.packages.map(p => p.paid))],
+    [`Store credit · $${sum(read.clients.map(c => c.credit)).toLocaleString('en')} = $${sum(store.clients.map(c => c.credit)).toLocaleString('en')}`, sum(read.clients.map(c => c.credit)) === sum(store.clients.map(c => c.credit))],
+    [`${read.clients.filter(c => c.alert).length} health alerts kept`, read.clients.filter(c => c.alert).length === store.clients.filter(c => c.alert).length],
+  ]
+  busy()
+  done({ matched: checks.filter(c => c[1]).length, checks: checks.length, lines: checks.map(c => c[0]) }, {})
+}
+
 // ------------------------------------------------------------- the chat bar: ask Boo, or change the plan
 
 /** After a correction: work out the findings again, keep the owner's choices, redraw what is on screen. */
 function refreshFindings() {
-  if (!findings) return
+  if (!findings || raised) return
   const chosen = Object.fromEntries(findings.map(f => [f.key, f.value]))
   findings = findingsFor(seen, read)
   for (const f of findings) if (f.key in chosen) f.value = chosen[f.key]
@@ -836,7 +1245,7 @@ function act(out) {
   const r = applyEdits(read, edits)
   editLog.push(...edits)
   if (r.done.length) {
-    if (stage === 'done') storeFrom(idleRecords(read, movedWith), store)
+    if (stage === 'done') raised ? syncRaised() : storeFrom(idleRecords(read, movedWith), store)
     else if (stage === 'moving') changedWhileMoving = true
     else refreshFindings()
   }
@@ -871,6 +1280,11 @@ function changeDecision(change) {
 }
 
 function recordsNow() {
+  if (raised) {
+    const out = { counts: { rowsIn: raised.table.rows.length, records: read.clients.length }, yourData: { headers: raised.table.headers, rows: raised.table.rows.slice(0, 200) }, cleaned: read.clients.map(c => ({ name: c.name, phone: c.phone, email: c.email, vip: c.vip || undefined, alert: c.alert || undefined, credit: c.credit || undefined, packages: c.packages.map(p => `${p.name}, ${p.left} of ${p.of} left, paid $${p.paid}`), notes: c.notes || undefined })) }
+    if (stage === 'done') out.newApp = JSON.parse(recordsFor(store))
+    return JSON.stringify(out)
+  }
   const counts = { customers: old.customers.length, services: old.services.length, staff: old.staff.length, appointments: old.appointments.length }
   if (read) Object.assign(counts, { cleanClients: read.clients.length, realServices: read.services.length, products: read.products.length, realBookings: read.bookings.length, packages: read.clients.reduce((a, c) => a + c.packages.length, 0) })
   if (stage === 'done') Object.assign(counts, { inIdle: { clients: store.clients.length, services: store.services.length, products: store.products.length, team: store.staff.length, packages: store.packages.length, bookings: store.bookings.length } })

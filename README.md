@@ -1,19 +1,35 @@
 # Haunt
 
-**Switch software. Lose nothing.** Haunt moves a business from any old software to any new software.
+**Switch software. Lose nothing.** When old software dies, your data dies with it. Haunt brings it back to life in new software: any old system to any new one.
 
-Old software can't hold everything, so teams hide data where it doesn't belong: credit and prepaid passes in notes, allergies in names, products sold as fake services, blocked time as fake appointments, rules as a paragraph of text. Exports copy that mess into the new system, so switching means days of retyping and lost data. Haunt reads the old app screen by screen, works out what every workaround really is, cleans it into the new app's proper fields, moves it, and proves nothing was lost.
+Old software can't hold everything, so teams hide data where it doesn't belong: credit and prepaid passes in notes, allergies in names, products sold as fake services, blocked time as fake appointments, rules as a paragraph of text. Dying software often has no export at all, and an export would copy the mess anyway. Haunt reads the old app screen by screen, works out what every workaround really is, cleans it into the new app's proper fields, moves it, and proves nothing was lost.
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box and press **Play**. It runs by itself in about a minute and a half. The example is a salon moving from "Slotly" (a made-up booking app from 2011) to Idle. The same ghosts haunt CRMs, inventory, accounting and HR systems.
+Open the live demo from the link in this repo's About box and press **Play**. The example is a salon leaving "Slotly", a made-up booking app from 2011 that is shutting down with no export, for Idle. The same ghosts haunt CRMs, inventory, accounting and HR systems.
 
-1. **Rise of the Dead.** Boo reads every screen of the old app. No export, no API.
-2. **Ghosts in the Notes.** Gemini reads every name, note and description. Boo shows three pieces of hidden data in the old app, and how each will look in the new one.
-3. **The Exorcism.** One screen: old → new for every kind of hidden data. Change anything, or tell Boo in the chat ("Kenji's allergy is latex"). Then it cleans.
-4. **Crossing Over.** A swarm of ghosts moves everything at once through the new app's own screens, then every record and every dollar is checked.
+Boo first asks what matters most to you. Then five phases, each waiting for you to press Next:
 
-Ask Boo anything in the chat box at any time. When Boo is not working it roams the page: click it, throw it, or leave it alone and it naps in the corner.
+1. **Collect** · *Rise of the Dead.* Boo reads every screen of the old app. No export, no API.
+2. **Analyse** · *Ghosts in the Notes.* Boo shows the hidden data in the old app. Gemini reads the notes no rule can, and writes Boo's plan from what it found and what you said matters.
+3. **Clean** · *The Exorcism.* One screen: old → new for every kind of hidden data. Pick the real choices, or tell Boo.
+4. **Migrate** · *Back from the Dead.* A swarm of ghosts enters everything at once through the new app's own screens.
+5. **Verify** · *Rest in Peace.* Every record and every dollar is checked. The old app is buried; its data lives on.
+
+Then finish the story: **hold a séance** and ask the dying app why it hid allergies in names (Gemini plays it, from its own records), **lay it to rest**, and watch the **afterlife**: the old app's ghost stays in the new app for 30 days, and when anyone types an old habit (a ★ in a name, credit in a note, a product sold as a service) it rises from its grave and fixes it.
+
+**Raise your own.** On the start card, drop a CSV export from any software, a screenshot, or a photo of a paper client book, or try the two samples (a nail studio's handwritten book, a gym's 2008 member export). Boo reads it (Gemini reads photos, crossed-out bits and all), works out the columns, finds what was hidden, moves it into the new app, proves the counts and gives you clean CSV files.
+
+Tap Boo at any moment to ask about the data ("who has the most visits?") or change anything ("Balayage costs $260 now", "add a client called…", "packages expire in 3 months"). Every change is checked against the data first, and Boo never claims a change it didn't make. When Boo isn't working it roams the page: throw it, double-tap it, or leave it alone and it naps in the corner.
+
+## How Haunt uses Kiro
+
+Everything Kiro uses lives in [`.kiro/`](.kiro):
+
+- **Specs** in [`.kiro/specs/`](.kiro/specs), one per feature, each with requirements (user stories and WHEN/THEN acceptance criteria), a design and a task list: `collect-old-app`, `find-workarounds`, `clean-and-confirm`, `swarm-migration`, `boo-guide`, `seance-and-afterlife` and `raise-anything` (with its two open tasks).
+- **Steering** in [`.kiro/steering/`](.kiro/steering): what Haunt is and its five phases, the tech rules (every AI answer checked before use), calm-first UI rules and Boo's voice.
+- **Hooks** in [`.kiro/hooks/`](.kiro/hooks): run the tests when the engine changes, check every new line of text against Boo's voice, and keep the specs' task lists in sync with the code.
+- **MCP** in [`.kiro/settings/mcp.json`](.kiro/settings/mcp.json): Haunt's own MCP server ([`mcp/server.js`](mcp/server.js)) gives Kiro's agent the migration engine as tools: `haunt_find_workarounds` on any old app's records, `haunt_check_changes` before applying edits, and `haunt_sample_old_app` to try them.
 
 ## Use it for your own switch
 
@@ -65,14 +81,17 @@ Property-based tests with fast-check. Among them:
 
 ```
 web/            the browser demo, built into site/
-                slotly.js (the old app), idle.js (the new app), survey.js (looking around),
-                interpret.js (reading and cleaning the workarounds), switch.js (move and prove),
-                ghost.js, pet.js and intro.js (Boo), main.js (the page)
+                slotly.js (the old app), idle.js (the new app), survey.js (collect),
+                interpret.js (analyse), edits.js (checked changes from the chat),
+                habits.js (old habits in any data), raise.js (raise your own data),
+                switch.js (migrate and verify), ghost.js, pet.js and intro.js (Boo), main.js (the page)
 src/agent/      the agent loop and the AI calls (Gemini), shared by the demo and the real-software agent
 src/main/       the real-software agent: Windows UI Automation hands, allowed addresses, desktop overlay
-netlify/        /api/read and /api/ask (Gemini) for the live demo
+netlify/        /api/read, /api/think-about, /api/chat, /api/ask, /api/seance, /api/read-image
+                and /api/map-columns (Gemini) for the live demo
+mcp/            Haunt's MCP server for Kiro's agent
 tests/          property-based tests
-.kiro/          steering and MCP settings
+.kiro/          specs, steering, hooks and MCP settings
 ```
 
 ## Licence
