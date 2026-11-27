@@ -57,6 +57,8 @@ export function readWithRules(old) {
         continue
       }
       if (!out.alert && HEALTH.test(part)) out.alert = part.split(/[.,]/)[0].slice(0, 60)
+      // Something owed, prepaid or promised, in no fixed shape: the rules cannot read it.
+      if (/\b(owes?|paid ahead|voucher|no show|promo|comped|honou?r)\b/i.test(part)) out.unclear = [...(out.unclear ?? []), part]
       out.notes.push(part)
     }
     out.notes = out.notes.join(' ')
@@ -164,30 +166,30 @@ export function findingsFor(old, read) {
   const ex = list => list.slice(0, 1)
   const f = []
   const vips = read.clients.filter(c => c.vip)
-  if (vips.length) f.push({ key: 'vip', title: 'VIPs marked in their names', count: vips.length, from: ex(vips.map(c => old.customers[c.src].name)), to: ex(vips.map(c => `${c.name} · VIP tag`)), choices: [[true, "Yes, that's right"], [false, 'Leave names as they are']] })
+  if (vips.length) f.push({ key: 'vip', title: 'VIP status typed into names', count: vips.length, from: ex(vips.map(c => old.customers[c.src].name)), to: ex(vips.map(c => `${c.name} · VIP tag`)), choices: [[true, "Yes, that's right"], [false, 'Leave names as they are']] })
   const alerts = read.clients.filter(c => c.alert)
-  if (alerts.length) f.push({ key: 'alerts', title: 'Health notes in names and notes', count: alerts.length, from: ex(alerts.map(c => old.customers[c.src].name.includes('ALLERGY') ? old.customers[c.src].name : old.customers[c.src].notes.split(' | ')[0])), to: ex(alerts.map(c => `${c.name} · alert: ${c.alert}`)), choices: [[true, "Yes, make them alerts"], [false, 'Keep them as notes only']], ai: read.by === 'ai' })
+  if (alerts.length) f.push({ key: 'alerts', title: 'Health alerts typed into names', count: alerts.length, from: ex(alerts.map(c => old.customers[c.src].name.includes('ALLERGY') ? old.customers[c.src].name : old.customers[c.src].notes.split(' | ')[0])), to: ex(alerts.map(c => `${c.name} · alert: ${c.alert}`)), choices: [[true, "Yes, make them alerts"], [false, 'Keep them as notes only']], ai: read.by === 'ai' })
   const pk = read.clients.flatMap(c => c.packages.map(p => ({ c, p })))
-  if (pk.length) f.push({ key: 'packages', title: 'Packages written in notes', count: pk.length, sub: `${money(pk.reduce((a, x) => a + x.p.paid, 0))} prepaid. Idle needs an expiry date on each.`, from: [pk[0].p.from, pk[1]?.p.from].filter(Boolean), to: [pk[0], pk[1]].filter(Boolean).map(x => `${x.c.name} · ${x.p.name} · ${x.p.left} of ${x.p.of} left · paid $${x.p.paid}`), choices: [['2027-11-26', 'Yes, expire in 12 months'], ['2027-05-26', 'Yes, expire in 6 months']], ai: read.by === 'ai' })
+  if (pk.length) f.push({ key: 'packages', title: 'Prepaid balances hidden in notes', count: pk.length, sub: `${money(pk.reduce((a, x) => a + x.p.paid, 0))} prepaid. Idle needs an expiry date on each.`, from: [pk[0].p.from, pk[1]?.p.from].filter(Boolean), to: [pk[0], pk[1]].filter(Boolean).map(x => `${x.c.name} · ${x.p.name} · ${x.p.left} of ${x.p.of} left · paid $${x.p.paid}`), choices: [['2027-11-26', 'Yes, expire in 12 months'], ['2027-05-26', 'Yes, expire in 6 months']], ai: read.by === 'ai' })
   const credit = read.clients.filter(c => c.credit)
-  if (credit.length) f.push({ key: 'credit', title: 'Store credit written in notes', count: credit.length, sub: `${money(credit.reduce((a, c) => a + c.credit, 0))} in total`, from: ex(credit.map(c => c.creditFrom)), to: ex(credit.map(c => `${c.name} · store credit $${c.credit}`)), choices: [[true, "Yes, that's right"], [false, 'Leave it in the notes']] })
+  if (credit.length) f.push({ key: 'credit', title: 'Account credit hidden in notes', count: credit.length, sub: `${money(credit.reduce((a, c) => a + c.credit, 0))} in total`, from: ex(credit.map(c => c.creditFrom)), to: ex(credit.map(c => `${c.name} · store credit $${c.credit}`)), choices: [[true, "Yes, that's right"], [false, 'Leave it in the notes']] })
   const two = read.clients.filter(c => c.notes.includes('Second number'))
-  if (two.length) f.push({ key: 'phones', title: 'Two numbers in one phone field', count: two.length, from: ex(two.map(c => old.customers[c.src].mobile)), to: ex(two.map(c => `Phone ${c.phone} · the other number goes in the notes`)), choices: [[true, "Yes, that's right"]] })
-  if (read.products.length) f.push({ key: 'retail', title: 'Products sold as services', count: read.products.length, sub: 'Slotly never tracked stock, so Idle will ask you to count it.', from: ex(read.products.map(p => old.services[p.src].name)), to: ex(read.products.map(p => `Product: ${p.name} · $${p.price}`)), choices: [[true, 'Yes, make them products'], [false, 'Leave them out']] })
+  if (two.length) f.push({ key: 'phones', title: 'Two numbers in one field', count: two.length, from: ex(two.map(c => old.customers[c.src].mobile)), to: ex(two.map(c => `Phone ${c.phone} · the other number goes in the notes`)), choices: [[true, "Yes, that's right"]] })
+  if (read.products.length) f.push({ key: 'retail', title: 'Products disguised as services', count: read.products.length, sub: 'Slotly never tracked stock, so Idle will ask you to count it.', from: ex(read.products.map(p => old.services[p.src].name)), to: ex(read.products.map(p => `Product: ${p.name} · $${p.price}`)), choices: [[true, 'Yes, make them products'], [false, 'Leave them out']] })
   const dep = read.services.filter(s => s.deposit)
-  if (dep.length) f.push({ key: 'deposits', title: 'Deposits typed into descriptions', count: dep.length, from: ex(dep.map(s => `${s.name}: “${old.services[s.src].description}”`)), to: ex(dep.map(s => `${s.name} · deposit ${s.deposit}%`)), choices: [[true, "Yes, that's right"], [false, 'No deposits for now']] })
+  if (dep.length) f.push({ key: 'deposits', title: 'Deposit rules typed into descriptions', count: dep.length, from: ex(dep.map(s => `${s.name}: “${old.services[s.src].description}”`)), to: ex(dep.map(s => `${s.name} · deposit ${s.deposit}%`)), choices: [[true, "Yes, that's right"], [false, 'No deposits for now']] })
   if (read.cleanups.length) {
     const svc = read.services.filter(s => s.buffer)
-    f.push({ key: 'cleanup', title: '“CLEAN UP” appointments after colour', count: read.cleanups.length, sub: `These become clean-up time on ${svc.length} services, so you never book them by hand again.`, from: ex(read.cleanups.map(c => `CLEAN UP, ${c.mins} min, after ${c.after}`)), to: svc.slice(0, 1).map(s => `${s.name} · ${s.buffer} min buffer after`), choices: [[true, "Yes, that's right"], [false, 'No buffer, I will book clean-ups myself']] })
+    f.push({ key: 'cleanup', title: 'Fake bookings used to block time', count: read.cleanups.length, sub: `These become clean-up time on ${svc.length} services, so you never book them by hand again.`, from: ex(read.cleanups.map(c => `CLEAN UP, ${c.mins} min, after ${c.after}`)), to: svc.slice(0, 1).map(s => `${s.name} · ${s.buffer} min buffer after`), choices: [[true, "Yes, that's right"], [false, 'No buffer, I will book clean-ups myself']] })
   }
-  if (read.breaks.length) f.push({ key: 'breaks', title: '“BLOCKED” appointments are lunch breaks', count: read.breaks.length, sub: 'They are not clients, so they will not move as bookings. Set breaks in each person’s hours in Idle.', from: ex(read.breaks.map(b => `BLOCKED, ${b.service}, ${b.staff}`)), to: ['Not moved as bookings'], choices: [[true, 'Got it']] })
+  if (read.breaks.length) f.push({ key: 'breaks', title: 'Fake bookings used for breaks', count: read.breaks.length, sub: 'They are not clients, so they will not move as bookings. Set breaks in each person’s hours in Idle.', from: ex(read.breaks.map(b => `BLOCKED, ${b.service}, ${b.staff}`)), to: ['Not moved as bookings'], choices: [[true, 'Got it']] })
   if (read.sameStaff.length) {
     const [a, b] = read.sameStaff[0].map(i => read.staff.find(s => s.src === i))
     f.push({ key: 'merge', title: `“${b.name}” looks like “${a.name}”`, count: 2, sub: `Same phone number, ${a.phone}.`, from: [`${a.name} (${a.role}) and ${b.name} (${b.role})`], to: [`One team member: ${a.name}, doing ${[...new Set([...a.does, ...b.does])].join(', ')}`], choices: [[true, 'Yes, same person'], [false, 'No, two people']] })
   }
   const p = read.policies
-  f.push({ key: 'terms', title: 'Cancellation rules written as text', count: 4, from: [old.terms], to: [`${p.cancelHours}h window · ${p.cancelFee}% late fee · ${p.noShowFee}% no-show · late arrivals (${p.lateMinutes} min) in your policy note`], choices: [[true, 'Yes, use these settings'], [false, 'I will set them myself']], ai: read.by === 'ai' })
-  f.push({ key: 'stays', title: 'What stays in Slotly', count: 2, sub: 'Idle messages clients on WhatsApp and starts its reports today.', from: [`${old.smsCredits.toLocaleString('en')} SMS credits`, `${old.sales.length} months of sales history`], to: ['SMS credits cannot move', 'Sales history can be saved as a file'], choices: [[true, 'Save the sales history as a file'], [false, 'No need']] })
+  f.push({ key: 'terms', title: 'Rules written as plain text', count: 4, from: [old.terms], to: [`${p.cancelHours}h window · ${p.cancelFee}% late fee · ${p.noShowFee}% no-show · late arrivals (${p.lateMinutes} min) in your policy note`], choices: [[true, 'Yes, use these settings'], [false, 'I will set them myself']], ai: read.by === 'ai' })
+  f.push({ key: 'stays', title: 'What the new app can’t take', count: 2, sub: 'Idle messages clients on WhatsApp and starts its reports today.', from: [`${old.smsCredits.toLocaleString('en')} SMS credits`, `${old.sales.length} months of sales history`], to: ['SMS credits cannot move', 'Sales history can be saved as a file'], choices: [[true, 'Save the sales history as a file'], [false, 'No need']] })
   const WHY = {
     vip: 'Slotly has no VIP field, so your team adds a ★ to VIP names.',
     alerts: 'Slotly has no allergy alerts, so your team types them into names and notes.',

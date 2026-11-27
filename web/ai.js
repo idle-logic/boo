@@ -117,6 +117,28 @@ export function applyEdit(read, edit) {
   return null
 }
 
+/**
+ * The notes no rule could read, and Boo's plan. Every number Gemini gives must appear in the note.
+ * Returns { notes: [{ src, text, meaning, kind, sessions, service, amount, flag }], plan: [...] } or null.
+ */
+export async function thinkAboutNotes({ unclear, needs, found }) {
+  const out = await callAi('/api/think-about', { notes: unclear.map((u, i) => ({ i, text: u.text })), needs, found })
+  if (!out || !Array.isArray(out.notes)) return null
+  const KINDS = ['prepaid', 'credit', 'flag', 'note']
+  const inText = (n, text) => !n || String(text).includes(String(n))
+  const notes = out.notes
+    .filter(n => unclear[n?.i] && KINDS.includes(n.kind) && typeof n.meaning === 'string')
+    .map(n => {
+      const u = unclear[n.i]
+      const sessions = Number(n.sessions) || 0
+      const amount = Number(n.amount) || 0
+      const ok = inText(sessions, u.text) && inText(amount, u.text)
+      return { src: u.src, text: u.text, meaning: n.meaning.slice(0, 80), kind: ok ? n.kind : 'note', sessions: ok ? sessions : 0, service: String(n.service ?? '').slice(0, 40), amount: ok ? amount : 0, flag: String(n.flag ?? '').slice(0, 40) }
+    })
+  const plan = (Array.isArray(out.plan) ? out.plan : []).slice(0, 5).map(s => String(s).slice(0, 120)).filter(Boolean)
+  return { notes, plan, model: out.model }
+}
+
 export async function askBoo(question, store) {
   const out = await callAi('/api/ask', { question, records: recordsFor(store) })
   return out?.answer ? { answer: out.answer, model: out.model, by: 'ai' } : { answer: 'Gemini is busy right now. Ask me again in a minute.', by: 'none' }

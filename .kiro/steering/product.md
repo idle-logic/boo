@@ -17,7 +17,7 @@ Old software can't hold everything a business needs, so teams hide data where it
 3. **Clean.** Each workaround becomes the new app's proper field. The owner sees old → new side by side and can correct anything in plain words.
 4. **Move and prove.** A swarm of ghosts enters everything through the new app's own screens, then every record and every dollar is reconciled.
 
-The demo's example is a salon moving from "Slotly" (made up) to Idle. The same patterns appear in clinics, gyms, CRMs and any other business software.
+The demo's example is a salon moving from "Slotly" (made up) to Idle. The same patterns appear in any software people outgrow: CRMs, booking, inventory, accounting, HR.
 
 ## Principles
 

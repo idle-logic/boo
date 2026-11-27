@@ -172,6 +172,16 @@ function rawCustomer(c, i) {
       ][i % 3],
     )
   }
+  // Some notes follow no pattern at all. Only something that understands language can read them.
+  const ODD = {
+    4: 'owes 2 blowdries from the Nov promo',
+    8: 'paid ahead for 3 mens cuts in cash',
+    11: 'voucher $40 from her mum, not used yet',
+    15: 'NO SHOW twice, take a deposit next time',
+    19: 'moving overseas in Jan, no promo msgs',
+    24: "comped one scalp detox after a complaint, honour it next visit",
+  }
+  if (ODD[i]) extra.push(ODD[i])
   if (c.credit) extra.push([`credit $${c.credit}`, `$${c.credit} store credit (refund for late start)`, `has $${c.credit} credit on account`][i % 3])
   const phone = c.phone && i % 7 === 2 ? `${c.phone.replace('+65 ', '')} / 9${String(100 + i).padStart(3, '0')} 4410 (husband)` : c.phone.replace('+65 ', '')
   return { name, mobile: phone, email: c.email, visits: c.visits, lastVisit: c.lastVisit, notes: [notes, ...extra].filter(Boolean).join(' | ') }

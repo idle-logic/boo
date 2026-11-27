@@ -11,7 +11,7 @@ import { playIntro } from './intro.js'
 import { survey } from './survey.js'
 import { readWithRules, findingsFor, mergeReading, askGeminiToRead } from './interpret.js'
 import { idleRecords, crewsFor, move, prove } from './switch.js'
-import { chatBoo, recordsFor, applyEdit } from './ai.js'
+import { chatBoo, recordsFor, applyEdit, thinkAboutNotes } from './ai.js'
 import { createBoo as createPet } from './pet.js'
 
 const $ = id => document.getElementById(id)
@@ -40,14 +40,14 @@ boo.hide()
 playIntro().then(at => {
   boo.place(at.x, at.y)
   free()
-  speak("Hi, I'm Boo! Click me, or throw me around.")
+  speak("Boo! Sorry. Press Play and I'll haunt your old software for you.")
 })
 
 // ------------------------------------------------------------- Boo off duty: roams, reacts to you, can be grabbed and thrown
 
 let pet = null
 let lineAt = 0
-const PET_LINES = ['Boo!', 'Hehe, that tickles.', 'I live in your software now.', 'Press the purple button and I get to work.', 'I only haunt the boring bits.', 'Wheee!', 'Your team works so hard. Let me help.']
+const PET_LINES = ['Boo!', 'Hehe, that tickles.', 'I live in old software. It is very dusty.', 'Press the purple button and I get to work.', 'I only haunt the boring bits.', 'Wheee!', 'I have seen things in your notes field.', 'Every database has ghosts. I am the nice one.', 'Your team works so hard. Let me help.']
 const standables = () =>
   [...document.querySelectorAll('.pop > section, .sl-toolbar, .idl-head')].filter(el => !el.closest('[hidden]') && el.getClientRects().length)
 
@@ -87,7 +87,7 @@ function free() {
     bounds: () => ({ x: 0, y: 0, w: innerWidth, h: innerHeight - 12 }),
     at: { x: b.x, y: b.y },
     pop: false,
-    onClick: () => pet?.handle({ type: 'say', text: PET_LINES[lineAt++ % PET_LINES.length] }),
+    onClick: () => openChat(),
     obstacles: () => [netlifyBadge()].filter(Boolean),
     // Left alone for a while, Boo naps in the bottom-left corner.
     nap: { after: 25000, spot: world => ({ x: world.x + 10, y: world.y + world.h - 64 }) },
@@ -283,17 +283,30 @@ const ui = {
 // ------------------------------------------------------------- telling the story plainly
 
 /** A title over the apps as each act begins. Plays by itself. */
-async function actBanner(numeral, name, line, key) {
+async function actBanner(n, plain, act, key) {
   chapter(key)
   const el = $('act-banner')
-  el.innerHTML = `<span>Act ${numeral}</span><b>${esc(name)}</b><small>${esc(line)}</small>`
+  el.innerHTML = `<span>Phase ${n} of 5</span><b>${esc(plain)}</b><small>${esc(act)}</small>`
   el.hidden = false
   el.classList.remove('out')
-  ui.now(`Act ${numeral} · ${name}`, line)
+  ui.now(`Phase ${n} of 5 · ${plain}`, act)
   await pause(1900 * speed)
   el.classList.add('out')
   await pause(350)
   el.hidden = true
+}
+
+/** Put a "Next" button on a popup and wait until it is pressed. Boo roams while it waits. */
+async function nextButton(sectionId, label) {
+  const b = document.createElement('button')
+  b.type = 'button'
+  b.className = 'h-btn primary h-next'
+  b.textContent = label
+  $(sectionId).appendChild(b)
+  free()
+  await new Promise(r => b.addEventListener('click', r, { once: true }))
+  b.remove()
+  busy()
 }
 
 /** Wait a moment, or less if you click the button. */
@@ -303,7 +316,7 @@ function moment(ms, button) {
 
 /** The three chapters at the top of the panel. */
 function chapter(name) {
-  const order = ['read', 'find', 'clean', 'move']
+  const order = ['read', 'find', 'clean', 'move', 'verify']
   for (const li of document.querySelectorAll('#chapters [data-ch]')) {
     const i = order.indexOf(li.dataset.ch)
     li.dataset.state = i < order.indexOf(name) ? 'done' : i === order.indexOf(name) ? 'now' : ''
@@ -339,7 +352,7 @@ function mark(el, label, card) {
   Object.assign(ring.style, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px` })
   ring.innerHTML = `<span>${esc(label)}</span>`
   dim.appendChild(ring)
-  document.body.appendChild(dim)
+  document.querySelector('.browser').appendChild(dim) // same layer as the popups, so the popup stays lit
   // The line: from the right edge of the ring to the left edge of the card.
   const c = rect(card)
   const x1 = Math.min(r.right + 4, pane.right - 6)
@@ -349,7 +362,7 @@ function mark(el, label, card) {
   const link = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   link.setAttribute('class', 'wk-link')
   link.innerHTML = `<path d="M ${x1} ${y1} C ${x1 + (x2 - x1) * 0.5} ${y1}, ${x2 - (x2 - x1) * 0.5} ${y2}, ${x2} ${y2}" /><circle cx="${x1}" cy="${y1}" r="5" /><circle cx="${x2}" cy="${y2}" r="5" />`
-  document.body.appendChild(link)
+  document.querySelector('.browser').appendChild(link)
   card.classList.add('linked')
   return () => {
     dim.remove()
@@ -431,14 +444,16 @@ async function tour() {
       <h2>${esc(f.title)}</h2>
       <dl><div><dt>Old app</dt><dd><code>${esc(from)}</code></dd></div>
       <div><dt>New app ${gem(read.by === 'ai', read.model)}</dt><dd>${idle}</dd></div></dl>
-      <button type="button" class="h-btn" id="tour-next">Next</button>`
+      <button type="button" class="h-btn primary" id="tour-next">Next</button>`
     show('tour')
     const er = rect(el)
     $('pop').dataset.pos = er.left + er.width / 2 > innerWidth / 2 ? 'left' : 'right'
     await pause(250)
     const unring = mark(el, 'Workaround', $('tour'))
     ui.now(f.title, `${f.count} found`, { wait: true })
-    await moment(5200, $('tour-next'))
+    free()
+    await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
+    busy()
     unring()
     if (reader.look('aside [data-close]')) await reader.press('aside [data-close]')
   }
@@ -446,8 +461,61 @@ async function tour() {
   reader.hide()
 }
 
+// ------------------------------------------------------------- what only AI could read, and Boo's plan
+
+let thought = null
+async function onlyAiCouldRead(unclear) {
+  if (!unclear.length) return
+  ui.now('Reading the notes no rule can read', 'Gemini is working on them', { wait: false })
+  thought = await Promise.race([thinking, pause(15000).then(() => null)])
+  const c = read.clients.find(x => x.src === unclear[0].src)
+  await reader.click(await customerRow(c.src))
+  const el = reader.look('aside textarea')
+  const rows = thought?.notes?.length
+    ? thought.notes.slice(0, 5).map(n => `<li><code>${esc(n.text)}</code><span class="arrow">→</span><b>${esc(n.meaning)}</b></li>`).join('')
+    : unclear.slice(0, 5).map(u => `<li><code>${esc(u.text)}</code><span class="arrow">→</span><b>?</b></li>`).join('')
+  $('tour').innerHTML = `<p class="h-eyebrow">Only AI could read these ${gem(Boolean(thought?.notes?.length), thought?.model)}</p>
+    <h2>${unclear.length} notes in no fixed shape</h2>
+    <ul class="h-ai">${rows}</ul>
+    ${thought?.notes?.length ? '' : '<p class="h-hint">The spirits are busy. Tell Boo what these mean.</p>'}
+    <button type="button" class="h-btn primary" id="tour-next">Next</button>`
+  show('tour')
+  const er = rect(el)
+  $('pop').dataset.pos = er.left + er.width / 2 > innerWidth / 2 ? 'left' : 'right'
+  await pause(250)
+  const unring = mark(el, 'No rule can read this', $('tour'))
+  ui.now(thought ? 'Gemini read what no rule could' : 'Boo needs your help with these', `${unclear.length} notes`, { wait: true })
+  free()
+  await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
+  busy()
+  unring()
+  if (reader.look('aside [data-close]')) await reader.press('aside [data-close]')
+  await reader.press('[data-nav]', 'Appointments')
+  reader.hide()
+}
+
+/** Boo's plan, written by Gemini from what Boo found and what you said matters. */
+async function showPlan() {
+  const steps = thought?.plan?.length
+    ? thought.plan
+    : [`Move every client and their history`, `Turn notes into proper fields`, `Check every dollar of credit and prepaid`, `Lay the old app to rest`]
+  $('tour').innerHTML = `<p class="h-eyebrow">Boo's plan ${gem(Boolean(thought?.plan?.length), thought?.model)}</p>
+    <h2>${needs ? `Because you said: “${esc(needs.slice(0, 60))}”` : 'Here is what I will do'}</h2>
+    <ol class="h-plan-steps">${steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+    <button type="button" class="h-btn primary" id="tour-next">Next: clean it</button>`
+  show('tour')
+  $('pop').dataset.pos = 'center'
+  ui.now("Boo's plan", 'Next: clean it', { wait: true })
+  free()
+  await new Promise(r => $('tour-next').addEventListener('click', r, { once: true }))
+  busy()
+}
+
 // ------------------------------------------------------------- act one: look around, then haunt it
 
+let needs = ''
+let wantNeeds = null
+let thinking = null // Gemini reading the notes no rule can read, and writing Boo's plan
 let seen = null
 let read = null
 let findings = null
@@ -456,11 +524,23 @@ async function lookAround() {
   $('start').disabled = true
   $('start-card').hidden = true
   $('pop').dataset.pos = 'right'
+  stage = 'asking'
+  free()
+  needs = await new Promise(resolve => {
+    wantNeeds = resolve
+    openChat({ question: 'Before I start: what matters most to you in this switch?', chips: ["Don't lose any money", 'Keep health info safe', "Don't mess up the schedule"] })
+  })
+  wantNeeds = null
+  speak('Got it. I will keep that in mind.')
+  await pause(700)
+  $('chat-pop').hidden = true
   stage = 'reading'
   busy()
-  await actBanner('I', 'Rise of the Dead', 'Read the old app', 'read')
+  await actBanner(1, 'Collect the data', 'Act I · Rise of the Dead', 'read')
   seen = await survey({ r: reader, ui, speed, business: BUSINESS })
-  await actBanner('II', 'Ghosts in the Notes', 'Find the hidden data', 'find')
+  ui.now('Data collected', 'Next: analyse it', { wait: true })
+  await nextButton('collected', 'Next: analyse it')
+  await actBanner(2, 'Analyse it', 'Act II · Ghosts in the Notes', 'find')
   stage = 'touring'
   // Boo starts with its own reading; Gemini reads everything in the background and is merged in when it answers.
   read = readWithRules(seen)
@@ -469,7 +549,7 @@ async function lookAround() {
   $('gem-chip').hidden = false
   $('gem-chip').textContent = `✦ Gemini is reading ${records} records…`
   const gemini = askGeminiToRead(seen).then(ai => {
-    if (!ai) return ($('gem-chip').textContent = '✦ Gemini busy · Boo used its own reading')
+    if (!ai) return ($('gem-chip').textContent = '✦ The spirits are busy · Boo read it all alone')
     const merged = mergeReading(seen, read, ai)
     if (merged.by === 'ai') {
       Object.assign(read, merged)
@@ -477,10 +557,14 @@ async function lookAround() {
       $('gem-chip').classList.add('done')
     }
   })
+  const unclear = read.clients.flatMap(c => (c.unclear ?? []).map(text => ({ src: c.src, text })))
+  thinking = thinkAboutNotes({ unclear, needs, found: findings.map(f => `${f.title} (${f.count})`) })
   await tour()
+  await onlyAiCouldRead(unclear)
+  await showPlan()
   // Give Gemini a few more seconds if it is still reading, then carry on either way.
   await Promise.race([gemini, pause(6000 * speed)])
-  await actBanner('III', 'The Exorcism', 'Clean it', 'clean')
+  await actBanner(3, 'Clean it', 'Act III · The Exorcism', 'clean')
   standardise()
 }
 
@@ -490,6 +574,10 @@ function standardise() {
   seen.appointments = old.appointments.map(a => ({ ...a }))
   Object.assign(read, (({ bookings, cleanups, breaks }) => ({ bookings, cleanups, breaks }))(readWithRules(seen)))
   findings = findingsFor(seen, read)
+  if (thought?.notes?.length) {
+    const n = thought.notes.find(x => x.kind !== 'note') ?? thought.notes[0]
+    findings.splice(findings.length - 1, 0, { key: 'unclear', title: 'Notes only AI could read', count: thought.notes.length, from: [n.text], to: [n.meaning], choices: [[true, 'Use what Gemini read'], [false, 'Keep them as notes']], value: true, why: '', but: '' })
+  }
   const list = findings.filter(f => f.key !== 'stays')
   $('confirm').innerHTML = `<h2>Is this right? ${gem(read.by === 'ai', read.model)}</h2>
     <div class="h-map-head"><span>Old app</span><span></span><span>New app</span></div>
@@ -497,48 +585,30 @@ function standardise() {
       .map(
         f => `<li data-i="${findings.indexOf(f)}"><b>${esc(f.title)}</b><span class="n">${f.count}</span>
         <div class="map"><code>${esc(f.from[0])}</code><span class="arrow" aria-hidden="true">→</span><code class="to">${esc(f.to[0])}</code></div>
-        ${['packages', 'merge'].includes(f.key) ? `<div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div>` : ''}</li>`,
+        ${['packages', 'merge', 'unclear'].includes(f.key) ? `<div class="choices">${f.choices.map(([, label], k) => `<button type="button" data-c="${k}" aria-pressed="${k === 0}">${esc(label)}</button>`).join('')}</div>` : ''}</li>`,
       )
       .join('')}</ol>
-    <p class="h-hint">Anything else wrong? Tell Boo: click the ghost at the top.</p>
-    <button type="button" class="h-btn primary" id="go">Looks right <span id="go-count"></span></button>`
-  let left = 10
-  let held = false
-  const hold = () => {
-    held = true
-    $('go-count').textContent = ''
-  }
-  $('confirm').querySelectorAll('[data-i]').forEach(li =>
-    li.querySelectorAll('[data-c]').forEach(b =>
-      b.addEventListener('click', () => {
-        hold()
-        const f = findings[Number(li.dataset.i)]
-        f.value = f.choices[Number(b.dataset.c)][0]
-        li.querySelectorAll('[data-c]').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
-      }),
-    ),
-  )
-  $('chat-q').addEventListener('focus', hold, { once: true })
+    <p class="h-hint">Anything else wrong? Click Boo and tell it.</p>
+    <button type="button" class="h-btn primary" id="go">Looks right, clean it</button>`
   show('confirm')
-  ui.now('Is this right?', 'Or tell Boo in the chat', { wait: true })
+  ui.now('Is this right?', 'Speak now, or tell Boo in the chat', { wait: true })
   free()
-  const go = () => {
-    clearInterval(count)
-    clean()
-  }
-  const count = setInterval(() => {
-    if (held) return
-    left--
-    $('go-count').textContent = `(${left})`
-    if (left <= 0) go()
-  }, 1000 * speed)
-  $('go-count').textContent = `(${left})`
-  $('go').addEventListener('click', go, { once: true })
+  $('go').addEventListener('click', clean, { once: true })
 }
 
 /** The cleaning, quickly, one kind at a time. */
 async function clean() {
   stage = 'cleaning'
+  // What Gemini read in the notes becomes real data, if you agreed.
+  if (thought?.notes?.length && findings.find(f => f.key === 'unclear')?.value !== false) {
+    for (const n of thought.notes) {
+      const c = read.clients.find(x => x.src === n.src)
+      if (!c) continue
+      if (n.kind === 'credit' && n.amount) c.credit += n.amount
+      if (n.kind === 'prepaid' && n.sessions) c.packages.push({ name: `${n.sessions} ${n.service || 'sessions'}`, left: n.sessions, of: n.sessions, paid: n.amount, from: n.text })
+      if (n.kind === 'flag' && n.flag) c.alert = c.alert ? `${c.alert} · ${n.flag}` : n.flag
+    }
+  }
   busy()
   const done = findings.filter(f => f.key !== 'stays')
   $('live').innerHTML = `<h2>Cleaning</h2><ol class="h-clean">${done.map(f => `<li data-k="${f.key}"><b>${esc(f.title)}</b><em>${f.count}</em></li>`).join('')}</ol>`
@@ -556,8 +626,9 @@ async function clean() {
     burst(r.left + 20, r.top + 10, 8, SPARKLE, 0.3, 200)
   }
   boo.react('happy', 'All clean!', 1400)
-  await pause(500 * speed)
-  await actBanner('IV', 'Crossing Over', 'Move it', 'move')
+  ui.now('Data cleaned', 'Next: migrate it', { wait: true })
+  await nextButton('live', 'Next: migrate it')
+  await actBanner(4, 'Migrate it', 'Act IV · Crossing Over', 'move')
   switchToIdle()
 }
 
@@ -587,11 +658,41 @@ async function switchToIdle() {
   for (const c of crews) lane(c.id, c.name)
   await split(crews.map(c => c.id))
   await move({ crews, lane, store, ui, speed })
+  await actBanner(5, 'Verify it', 'Act V · Rest in Peace', 'verify')
   show('proof')
   watch('proof')
   await split(['proof'])
   const result = await prove({ seen, read, records, d, p: views.proof.hands, ui, speed })
   done(result, d)
+}
+
+const DIRT = ['#5b3a24', '#7a5236', '#946a48', '#3e2716']
+
+/** The old app sinks into a grave and leaves a headstone. The new app takes the whole window. */
+async function layToRest() {
+  const pane = $('pane-slotly')
+  if (pane.hidden) return
+  const r = rect(pane)
+  const dust = setInterval(() => {
+    for (let i = 0; i < 3; i++) burst(r.left + 20 + Math.random() * (r.width - 40), r.bottom - 8, 8, DIRT, 0.55, 1300)
+  }, 200)
+  pane.animate([{ transform: 'translate(-3px, 0)' }, { transform: 'translate(3px, 0)' }, { transform: 'translate(0, 0)' }], { duration: 300, iterations: 2 })
+  await pause(600)
+  const down = pane.animate([{ transform: 'translateY(0)', clipPath: 'inset(0 0 0 0)' }, { transform: `translateY(${r.height}px)`, clipPath: `inset(0 0 ${r.height}px 0)` }], { duration: 2400, easing: 'cubic-bezier(.55,.05,.7,.4)', fill: 'forwards' })
+  await down.finished
+  clearInterval(dust)
+  pane.hidden = true
+  down.cancel()
+  $('tab-slotly').hidden = true
+  $('viewport').classList.remove('split')
+  const stone = document.createElement('div')
+  stone.className = 'tombstone'
+  stone.setAttribute('role', 'img')
+  stone.setAttribute('aria-label', 'Here lies Slotly, 2011 to 2026. Its data lives on in Idle.')
+  stone.innerHTML = '<span class="rip">RIP</span><strong>Slotly</strong><span class="years">2011 – 2026</span><em>Its data lives on</em>'
+  $('viewport').appendChild(stone)
+  burst(r.left + 120, r.bottom - 120, 30, SPARKLE, 0.5, 200)
+  ui.now('The old app is laid to rest', 'Its data lives on in the new one', { wait: true })
 }
 
 function done(result, d) {
@@ -600,7 +701,7 @@ function done(result, d) {
   ui.now('Moved. Nothing lost.', `${result.matched}/${result.checks} checks match`, { wait: true })
   const salesFile = d.stays !== false
   $('receipt').innerHTML = `
-    <p class="h-eyebrow">The end</p>
+    <p class="h-eyebrow">The end · the old app may now rest in peace</p>
     <h2>Moved. Nothing lost.</h2>
     <ul>${result.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
     <p class="h-check"><b>${result.matched}/${result.checks}</b> checks match</p>
@@ -613,6 +714,7 @@ function done(result, d) {
     a.download = 'slotly-sales-history.csv'
     a.click()
   })
+  setTimeout(() => layToRest(), 1800 * speed)
   const r = rect($('receipt'))
   boo.mode('happy')
   boo.flyTo(r.right - 70, r.top - 40, 700, { size: 56 }).then(async () => {
@@ -645,6 +747,7 @@ function refreshFindings() {
 let stage = 'start'
 const STAGES = {
   start: 'Not started. Boo has not looked at Slotly yet.',
+  asking: 'Boo is asking the owner what matters most before it starts.',
   reading: 'Boo is reading Slotly.',
   touring: 'Boo has read Slotly and is showing the owner the workarounds it found. The owner can correct anything Boo read.',
   found: 'Boo has read Slotly and found the workarounds. The clean-up plan can still change.',
@@ -669,6 +772,7 @@ $('chat-form').addEventListener('submit', async e => {
   const message = $('chat-q').value.trim()
   if (!message) return
   $('chat-q').value = ''
+  if (wantNeeds) return wantNeeds(message)
   const reply = $('chat-reply')
   reply.hidden = false
   reply.innerHTML = `<b>You:</b> ${esc(message)}<br><i>Boo is thinking...</i>`
@@ -694,11 +798,35 @@ $('chat-form').addEventListener('submit', async e => {
   reply.innerHTML = `<b>You:</b> ${esc(message)}<br><b>Boo ${gem(true, out.model)}:</b> ${esc(out.reply)}${note ? `<br><em>${esc(note)}</em>` : ''}`
   speak(out.reply, 5000)
 })
-$('haunt-toggle').addEventListener('click', () => {
-  const open = $('chat-pop').hidden
-  $('chat-pop').hidden = !open
-  $('haunt-toggle').setAttribute('aria-pressed', String(open))
-  if (open) $('chat-q').focus()
+$('haunt-toggle').addEventListener('click', () => openChat())
+
+/** The chat opens next to Boo, wherever Boo is. question/chips: Boo asking you something. */
+function openChat({ question = '', chips = [] } = {}) {
+  const box = $('chat-pop')
+  box.hidden = false
+  $('chat-ask').textContent = question || "Hi! Ask me anything, or tell me what I got wrong."
+  $('chat-chips').innerHTML = chips.map(c => `<button type="button">${esc(c)}</button>`).join('')
+  $('chat-chips').hidden = !chips.length
+  $('chat-reply').hidden = true
+  const b = pet ? pet.box : boo.box
+  const frame = rect(document.querySelector('.browser'))
+  const w = box.offsetWidth || 360
+  const h = box.offsetHeight || 200
+  const left = Math.max(10, Math.min(frame.width - w - 10, b.x - frame.left - w / 2 + 32))
+  const above = b.y - frame.top - h - 14
+  box.style.left = `${left}px`
+  box.style.top = `${above > 50 ? above : b.y - frame.top + 80}px`
+  box.classList.toggle('below', above <= 50)
+  $('chat-q').placeholder = question ? 'Or type your own…' : 'Ask Boo, or tell it what to fix'
+  box.style.right = 'auto'
+  $('chat-q').focus({ preventScroll: true })
+}
+$('chat-close').addEventListener('click', () => ($('chat-pop').hidden = true))
+$('chat-chips').addEventListener('click', e => {
+  const c = e.target.closest('button')
+  if (!c) return
+  $('chat-q').value = c.textContent
+  $('chat-form').requestSubmit()
 })
 
 window.__haunt = { store, old, views, ui, feed: feedLines, boo, get read() { return read }, get findings() { return findings } }

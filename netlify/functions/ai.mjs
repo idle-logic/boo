@@ -3,7 +3,7 @@
 //   POST /api/ask       questions about the salon, from its moved records
 //   POST /api/chat      the chat bar: questions, and changes to the clean-up plan
 // Set GEMINI_API_KEY in the Netlify site's environment variables.
-import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest } from '../../src/agent/ai.js'
+import { readOldRecords, cleanReadRequest, askAboutSalon, cleanAskRequest, chatWithBoo, cleanChatRequest, thinkAbout, cleanThinkAboutRequest } from '../../src/agent/ai.js'
 import { makeRateLimiter, BrainBusyError } from '../../src/agent/gemini.js'
 
 const allow = makeRateLimiter({ perMinute: 12, perDay: 300 })
@@ -11,6 +11,7 @@ const TASKS = {
   '/api/read': [cleanReadRequest, readOldRecords],
   '/api/ask': [cleanAskRequest, askAboutSalon],
   '/api/chat': [cleanChatRequest, chatWithBoo],
+  '/api/think-about': [cleanThinkAboutRequest, thinkAbout],
 }
 
 export default async (req, context) => {
@@ -28,4 +29,4 @@ export default async (req, context) => {
   }
 }
 
-export const config = { path: ['/api/read', '/api/ask', '/api/chat'] }
+export const config = { path: ['/api/read', '/api/ask', '/api/chat', '/api/think-about'] }

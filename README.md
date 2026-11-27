@@ -6,7 +6,7 @@ Old software can't hold everything, so teams hide data where it doesn't belong: 
 
 ## Try it in your browser
 
-Open the live demo from the link in this repo's About box and press **Play**. It runs by itself in about a minute and a half. The example is a salon moving from "Slotly" (a made-up app from 2011) to Idle.
+Open the live demo from the link in this repo's About box and press **Play**. It runs by itself in about a minute and a half. The example is a salon moving from "Slotly" (a made-up booking app from 2011) to Idle. The same ghosts haunt CRMs, inventory, accounting and HR systems.
 
 1. **Rise of the Dead.** Boo reads every screen of the old app. No export, no API.
 2. **Ghosts in the Notes.** Gemini reads every name, note and description. Boo shows three pieces of hidden data in the old app, and how each will look in the new one.
@@ -14,6 +14,14 @@ Open the live demo from the link in this repo's About box and press **Play**. It
 4. **Crossing Over.** A swarm of ghosts moves everything at once through the new app's own screens, then every record and every dollar is checked.
 
 Ask Boo anything in the chat box at any time. When Boo is not working it roams the page: click it, throw it, or leave it alone and it naps in the corner.
+
+## Use it for your own switch
+
+Haunt is MIT licensed and built to be reused. Every workaround it knows is a small, plain rule in `web/interpret.js`: what the hidden data looks like in the old app ("credit $80" in a note, "★" in a name) and where it belongs in the new one. To teach Haunt your software:
+
+1. Describe your old app's records and their workarounds, like `slotlyRecords()` in `web/data.js`.
+2. Add a rule for each workaround to `web/interpret.js`, and a test that it reads back to the real record (see `tests/haunt.test.js`).
+3. Run `npm test`. Gemini handles the messy cases; your rules keep it honest.
 
 ## Haunt on real software
 

@@ -73,6 +73,33 @@ export async function readOldRecords(req, apiKey) {
   return { ...json, model }
 }
 
+// ------------------------------------------------------------- think: notes no rule can read, and Boo's plan
+
+const THINK_SYSTEM = `You help move a business out of old software that could not store everything.
+1. Each note below was typed by staff because the old software had no field for it. Say what it really means and where it belongs:
+   "prepaid" (sessions already paid for or owed to the client), "credit" (money the client can spend), "flag" (something staff must know, like a no-show risk or no marketing), or "note" (keep as a note).
+2. Write Boo's plan for this move: 3 to 5 short steps, in plain words, shaped by what the owner said matters most.
+Answer with JSON only:
+{"notes": [{"i": <number>, "meaning": "<under 10 words>", "kind": "prepaid|credit|flag|note", "sessions": <number or 0>, "service": "<service or empty>", "amount": <dollars or 0>, "flag": "<under 6 words, or empty>"}],
+ "plan": ["<step>", "..."]}
+Only use numbers that appear in the note.`
+
+export function cleanThinkAboutRequest(body) {
+  if (!body || typeof body !== 'object') return null
+  const notes = (Array.isArray(body.notes) ? body.notes : []).slice(0, 40).map(n => ({ i: Number(n?.i) || 0, text: str(n?.text, 200) }))
+  return { notes, needs: str(body.needs, 300), found: (Array.isArray(body.found) ? body.found : []).slice(0, 20).map(f => str(f, 100)) }
+}
+
+export async function thinkAbout(req, apiKey) {
+  const user = [
+    `What the owner said matters most: ${req.needs || 'nothing in particular'}`,
+    `What Boo found in the old software:\n${req.found.map(f => `- ${f}`).join('\n')}`,
+    `Notes (number: text):\n${req.notes.map(n => `${n.i}: ${n.text}`).join('\n')}`,
+  ].join('\n\n')
+  const { json, model } = await askGemini({ system: THINK_SYSTEM, user, apiKey, maxTokens: 1500 })
+  return { ...json, model }
+}
+
 // ------------------------------------------------------------- chat: questions, and changes to the clean-up plan
 
 const CHAT_SYSTEM = `You are Boo, a friendly ghost helping a hair salon move from its old booking software (Slotly) into Idle.

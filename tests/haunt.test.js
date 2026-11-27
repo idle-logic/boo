@@ -81,3 +81,30 @@ test('requests to the AI are cut down to size', () => {
   assert.ok(big.customers.every(c => c.name.length <= 80 && c.notes.length <= 400))
   assert.equal(cleanAskRequest({ question: '   ' , records: 'x' }), null)
 })
+
+test('rules set aside the notes they cannot read, and Gemini may only use numbers the note contains', async () => {
+  const { thinkAboutNotes } = await import('../web/ai.js')
+  const unclear = read.clients.flatMap(c => (c.unclear ?? []).map(text => ({ src: c.src, text })))
+  assert.ok(unclear.length >= 5, 'the odd notes are set aside for AI')
+  const real = globalThis.fetch
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({
+    notes: [
+      { i: 0, meaning: 'Owed two blowdries', kind: 'prepaid', sessions: 2, service: 'blowdry', amount: 0 },
+      { i: 1, meaning: 'Invented a number', kind: 'credit', sessions: 0, amount: 999 },
+      { i: 2, meaning: 'Not a kind we know', kind: 'refund' },
+    ],
+    plan: ['Check every balance'],
+    model: 'test',
+  }) })
+  try {
+    const out = await thinkAboutNotes({ unclear, needs: 'money', found: [] })
+    assert.equal(out.notes.length, 2, 'unknown kinds are dropped')
+    assert.equal(out.notes[0].kind, 'prepaid')
+    assert.equal(out.notes[0].sessions, 2)
+    assert.equal(out.notes[1].kind, 'note', 'a number not in the note turns it back into a plain note')
+    assert.equal(out.notes[1].amount, 0)
+    assert.deepEqual(out.plan, ['Check every balance'])
+  } finally {
+    globalThis.fetch = real
+  }
+})

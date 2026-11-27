@@ -23,6 +23,9 @@
       </header>
 
       <div class="chat-pop" id="chat-pop" hidden>
+        <button type="button" class="chat-close" id="chat-close" aria-label="Close">×</button>
+        <p class="chat-ask" id="chat-ask"></p>
+        <div class="chat-chips" id="chat-chips" hidden></div>
         <form class="h-chat" id="chat-form" autocomplete="off">
           <p class="h-chat-reply" id="chat-reply" aria-live="polite" hidden></p>
           <label class="sr-only" for="chat-q">Ask Boo, or tell it what to change</label>
@@ -45,19 +48,21 @@
         <div class="gem-chip" id="gem-chip" hidden aria-live="polite"></div>
         <div class="caption" id="caption" hidden role="status" aria-live="polite"><b id="cap-title"></b><span id="cap-sub"></span></div>
 
-        <ol class="h-chapters" id="chapters" aria-label="The four acts">
-          <li data-ch="read" data-state="now"><span>I</span>Rise of the Dead</li>
-          <li data-ch="find"><span>II</span>Ghosts in the Notes</li>
-          <li data-ch="clean"><span>III</span>The Exorcism</li>
-          <li data-ch="move"><span>IV</span>Crossing Over</li>
+        <ol class="h-chapters" id="chapters" aria-label="Phases">
+          <li data-ch="read" data-state="now"><span>1</span>Collect</li>
+          <li data-ch="find"><span>2</span>Analyse</li>
+          <li data-ch="clean"><span>3</span>Clean</li>
+          <li data-ch="move"><span>4</span>Migrate</li>
+          <li data-ch="verify"><span>5</span>Verify</li>
         </ol>
         <div class="pop" id="pop" data-pos="center">
             <section class="h-start" id="start-card">
               <div class="boo-spot" id="boo-spot" aria-hidden="true"></div>
               <p class="h-eyebrow">Haunt</p>
               <h1>Switch software. Lose nothing.</h1>
-              <p>Old software hides data in notes and names. Boo finds it, cleans it, moves it.</p>
-              <div class="h-example"><span>Example</span><b>Slotly → Idle</b></div>
+              <p>Every old system has ghosts: data hidden in notes, names and fake records. Boo finds them, cleans them, and moves them into your new software.</p>
+              <div class="h-example"><span>Works for</span><b>any software: CRM, booking, inventory, accounting, HR…</b></div>
+              <div class="h-example"><span>This demo</span><b>a salon's booking app, Slotly → Idle</b></div>
               <div class="h-holds">
                 <div><small>Old app holds</small><p>Customers · Services · Staff · Appointments · Sales</p></div>
                 <div class="new"><small>New app also holds</small><p>Alerts · VIPs · Packages · Store credit · Products · Deposits · Buffer time · Cancellation rules</p></div>
