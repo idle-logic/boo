@@ -76,6 +76,8 @@ export function playIntro() {
     <div class="intro-grave"></div>
     <p class="intro-skip">Click to skip</p>`
   document.body.appendChild(scene)
+  // The static night sky in the page held the screen until now.
+  document.getElementById('intro-cover')?.remove()
   // A sky full of stars, some twinkling.
   const sky = scene.querySelector('.intro-sky')
   for (let i = 0; i < 90; i++) {
